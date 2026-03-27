@@ -1,0 +1,46 @@
+---
+- name: Installeer populaire Open Source Windows-tools
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Installeer lokale klassiekers via APT
+      become: yes
+      apt:
+        name:
+          - vlc              # De alleskunner voor video
+          - audacity         # Audiobewerking
+          - keepassxc        # Veilig wachtwoordbeheer
+          - gimp             # Fotobewerking (Photoshop alternatief)
+          - inkscape         # Vector tekenen (Illustrator alternatief)
+          - filezilla        # FTP/Bestandsoverdracht
+        state: present
+        update_cache: yes
+
+    - name: Installeer zware media-tools via Flatpak (voor stabiliteit)
+      flatpak:
+        name:
+          - com.obsproject.Studio       # Schermopname / Streaming
+          - org.videolan.VLC            # Flatpak versie heeft vaak betere codecs
+          - org.shotcut.Shotcut         # Eenvoudige videobewerker (Windows-stijl)
+        state: present
+        remote: flathub
+
+    - name: Prik gaten voor Media-toegang (Flatpak)
+      shell: |
+        # Geef OBS en Shotcut toegang tot de webcam en microfoon
+        for app in com.obsproject.Studio org.shotcut.Shotcut; do
+          flatpak override $app --device=all --share=network --filesystem="home"
+        done
+      args:
+        executable: /bin/bash
+
+    - name: Snelkoppelingen voor herkenbare tools op bureaublad
+      shell: |
+        cp /usr/share/applications/vlc.desktop /home/$USER/Desktop/
+        cp /usr/share/applications/gimp.desktop /home/$USER/Desktop/
+        cp /usr/share/applications/org.keepassxc.KeePassXC.desktop /home/$USER/Desktop/Wachtwoorden.desktop
+        chmod +x /home/$USER/Desktop/*.desktop
+        chown $USER:$USER /home/$USER/Desktop/*.desktop
+      args:
+        executable: /bin/bash
+      ignore_errors: yes

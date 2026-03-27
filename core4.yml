@@ -1,0 +1,54 @@
+---
+- name: Laatste comfort-instellingen voor de Windows-beleving
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Installeer extra archief-ondersteuning (7-Zip/RAR)
+      become: yes
+      apt:
+        name:
+          - p7zip-full
+          - p7zip-rar
+          - unrar-free
+          - zip
+          - unzip
+        state: present
+
+    - name: Activeer de Nachtlamp (Blue Light Filter)
+      shell: |
+        # Schakel nachtlamp in en stel in op 'automatisch' (zonsondergang)
+        gsettings set org.cinnamon.settings-daemon.plugins.color night-light-enabled true
+        gsettings set org.cinnamon.settings-daemon.plugins.color night-light-schedule-automatic true
+        # Stel de temperatuur in op een aangename 3500K (warm)
+        gsettings set org.cinnamon.settings-daemon.plugins.color night-light-temperature 3500
+      args:
+        executable: /bin/bash
+
+    - name: Automatische schoonmaak (Storage Sense alternatief)
+      shell: |
+        # Verwijder bestanden in de prullenbak die ouder zijn dan 30 dagen
+        gsettings set org.gnome.desktop.privacy remove-old-trash-files true
+        gsettings set org.gnome.desktop.privacy old-files-age 30
+        
+        # Verwijder tijdelijke bestanden automatisch
+        gsettings set org.gnome.desktop.privacy remove-old-temp-files true
+      args:
+        executable: /bin/bash
+
+    - name: Verbeter de venster-animaties (Vloeiendheid)
+      shell: |
+        # Zorg dat vensters 'snappen' en animeren zoals in Windows 10
+        gsettings set org.cinnamon.muffin desktop-effects true
+        gsettings set org.cinnamon.desktop.interface enable-animations true
+      args:
+        executable: /bin/bash
+
+    - name: Voeg 'Nieuw Document' toe aan rechtermuisknop (Templates)
+      shell: |
+        # Windows-gebruikers verwachten 'Rechtermuisknop > Nieuw > Tekstbestand'
+        mkdir -p /home/$USER/Templates
+        touch "/home/$USER/Templates/Nieuw Tekstbestand.txt"
+        touch "/home/$USER/Templates/Nieuw OnlyOffice Document.docx"
+        chown -R $USER:$USER /home/$USER/Templates
+      args:
+        executable: /bin/bash

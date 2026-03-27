@@ -1,0 +1,51 @@
+---
+- name: Software migratie naar Microsoft-achtige omgeving
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Verwijder LibreOffice volledig
+      become: yes
+      apt:
+        name: 
+          - libreoffice*
+          - thunderbird* # Optioneel, Windows-gebruikers geven vaak de voorkeur aan Outlook/Webmail
+        state: absent
+        purge: yes
+
+    - name: Installeer rclone en flatpak ondersteuning
+      become: yes
+      apt:
+        name: 
+          - rclone
+          - flatpak
+          - gnome-software-plugin-flatpak
+        state: present
+        update_cache: yes
+
+    - name: Voeg Flathub repository toe
+      become: yes
+      flatpak_remote:
+        name: flathub
+        state: present
+        flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+
+    - name: Installeer OnlyOffice via Flatpak
+      flatpak:
+        name: org.onlyoffice.desktopeditors
+        state: present
+        remote: flathub
+
+    - name: Geef OnlyOffice toegang tot de home documenten map
+      shell: |
+        # Flatpak apps zijn standaard 'sandboxed'. 
+        # Hiermee geven we expliciet toegang tot de locale Documenten map.
+        flatpak override org.onlyoffice.desktopeditors --filesystem="/home/$USER/Documents:rw"
+        flatpak override org.onlyoffice.desktopeditors --filesystem="/home/$USER/Documenten:rw"
+      args:
+        executable: /bin/bash
+
+    - name: Maak rclone configuratie directory aan
+      file:
+        path: "/home/$USER/.config/rclone"
+        state: directory
+        mode: '0700'

@@ -1,0 +1,37 @@
+---
+- name: Master Deployment - Windows-naar-Debian Transformatie
+  hosts: localhost
+  connection: local
+
+  # STAP 1: De Fundering (De Core-laag eerst!)
+  # Hier worden repositories, Python-apt, wget, curl en basis-libs geregeld.
+- import_playbook: core.yml
+- import_playbook: core2.yml
+- import_playbook: core3.yml
+- import_playbook: core4.yml
+
+  # STAP 2: Hardware & Systeem-kritische lagen
+  # Drivers, NTFS-support, Firmware en Smartcard-ondersteuning.
+- import_playbook: hardware_and_drivers.yml
+- import_playbook: energie.yml
+
+  # STAP 3: De Werkomgeving (Productiviteit)
+  # Browsers, Office en de zakelijke verbindingen.
+- import_playbook: webbrowsers.yml
+- import_playbook: office.yml
+- import_playbook: windows-apps.yml  # (Citrix & RDP)
+- import_playbook: ai.yml
+
+  # STAP 4: Dagelijks Gebruik & Tools
+  # De bekende Open Source tools (VLC, GIMP, etc.)
+- import_playbook: os_essentials.yml
+
+  # STAP 5: De "Look & Feel" (De Windows-ervaring)
+  # Thema's, iconen en de vertrouwde slideshow.
+- import_playbook: bureaublad.yml
+- import_playbook: slideshow.yml
+
+  # STAP 6: Beheer & Onderhoud (Onzichtbaar)
+  # De automatische updates en de hulp-op-afstand tools.
+- import_playbook: updates.yml
+- import_playbook: remote.yml

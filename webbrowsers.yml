@@ -1,0 +1,59 @@
+---
+- name: Browsers en Fonts installatie met Folder Access
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Accepteer MS Fonts licentie vooraf
+      become: yes
+      shell: |
+        echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
+      args:
+        executable: /bin/bash
+
+    - name: Installeer lokale browser en fonts
+      become: yes
+      apt:
+        name:
+          - falkon
+          - ttf-mscorefonts-installer
+          - flatpak
+        state: present
+        update_cache: yes
+
+    - name: Voeg Flathub toe
+      become: yes
+      flatpak_remote:
+        name: flathub
+        state: present
+        flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+
+    - name: Installeer Edge en Brave via Flatpak
+      flatpak:
+        name:
+          - com.microsoft.Edge
+          - com.brave.Browser
+        state: present
+        remote: flathub
+
+    - name: Geef Flatpak browsers toegang tot gebruikersmappen
+      shell: |
+        # Geef Edge en Brave toegang tot de standaard XDG mappen (Documenten, Downloads, etc.)
+        # Dit zorgt ervoor dat de 'Bestand openen' dialoog herkenbaar blijft voor Windows-gebruikers.
+        for app in com.microsoft.Edge com.brave.Browser; do
+          flatpak override $app --filesystem="home"
+          # Optioneel: geef specifiek toegang tot de downloadmap als 'home' te breed is
+          # flatpak override $app --filesystem="xdg-download"
+        done
+      args:
+        executable: /bin/bash
+
+    - name: Snelkoppelingen op bureaublad plaatsen
+      shell: |
+        cp /var/lib/flatpak/exports/share/applications/com.microsoft.Edge.desktop /home/$USER/Desktop/
+        cp /var/lib/flatpak/exports/share/applications/com.brave.Browser.desktop /home/$USER/Desktop/
+        cp /usr/share/applications/org.kde.falkon.desktop /home/$USER/Desktop/
+        chmod +x /home/$USER/Desktop/*.desktop
+        chown $USER:$USER /home/$USER/Desktop/*.desktop
+      args:
+        executable: /bin/bash
+      ignore_errors: yes

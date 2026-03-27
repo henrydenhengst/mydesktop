@@ -1,0 +1,71 @@
+---
+- name: Hardware, NTFS en Smartcard support
+  hosts: localhost
+  connection: local
+  tasks:
+    # --- 1. BESTANDSSYSTEEM (NTFS & EXFAT) ---
+    - name: Installeer NTFS en exFAT ondersteuning
+      become: yes
+      apt:
+        name:
+          - ntfs-3g       # Lezen en schrijven op Windows schijven
+          - exfat-fuse    # Voor moderne grote USB-sticks/SD-kaarten
+          - exfatprogs
+          - gparted       # Visueel schijfbeheer (Windows-stijl)
+        state: present
+
+    # --- 2. SMARTCARD (PC/SC) ---
+    - name: Installeer Smartcard drivers en middleware
+      become: yes
+      apt:
+        name:
+          - pcscd         # De daemon die de kaartlezer aanstuurt
+          - libpcsclite1
+          - pcsc-tools
+          - opensc        # Universele smartcard library
+        state: present
+
+    - name: Zorg dat de Smartcard service altijd draait
+      become: yes
+      systemd:
+        name: pcscd
+        state: started
+        enabled: yes
+
+    # --- 3. FIRMWARE & CPU MICROCODE ---
+    - name: Voeg 'non-free' en 'contrib' toe voor ontbrekende firmware
+      become: yes
+      apt_repository:
+        repo: "deb http://deb.debian.org/debian/ {{ ansible_distribution_release }} main contrib non-free non-free-firmware"
+        state: present
+
+    - name: Installeer universele firmware en CPU updates
+      become: yes
+      apt:
+        name:
+          - firmware-linux-free
+          - firmware-linux-nonfree
+          - firmware-librealsense
+          - intel-microcode   # Alleen voor Intel CPU's
+          - amd64-microcode   # Alleen voor AMD CPU's
+          - bluetooth
+          - bluez-firmware
+        state: present
+        update_cache: yes
+
+    # --- 4. WEBCAM & MULTIMEDIA ---
+    - name: Installeer Cheese en v4l-utils voor webcam beheer
+      become: yes
+      apt:
+        name:
+          - cheese            # De 'Camera' app (zoals op Windows)
+          - v4l-utils         # Video4Linux tools voor driver-check
+          - guvcview          # Geavanceerde webcam instellingen
+        state: present
+
+    - name: Voeg gebruiker toe aan de 'video' en 'lp' groepen
+      become: yes
+      user:
+        name: "{{ ansible_user_id }}"
+        groups: video,lp,scanner,plugdev
+        append: yes

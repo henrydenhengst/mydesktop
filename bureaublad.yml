@@ -1,0 +1,46 @@
+---
+- name: Bureaublad en Verkenner Finetuning
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Installeer Nemo Preview en Disk Utility
+      become: yes
+      apt:
+        name:
+          - nemo-preview          # Spatiebalk voorvertoning (zoals QuickLook)
+          - gnome-disk-utility    # Windows-achtig schijfbeheer
+          - dconf-editor
+        state: present
+
+    - name: Configureer Desktop Iconen (Windows Stijl)
+      shell: |
+        # Toon Computer, Home en Prullenbak op het bureaublad
+        gsettings set org.nemo.desktop computer-icon-visible true
+        gsettings set org.nemo.desktop home-icon-visible true
+        gsettings set org.nemo.desktop trash-icon-visible true
+        gsettings set org.nemo.desktop volumes-visible true
+        
+        # Zorg dat iconen netjes uitgelijnd zijn op een grid
+        gsettings set org.nemo.desktop vertical-layout false
+      args:
+        executable: /bin/bash
+
+    - name: Optimaliseer Nemo (Verkenner)
+      shell: |
+        # Toon de volledige padbalk (zoals C:\Users\...) i.p.v. knoppen
+        gsettings set org.nemo.preferences show-pathbar-buttons false
+        
+        # Open mappen altijd in een nieuw venster (optioneel, maar herkenbaar)
+        gsettings set org.nemo.preferences always-use-browser true
+        
+        # Laat de grootte van bestanden zien in de lijstweergave
+        gsettings set org.nemo.list-view default-column-order "['name', 'size', 'type', 'date_modified']"
+      args:
+        executable: /bin/bash
+
+    - name: Schakel de 'Recent' lijst in (Quick Access)
+      shell: |
+        # Zorg dat recent geopende bestanden zichtbaar zijn in de zijbalk
+        gsettings set org.gnome.desktop.privacy remember-recent-files true
+      args:
+        executable: /bin/bash

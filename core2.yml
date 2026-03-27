@@ -1,0 +1,35 @@
+---
+- name: Finetuning Windows User Experience op Debian
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Installeer fonts die lijken op Windows-standaarden
+      become: yes
+      apt:
+        name:
+          - ttf-mscorefonts-installer
+          - fonts-liberation
+          - gdebi-core
+        state: present
+
+    - name: Configureer Nemo (Bestandsverkenner) gedrag
+      shell: |
+        # Schakel 'compact view' in als standaard (lijkt meer op Windows lijst)
+        gsettings set org.nemo.preferences default-folder-viewer 'list-view'
+        
+        # Zorg dat de prullenbak direct op het bureaublad staat
+        gsettings set org.nemo.desktop trash-icon-visible true
+        gsettings set org.nemo.desktop computer-icon-visible true
+        
+        # Voeg 'New Document' context menu items toe (Windows 'Nieuw' menu)
+        touch "/home/$USER/Templates/Nieuw Tekstdocument.txt"
+      args:
+        executable: /bin/bash
+
+    - name: Verbeter de Aero-Snap instellingen (Vensters plakken)
+      shell: |
+        # Verhoog de gevoeligheid van het slepen van vensters naar de rand
+        gsettings set org.cinnamon.muffin edge-tiling true
+        gsettings set org.cinnamon.muffin snap-to-grid true
+      args:
+        executable: /bin/bash

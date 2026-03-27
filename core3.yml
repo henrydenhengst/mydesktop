@@ -1,0 +1,42 @@
+---
+- name: Systeemoptimalisatie voor Windows-gebruikers
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Voeg non-free en contrib repositories toe
+      become: yes
+      apt_repository:
+        repo: "deb http://deb.debian.org/debian/ {{ ansible_distribution_release }} main contrib non-free non-free-firmware"
+        state: present
+
+    - name: Installeer ontbrekende 'Windows' essentials
+      become: yes
+      apt:
+        name:
+          - hplip                  # HP Printer support
+          - cups                   # Print server
+          - avahi-daemon           # Netwerk printer discovery
+          - libavcodec-extra       # Multimedia codecs (MP4, etc)
+          - gnome-system-monitor   # De Linux 'Taakbeheer'
+          - htop                   # Voor de power-user
+        state: present
+        update_cache: yes
+
+    - name: Configureer de Windows-stijl Taakbeheer shortcut
+      shell: |
+        # Koppel Ctrl+Alt+Del aan de Systeemmonitor (zoals in Windows)
+        gsettings set org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom0/ name 'Task Manager'
+        gsettings set org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom0/ command 'gnome-system-monitor'
+        gsettings set org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom0/ binding "['<Control><Alt>Delete']"
+        
+        # Voeg de custom keybinding toe aan de lijst
+        gsettings set org.cinnamon.desktop.keybindings custom-list "['custom0']"
+      args:
+        executable: /bin/bash
+
+    - name: Activeer 'Nachtlamp' (Blue light filter)
+      shell: |
+        # Windows-gebruikers zijn gewend aan 'Night Light'
+        gsettings set org.cinnamon.settings-daemon.plugins.color night-light-enabled true
+      args:
+        executable: /bin/bash

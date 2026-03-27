@@ -1,0 +1,72 @@
+---
+- name: Remote Support Tools Installatie (TeamViewer & RustDesk)
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Installeer curl voor het ophalen van de laatste versies
+      become: yes
+      apt:
+        name: curl
+        state: present
+
+    # --- TEAMVIEWER ---
+    - name: Download TeamViewer DEB pakket
+      get_url:
+        url: "https://download.teamviewer.com/download/linux/teamviewer_amd64.deb"
+        dest: "/tmp/teamviewer_amd64.deb"
+        mode: '0644'
+
+    - name: Installeer TeamViewer
+      become: yes
+      apt:
+        deb: "/tmp/teamviewer_amd64.deb"
+        state: present
+
+    # --- RUSTDESK ---
+    - name: Haal de laatste RustDesk download URL op
+      shell: |
+        curl -s https://api.github.com/repos/rustdesk/rustdesk/releases/latest | \
+        grep "browser_download_url.*x86_64.deb" | cut -d '"' -f 4
+      register: rustdesk_url
+      changed_when: false
+
+    - name: Download RustDesk DEB pakket
+      get_url:
+        url: "{{ rustdesk_url.stdout }}"
+        dest: "/tmp/rustdesk.deb"
+        mode: '0644'
+
+    - name: Installeer RustDesk
+      become: yes
+      apt:
+        deb: "/tmp/rustdesk.deb"
+        state: present
+
+    # --- CONFIGURATIE & CLEANUP ---
+    - name: Zorg dat services geactiveerd zijn
+      become: yes
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - teamviewerd
+        - rustdesk
+
+    - name: Verwijder tijdelijke bestanden
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/teamviewer_amd64.deb
+        - /tmp/rustdesk.deb
+
+    - name: Snelkoppelingen op bureaublad voor support
+      shell: |
+        cp /usr/share/applications/com.teamviewer.TeamViewer.desktop /home/$USER/Desktop/
+        cp /usr/share/applications/rustdesk.desktop /home/$USER/Desktop/
+        chmod +x /home/$USER/Desktop/*.desktop
+        chown $USER:$USER /home/$USER/Desktop/*.desktop
+      args:
+        executable: /bin/bash
+      ignore_errors: yes

@@ -1,0 +1,20 @@
+---
+- name: Activeer achtergrondrotatie (Slideshow)
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Configureer Cinnamon achtergrond slideshow
+      shell: |
+        # Activeer de slideshow modus
+        gsettings set org.cinnamon.desktop.background.slideshow slideshow-enabled true
+        
+        # Wijs de map aan waar Debian zijn achtergronden bewaart
+        gsettings set org.cinnamon.desktop.background.slideshow image-source "xml:///usr/share/cinnamon-background-properties/debian.xml"
+        
+        # Stel het interval in (bijv. 15 minuten = 900 seconden)
+        gsettings set org.cinnamon.desktop.background.slideshow delay 900
+        
+        # Zorg dat de afbeeldingen willekeurig worden gekozen (Windows-stijl)
+        gsettings set org.cinnamon.desktop.background.slideshow random-order true
+      args:
+        executable: /bin/bash

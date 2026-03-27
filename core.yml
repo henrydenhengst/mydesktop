@@ -1,0 +1,46 @@
+---
+- name: Transformeer Debian Cinnamon naar Windows Look & Feel
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Installeer noodzakelijke systeemcomponenten
+      become: yes
+      apt:
+        name:
+          - git
+          - dconf-cli
+          - fonts-liberation2  # Goed alternatief voor Arial/Segoe
+          - wget
+        state: present
+        update_cache: yes
+
+    - name: Maak de lokale thema-map aan
+      file:
+        path: "/home/$USER/.themes"
+        state: directory
+        mode: '0755'
+
+    - name: Download het Windows-thema
+      git:
+        repo: 'https://github.com/B00merang-Project/Windows-10.git'
+        dest: "/home/$USER/.themes/Windows-10"
+        depth: 1
+
+    - name: Activeer het visuele thema en icoon-instellingen
+      shell: |
+        # Stel het GTK en Window thema in
+        gsettings set org.cinnamon.desktop.interface gtk-theme "Windows-10"
+        gsettings set org.cinnamon.desktop.wm.preferences theme "Windows-10"
+        gsettings set org.cinnamon.theme name "Windows-10"
+        
+        # Zet de vensterknoppen naar rechts (zoals in Windows)
+        gsettings set org.cinnamon.desktop.wm.preferences button-layout ":minimize,maximize,close"
+      args:
+        executable: /bin/bash
+
+    - name: Configureer de taakbalk voor gegroepeerde vensters
+      shell: |
+        # Dit vervangt de standaard vensterlijst door de 'Grouped Window List'
+        gsettings set org.cinnamon enabled-applets "['panel1:left:0:menu@cinnamon.org', 'panel1:left:1:show-desktop@cinnamon.org', 'panel1:left:2:grouped-window-list@cinnamon.org', 'panel1:right:0:systray@cinnamon.org', 'panel1:right:1:xlet-nm-launcher@cinnamon.org', 'panel1:right:2:notifications@cinnamon.org', 'panel1:right:3:printers@cinnamon.org', 'panel1:right:4:removable-drives@cinnamon.org', 'panel1:right:5:keyboard@cinnamon.org', 'panel1:right:6:favorites@cinnamon.org', 'panel1:right:7:network@cinnamon.org', 'panel1:right:8:sound@cinnamon.org', 'panel1:right:9:power@cinnamon.org', 'panel1:right:10:calendar@cinnamon.org']"
+      args:
+        executable: /bin/bash

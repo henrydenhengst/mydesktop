@@ -1,0 +1,35 @@
+---
+- name: Optimaliseer energie-instellingen voor Remote Support
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Configureer gedrag bij aangesloten lader (AC)
+      shell: |
+        # Voorkom slaapstand als de lader is aangesloten
+        gsettings set org.cinnamon.settings-daemon.plugins.power sleep-display-ac 0
+        gsettings set org.cinnamon.settings-daemon.plugins.power sleep-inactive-ac-timeout 0
+        
+        # Voorkom dat de laptop in slaapstand gaat als het deksel wordt dichtgeklapt (aan de lader)
+        gsettings set org.cinnamon.settings-daemon.plugins.power lid-close-ac-action 'nothing'
+      args:
+        executable: /bin/bash
+
+    - name: Configureer gedrag op de accu (Battery)
+      shell: |
+        # Op de accu mag hij na 30 min in slaapstand (besparing)
+        gsettings set org.cinnamon.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800
+        
+        # Deksel dicht op accu = wel in slaapstand (veilig voor in de tas)
+        gsettings set org.cinnamon.settings-daemon.plugins.power lid-close-battery-action 'suspend'
+      args:
+        executable: /bin/bash
+
+    - name: Schakel schermvergrendeling in (Veiligheid)
+      shell: |
+        # Schakel het scherm wel uit na 10 min (AC) om inbranden te voorkomen, maar blijf online
+        gsettings set org.cinnamon.desktop.session idle-delay 600
+        
+        # Lock het scherm als het zwart wordt (Windows-stijl veiligheid)
+        gsettings set org.cinnamon.desktop.screensaver lock-enabled true
+      args:
+        executable: /bin/bash

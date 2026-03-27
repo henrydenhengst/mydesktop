@@ -1,0 +1,67 @@
+---
+- name: Installeer en configureer AI Assistent (Copilot alternatief)
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Zorg dat Flatpak is geïnstalleerd
+      become: yes
+      apt:
+        name: flatpak
+        state: present
+
+    - name: Voeg Flathub repository toe
+      become: yes
+      flatpak_remote:
+        name: flathub
+        state: present
+        flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+
+    - name: Installeer Bavarder via Flatpak
+      flatpak:
+        name: io.github.Bavarder.Bavarder
+        state: present
+        remote: flathub
+
+    - name: Prik gaten in de sandbox voor AI-functionaliteit
+      shell: |
+        # Toegang tot internet voor AI-modellen
+        flatpak override io.github.Bavarder.Bavarder --share=network
+        
+        # Toegang tot home-bestanden voor het analyseren van documenten
+        flatpak override io.github.Bavarder.Bavarder --filesystem="home"
+        
+        # Toegang tot USB-sticks en externe schijven
+        flatpak override io.github.Bavarder.Bavarder --filesystem="/media:rw"
+        
+        # Toegang tot klembord en visuele notificaties
+        flatpak override io.github.Bavarder.Bavarder --share=ipc --socket=x11 --talk-name=org.freedesktop.Notifications
+      args:
+        executable: /bin/bash
+
+    - name: Maak een herkenbare snelkoppeling op het bureaublad
+      shell: |
+        # Kopieer de launcher naar het bureaublad
+        cp /var/lib/flatpak/exports/share/applications/io.github.Bavarder.Bavarder.desktop /home/$USER/Desktop/AI-Assistent.desktop
+        
+        # Pas de naam aan voor de gebruiker (Copilot-stijl)
+        sed -i 's/^Name=.*/Name=AI Assistent (Copilot)/g' /home/$USER/Desktop/AI-Assistent.desktop
+        
+        # Maak het bestand uitvoerbaar en zet de juiste rechten
+        chmod +x /home/$USER/Desktop/AI-Assistent.desktop
+        chown $USER:$USER /home/$USER/Desktop/AI-Assistent.desktop
+      args:
+        executable: /bin/bash
+      ignore_errors: yes
+
+    - name: Stel een sneltoets in (Win + C) voor de AI
+      shell: |
+        # Maak een custom shortcut aan (we gebruiken custom2 omdat 0 en 1 al bezet zijn)
+        gsettings set org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom2/ name 'AI Assistent'
+        gsettings set org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom2/ command 'flatpak run io.github.Bavarder.Bavarder'
+        gsettings set org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom2/ binding "['<Super>c']"
+        
+        # Update de lijst van actieve shortcuts (voeg custom2 toe)
+        # Let op: dit gaat ervan uit dat custom0 en custom1 al bestaan uit de vorige stappen
+        gsettings set org.cinnamon.desktop.keybindings custom-list "['custom0', 'custom1', 'custom2']"
+      args:
+        executable: /bin/bash
