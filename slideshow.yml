@@ -1,20 +1,28 @@
 ---
-- name: Activeer achtergrondrotatie (Slideshow)
+- name: Activeer achtergrondrotatie
   hosts: localhost
   connection: local
   tasks:
-    - name: Configureer Cinnamon achtergrond slideshow
+    - name: Forceer aanmaak van de map wallpapers
+      file:
+        path: "/home/henry/Afbeeldingen/wallpapers"
+        state: directory
+        mode: '0755'
+
+    - name: Link de bestanden (Forceer met shell)
       shell: |
-        # Activeer de slideshow modus
-        gsettings set org.cinnamon.desktop.background.slideshow slideshow-enabled true
-        
-        # Wijs de map aan waar Debian zijn achtergronden bewaart
-        gsettings set org.cinnamon.desktop.background.slideshow image-source "xml:///usr/share/cinnamon-background-properties/debian.xml"
-        
-        # Stel het interval in (bijv. 15 minuten = 900 seconden)
-        gsettings set org.cinnamon.desktop.background.slideshow delay 900
-        
-        # Zorg dat de afbeeldingen willekeurig worden gekozen (Windows-stijl)
-        gsettings set org.cinnamon.desktop.background.slideshow random-order true
+        mkdir -p /home/henry/Afbeeldingen/wallpapers
+        ln -sf /usr/share/backgrounds/debian/* /home/henry/Afbeeldingen/wallpapers/
+        ln -sf /usr/share/backgrounds/gnome/* /home/henry/Afbeeldingen/wallpapers/
       args:
         executable: /bin/bash
+
+    - name: Controleer of de map nu echt bestaat
+      stat:
+        path: "/home/henry/Afbeeldingen/wallpapers"
+      register: folder_check
+
+    - name: Stop als de map niet is aangemaakt
+      fail:
+        msg: "De map /home/henry/Afbeeldingen/wallpapers is nog steeds niet gevonden!"
+      when: not folder_check.stat.exists
