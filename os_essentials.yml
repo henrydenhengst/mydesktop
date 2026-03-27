@@ -7,40 +7,37 @@
       become: yes
       apt:
         name:
-          - vlc              # De alleskunner voor video
-          - audacity         # Audiobewerking
-          - keepassxc        # Veilig wachtwoordbeheer
-          - gimp             # Fotobewerking (Photoshop alternatief)
-          - inkscape         # Vector tekenen (Illustrator alternatief)
-          - filezilla        # FTP/Bestandsoverdracht
+          - vlc
+          - gimp
+          - keepassxc
+          - p7zip-full
+          - gnome-disk-utility
+          - nemo-fileroller
         state: present
         update_cache: yes
 
-    - name: Installeer zware media-tools via Flatpak (voor stabiliteit)
-      flatpak:
-        name:
-          - com.obsproject.Studio       # Schermopname / Streaming
-          - org.videolan.VLC            # Flatpak versie heeft vaak betere codecs
-          - org.shotcut.Shotcut         # Eenvoudige videobewerker (Windows-stijl)
-        state: present
-        remote: flathub
-
-    - name: Prik gaten voor Media-toegang (Flatpak)
+    - name: Bureaublad snelkoppelingen voor tools
+      become: yes
       shell: |
-        # Geef OBS en Shotcut toegang tot de webcam en microfoon
-        for app in com.obsproject.Studio org.shotcut.Shotcut; do
-          flatpak override $app --device=all --share=network --filesystem="home"
+        REAL_USER="{{ ansible_env.USER if ansible_env.USER != 'root' else ansible_user_id }}"
+        DESKTOP_DIR="/home/$REAL_USER/Desktop"
+        [ ! -d "$DESKTOP_DIR" ] && DESKTOP_DIR="/home/$REAL_USER/Bureaublad"
+
+        mkdir -p "$DESKTOP_DIR"
+
+        # Lijst van apps om te kopiëren
+        APPS=("vlc.desktop" "gimp.desktop" "org.keepassxc.KeePassXC.desktop")
+        
+        for app in "${APPS[@]}"; do
+            if [ -f "/usr/share/applications/$app" ]; then
+                cp "/usr/share/applications/$app" "$DESKTOP_DIR/"
+            fi
         done
-      args:
-        executable: /bin/bash
 
-    - name: Snelkoppelingen voor herkenbare tools op bureaublad
-      shell: |
-        cp /usr/share/applications/vlc.desktop /home/$USER/Desktop/
-        cp /usr/share/applications/gimp.desktop /home/$USER/Desktop/
-        cp /usr/share/applications/org.keepassxc.KeePassXC.desktop /home/$USER/Desktop/Wachtwoorden.desktop
-        chmod +x /home/$USER/Desktop/*.desktop
-        chown $USER:$USER /home/$USER/Desktop/*.desktop
+        # Hernoem KeePassXC naar iets herkenbaars
+        [ -f "$DESKTOP_DIR/org.keepassxc.KeePassXC.desktop" ] && mv "$DESKTOP_DIR/org.keepassxc.KeePassXC.desktop" "$DESKTOP_DIR/Wachtwoorden.desktop"
+
+        chown -R $REAL_USER:$REAL_USER "$DESKTOP_DIR"
+        chmod +x "$DESKTOP_DIR"/*.desktop
       args:
         executable: /bin/bash
-      ignore_errors: yes

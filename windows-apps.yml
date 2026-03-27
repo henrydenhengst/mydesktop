@@ -9,42 +9,53 @@
         name:
           - remmina
           - remmina-plugin-rdp
-          - remmina-plugin-vnc
-          - remmina-plugin-secret # Voor het onthouden van wachtwoorden
+          - remmina-plugin-secret
         state: present
         update_cache: yes
 
-    - name: Download Citrix Workspace App (ICACLIENT)
+    - name: Poging tot downloaden Citrix Workspace
       get_url:
-        url: "https://downloads.citrix.com/21318/icaclient_24.2.0.65_amd64.deb" # Let op: check altijd de laatste versie op citrix.com
+        url: "https://downloads.citrix.com/21318/icaclient_24.2.0.65_amd64.deb"
         dest: "/tmp/icaclient.deb"
         mode: '0644'
-      ignore_errors: yes # Citrix links verlopen soms, handmatige download kan nodig zijn
+        headers:
+          User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      register: citrix_download
+      ignore_errors: yes
 
-    - name: Installeer Citrix Workspace met afhankelijkheden
+    - name: Installeer Citrix (alleen als download is gelukt)
       become: yes
       apt:
         deb: "/tmp/icaclient.deb"
         state: present
-      when: ansible_check_mode == false
+      when: not citrix_download.failed and ansible_check_mode == false
+      ignore_errors: yes
 
-    - name: Fix voor SSL-certificaten in Citrix (Cruciaal voor Linux!)
+    - name: Fix voor SSL-certificaten in Citrix
       become: yes
       shell: |
-        # Citrix op Linux vertrouwt standaard de systeemcertificaten niet. 
-        # Deze link zorgt ervoor dat Citrix je Firefox/Debian certificaten gebruikt.
-        ln -sf /usr/share/ca-certificates/mozilla/* /opt/Citrix/ICAClient/keystore/cacerts/
-        /opt/Citrix/ICAClient/util/ctx_rehash
+        if [ -d "/opt/Citrix/ICAClient/keystore/cacerts/" ]; then
+          ln -sf /usr/share/ca-certificates/mozilla/* /opt/Citrix/ICAClient/keystore/cacerts/
+          /opt/Citrix/ICAClient/util/ctx_rehash
+        fi
       args:
         executable: /bin/bash
       ignore_errors: yes
 
-    - name: Snelkoppelingen op het bureaublad voor Remote Work
+    - name: Snelkoppelingen op het bureaublad
+      become: yes
       shell: |
-        cp /usr/share/applications/org.remmina.Remmina.desktop /home/$USER/Desktop/Remote-Desktop.desktop
-        # Citrix verschijnt meestal als 'selfservice' of 'Citrix Workspace'
-        cp /usr/share/applications/selfservice.desktop /home/$USER/Desktop/Citrix.desktop || true
-        chmod +x /home/$USER/Desktop/*.desktop
-        chown $USER:$USER /home/$USER/Desktop/*.desktop
+        REAL_USER="{{ ansible_env.USER if ansible_env.USER != 'root' else ansible_user_id }}"
+        DESKTOP_DIR="/home/$REAL_USER/Desktop"
+        [ ! -d "$DESKTOP_DIR" ] && DESKTOP_DIR="/home/$REAL_USER/Bureaublad"
+        
+        mkdir -p "$DESKTOP_DIR"
+        
+        [ -f "/usr/share/applications/org.remmina.Remmina.desktop" ] && cp /usr/share/applications/org.remmina.Remmina.desktop "$DESKTOP_DIR/Remote-Desktop.desktop"
+        [ -f "/usr/share/applications/selfservice.desktop" ] && cp /usr/share/applications/selfservice.desktop "$DESKTOP_DIR/Citrix.desktop"
+        
+        chown -R $REAL_USER:$REAL_USER "$DESKTOP_DIR"
+        chmod +x "$DESKTOP_DIR"/*.desktop
       args:
         executable: /bin/bash
+      ignore_errors: yes

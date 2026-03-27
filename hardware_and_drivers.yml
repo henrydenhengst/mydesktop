@@ -45,13 +45,19 @@
         name:
           - firmware-linux-free
           - firmware-linux-nonfree
-          - firmware-librealsense
-          - intel-microcode   # Alleen voor Intel CPU's
-          - amd64-microcode   # Alleen voor AMD CPU's
           - bluetooth
           - bluez-firmware
+          - firmware-realtek    # Vaak nodig voor stabiele Wi-Fi
         state: present
         update_cache: yes
+      ignore_errors: yes
+
+    - name: Installeer CPU microcode (Intel/AMD check)
+      become: yes
+      apt:
+        name: "{{ 'intel-microcode' if ansible_processor[1] is search('Intel') else 'amd64-microcode' }}"
+        state: present
+      ignore_errors: yes
 
     # --- 4. WEBCAM & MULTIMEDIA ---
     - name: Installeer Cheese en v4l-utils voor webcam beheer
@@ -63,9 +69,9 @@
           - guvcview          # Geavanceerde webcam instellingen
         state: present
 
-    - name: Voeg gebruiker toe aan de 'video' en 'lp' groepen
+    - name: Voeg gebruiker toe aan systeem-groepen
       become: yes
       user:
-        name: "{{ ansible_user_id }}"
-        groups: video,lp,scanner,plugdev
+        name: "{{ ansible_env.USER if ansible_env.USER != 'root' else ansible_user_id }}"
+        groups: video,lp,scanner,plugdev,bluetooth
         append: yes

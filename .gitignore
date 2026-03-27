@@ -1,0 +1,82 @@
+# --- ANSIBLE & SECRETS ---
+**/vault.yml
+**/secret.yml
+group_vars/all/secret.yml
+group_vars/all/secret.yaml
+group_vars/all/*.vault.yml
+*.retry
+*.vault_pass*
+.vault_pass*
+ansible.log
+*.iso
+
+# --- CONTAINER MAPPEN (worden lokaal gegenereerd) ---
+/caddy/
+/crowdsec/
+/duckdns/
+/esphome/
+/flame/
+/gotify/
+/homeassistant/
+/matter_server/
+/mosquitto/
+/portainer/
+/postgres/
+/rtl_433/
+/vaultwarden/
+/zigbee2mqtt/
+/zwavejsui/
+/rclone/
+/rsync/
+
+# --- LYNIS RAPPORTEN & LOGS ---
+playbooks/reports/
+playbooks/*.dat
+playbooks/reports/*.dat
+**/lynis-report-*.dat
+**/lynis.log
+lynis.log
+lynis-report-*.dat
+
+# --- CONFIGURATIEBESTANDEN (lokaal) ---
+rclone.conf
+*.conf.local
+*.cfg.local
+
+# --- LOGS & DATABASES ---
+*.log
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+
+# --- OS SPECIFIEK ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.*.swp
+.*.swo
+*~
+
+# --- IDE / EDITOR ---
+.vscode/
+.idea/
+*.code-workspace
+*.sublime-*
+
+# --- BACKUPS ---
+*.bak
+*.backup
+*.old
+*.orig
+*~
+
+# --- TEMP BESTANDEN ---
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Lokale scripts
+update_git.sh
+reset_git_lastknowngood.sh

@@ -1,37 +1,31 @@
 ---
-- name: Master Deployment - Windows-naar-Debian Transformatie
+# Master Deployment - De Definitieve Windows-naar-Debian Match
+- name: Master Deployment - Volledige Transformatie
   hosts: localhost
   connection: local
 
-  # STAP 1: De Fundering (De Core-laag eerst!)
-  # Hier worden repositories, Python-apt, wget, curl en basis-libs geregeld.
+# STAP 1: Look & Feel
+- import_playbook: bureaublad.yml
+- import_playbook: slideshow.yml
+
+# STAP 2: De Core (Systeem & Hardware)
 - import_playbook: core.yml
 - import_playbook: core2.yml
 - import_playbook: core3.yml
 - import_playbook: core4.yml
-
-  # STAP 2: Hardware & Systeem-kritische lagen
-  # Drivers, NTFS-support, Firmware en Smartcard-ondersteuning.
 - import_playbook: hardware_and_drivers.yml
 - import_playbook: energie.yml
 
-  # STAP 3: De Werkomgeving (Productiviteit)
-  # Browsers, Office en de zakelijke verbindingen.
+# STAP 3: Browsers & Office
 - import_playbook: webbrowsers.yml
 - import_playbook: office.yml
-- import_playbook: windows-apps.yml  # (Citrix & RDP)
+
+# STAP 4: Applicaties & Tools
+- import_playbook: os_essentials.yml
+- import_playbook: windows-apps.yml
 - import_playbook: ai.yml
 
-  # STAP 4: Dagelijks Gebruik & Tools
-  # De bekende Open Source tools (VLC, GIMP, etc.)
-- import_playbook: os_essentials.yml
-
-  # STAP 5: De "Look & Feel" (De Windows-ervaring)
-  # Thema's, iconen en de vertrouwde slideshow.
-- import_playbook: bureaublad.yml
-- import_playbook: slideshow.yml
-
-  # STAP 6: Beheer & Onderhoud (Onzichtbaar)
-  # De automatische updates en de hulp-op-afstand tools.
+# STAP 6: Beheer & Onderhoud
 - import_playbook: updates.yml
 - import_playbook: remote.yml
+- import_playbook: cleanup.yml

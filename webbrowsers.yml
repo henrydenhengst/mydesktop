@@ -28,7 +28,9 @@
         flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
 
     - name: Installeer Edge en Brave via Flatpak
+      become: yes
       flatpak:
+        method: system
         name:
           - com.microsoft.Edge
           - com.brave.Browser
@@ -37,23 +39,35 @@
 
     - name: Geef Flatpak browsers toegang tot gebruikersmappen
       shell: |
-        # Geef Edge en Brave toegang tot de standaard XDG mappen (Documenten, Downloads, etc.)
-        # Dit zorgt ervoor dat de 'Bestand openen' dialoog herkenbaar blijft voor Windows-gebruikers.
+        # Geef Edge en Brave toegang tot de home map voor een Windows-achtige ervaring
         for app in com.microsoft.Edge com.brave.Browser; do
           flatpak override $app --filesystem="home"
-          # Optioneel: geef specifiek toegang tot de downloadmap als 'home' te breed is
-          # flatpak override $app --filesystem="xdg-download"
         done
       args:
         executable: /bin/bash
 
     - name: Snelkoppelingen op bureaublad plaatsen
+      become: yes
       shell: |
-        cp /var/lib/flatpak/exports/share/applications/com.microsoft.Edge.desktop /home/$USER/Desktop/
-        cp /var/lib/flatpak/exports/share/applications/com.brave.Browser.desktop /home/$USER/Desktop/
-        cp /usr/share/applications/org.kde.falkon.desktop /home/$USER/Desktop/
-        chmod +x /home/$USER/Desktop/*.desktop
-        chown $USER:$USER /home/$USER/Desktop/*.desktop
+        # Bepaal de echte gebruiker die achter het scherm zit
+        REAL_USER="{{ ansible_env.USER if ansible_env.USER != 'root' else ansible_user_id }}"
+        DESKTOP_DIR="/home/$REAL_USER/Desktop"
+        
+        # Controleer of de map bestaat (sommige systemen gebruiken 'Bureaublad')
+        if [ ! -d "$DESKTOP_DIR" ]; then
+            DESKTOP_DIR="/home/$REAL_USER/Bureaublad"
+        fi
+        
+        mkdir -p "$DESKTOP_DIR"
+
+        # Kopieer de launchers (gebruik || true om fouten te negeren als een bron ontbreekt)
+        cp /var/lib/flatpak/exports/share/applications/com.microsoft.Edge.desktop "$DESKTOP_DIR/" || true
+        cp /var/lib/flatpak/exports/share/applications/com.brave.Browser.desktop "$DESKTOP_DIR/" || true
+        cp /usr/share/applications/org.kde.falkon.desktop "$DESKTOP_DIR/" || true
+        
+        # Zet de rechten goed voor de gebruiker
+        chown -R $REAL_USER:$REAL_USER "$DESKTOP_DIR"
+        chmod +x "$DESKTOP_DIR"/*.desktop
       args:
         executable: /bin/bash
       ignore_errors: yes

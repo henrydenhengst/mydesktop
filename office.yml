@@ -3,49 +3,58 @@
   hosts: localhost
   connection: local
   tasks:
-    - name: Verwijder LibreOffice volledig
+    - name: Hardhandig verwijderen van alle LibreOffice resten
       become: yes
       apt:
-        name: 
-          - libreoffice*
-          - thunderbird* # Optioneel, Windows-gebruikers geven vaak de voorkeur aan Outlook/Webmail
+        name:
+          - libreoffice-common
+          - libreoffice-core
+          - libreoffice-gnome
+          - libreoffice-gtk3
+          - libreoffice-calc
+          - libreoffice-writer
+          - libreoffice-style-colibre
         state: absent
         purge: yes
 
-    - name: Installeer rclone en flatpak ondersteuning
+    - name: Installeer Flatpak ondersteuning
       become: yes
       apt:
         name: 
-          - rclone
           - flatpak
           - gnome-software-plugin-flatpak
         state: present
-        update_cache: yes
 
-    - name: Voeg Flathub repository toe
+    - name: Voeg Flathub toe
       become: yes
       flatpak_remote:
         name: flathub
         state: present
         flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
 
-    - name: Installeer OnlyOffice via Flatpak
+    - name: Installeer OnlyOffice (via Flatpak)
+      become: yes
       flatpak:
         name: org.onlyoffice.desktopeditors
         state: present
         remote: flathub
+        method: system
 
-    - name: Geef OnlyOffice toegang tot de home documenten map
+    - name: Forceer icoon verversing
+      become: yes
       shell: |
-        # Flatpak apps zijn standaard 'sandboxed'. 
-        # Hiermee geven we expliciet toegang tot de locale Documenten map.
-        flatpak override org.onlyoffice.desktopeditors --filesystem="/home/$USER/Documents:rw"
-        flatpak override org.onlyoffice.desktopeditors --filesystem="/home/$USER/Documenten:rw"
+        # Alleen het moderne commando gebruiken, update-menus weglaten
+        update-desktop-database /usr/share/applications || true
       args:
         executable: /bin/bash
 
-    - name: Maak rclone configuratie directory aan
-      file:
-        path: "/home/$USER/.config/rclone"
-        state: directory
-        mode: '0700'
+    - name: Check of OnlyOffice is geïnstalleerd
+      shell: flatpak list | grep OnlyOffice
+      register: onlyoffice_check
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Toon status van OnlyOffice
+      debug:
+        msg: "OnlyOffice status: {{ onlyoffice_check.stdout }}"
+      when: onlyoffice_check.rc == 0

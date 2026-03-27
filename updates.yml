@@ -1,88 +1,41 @@
 ---
-- name: Volledig onzichtbare automatische updates
+- name: Volledig Systeemonderhoud en Updates
   hosts: localhost
   connection: local
   tasks:
-    - name: Installeer unattended-upgrades
+    - name: Update de APT pakketlijst
       become: yes
       apt:
-        name: 
-          - unattended-upgrades
-          - apt-listchanges
-        state: present
+        update_cache: yes
 
-    - name: Configureer unattended-upgrades voor alle bronnen
+    - name: Voer een volledige systeem-upgrade uit (APT)
       become: yes
-      copy:
-        dest: /etc/apt/apt.conf.d/50unattended-upgrades
-        content: |
-          Unattended-Upgrade::Origins-Pattern {
-                  "origin=Debian,codename=${distro_codename},label=Debian";
-                  "origin=Debian,codename=${distro_codename},label=Debian-Security";
-                  "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";
-                  "origin=Debian,codename=${distro_codename}-updates";
-          };
-          Unattended-Upgrade::Package-Blacklist { };
-          Unattended-Upgrade::AutoFixInterruptedDpkg "true";
-          Unattended-Upgrade::MinimalSteps "true";
-          Unattended-Upgrade::InstallOnShutdown "false";
-          Unattended-Upgrade::Remove-Unused-Dependencies "true";
-          Unattended-Upgrade::Automatic-Reboot "false";
+      apt:
+        upgrade: dist
+        autoremove: yes
+        autoclean: yes
 
-    - name: Activeer automatische APT updates
+    - name: Update alle Flatpak applicaties (Edge, Brave, OnlyOffice)
       become: yes
-      copy:
-        dest: /etc/apt/apt.conf.d/20auto-upgrades
-        content: |
-          APT::Periodic::Update-Package-Lists "1";
-          APT::Periodic::Download-Upgradeable-Packages "1";
-          APT::Periodic::Unattended-Upgrade "1";
-          APT::Periodic::AutocleanInterval "7";
-
-    - name: Maak een Systemd timer voor automatische Flatpak updates
-      become: yes
-      copy:
-        dest: /etc/systemd/system/flatpak-auto-update.service
-        content: |
-          [Unit]
-          Description=Update alle Flatpaks onzichtbaar
-          After=network-online.target
-          Wants=network-online.target
-
-          [Service]
-          Type=oneshot
-          ExecStart=/usr/bin/flatpak update -y
-
-          [Install]
-          WantedBy=multi-user.target
-
-    - name: Plan de Flatpak update timer (elke 4 uur)
-      become: yes
-      copy:
-        dest: /etc/systemd/system/flatpak-auto-update.timer
-        content: |
-          [Unit]
-          Description=Run Flatpak update elke 4 uur
-
-          [Timer]
-          OnBootSec=10min
-          OnUnitActiveSec=4h
-
-          [Install]
-          WantedBy=timers.target
-
-    - name: Start en activeer Flatpak timer
-      become: yes
-      systemd:
-        name: flatpak-auto-update.timer
-        state: started
-        enabled: yes
-        daemon_reload: yes
-
-    - name: Verberg Cinnamon Update Manager meldingen
-      shell: |
-        # Zorg dat de visuele update-notifier niet opduikt in de taakbalk
-        gsettings set org.cinnamon.updates startup-delay-seconds 999999
-        gsettings set org.cinnamon.updates check-interval-steps 999999
+      shell: flatpak update -y
       args:
         executable: /bin/bash
+
+    - name: Controleer op firmware updates (fwupdmgr)
+      become: yes
+      shell: fwupdmgr get-updates || true
+      ignore_errors: yes
+
+    - name: Update de desktop database (Icoon verversing)
+      become: yes
+      shell: update-desktop-database /usr/share/applications || true
+      args:
+        executable: /bin/bash
+
+    - name: Toon systeem-uptime en status
+      shell: uptime
+      register: uptime_status
+
+    - name: Statusverslag
+      debug:
+        msg: "Systeem is volledig up-to-date. {{ uptime_status.stdout }}"
