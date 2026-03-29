@@ -1,0 +1,52 @@
+---
+- name: Setup mDNS op basis van huidige hostname
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: yes
+
+  tasks:
+    - name: Toon de gedetecteerde hostname
+      debug:
+        msg: "Ik configureer nu mDNS voor: {{ ansible_hostname }}"
+
+    - name: Installeer Avahi en mDNS packages
+      package:
+        name:
+          - avahi-daemon
+          - nss-mdns
+        state: present
+
+    - name: Zorg dat het systeem .local namen kan vinden
+      lineinfile:
+        path: /etc/nsswitch.conf
+        regexp: '^hosts:'
+        line: 'hosts: files mdns4_minimal [NOTFOUND=return] dns'
+
+    - name: Start en activeer Avahi service
+      systemctl:
+        name: avahi-daemon
+        state: started
+        enabled: yes
+
+    - name: Installeer beheer-tools
+      package:
+        name:
+          - mosh
+          - clusterssh
+          - tmux
+          - htop
+        state: present
+
+    - name: Zet Mosh UDP poorten open in UFW
+      ufw:
+        rule: allow
+        port: 60000:61000
+        proto: udp
+      when: ansible_os_family == "Debian"
+
+    - name: Zorg dat SSH-forwarding aan staat (voor cssh)
+      lineinfile:
+        path: /etc/ssh/ssh_config
+        regexp: '^    ForwardAgent'
+        line: '    ForwardAgent yes'
