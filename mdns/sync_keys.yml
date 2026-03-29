@@ -1,0 +1,14 @@
+---
+- name: Verspreid SSH-sleutel naar de rest van de vloot
+  hosts: all_nodes
+  gather_facts: no
+  vars:
+    # De publieke sleutel van de machine waar je NU achter zit
+    local_key: "{{ lookup('file', '~/.ssh/id_ed25519.pub') }}"
+
+  tasks:
+    - name: Voeg mijn sleutel toe aan alle nodes
+      authorized_key:
+        user: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+        state: present
+        key: "{{ local_key }}"
