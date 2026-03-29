@@ -1,0 +1,164 @@
+#!/bin/bash
+
+# ============================================
+# Debian 13 XFCE Optimalisatie Script
+# Voor Acer Chromebook "Santa" (Intel Apollo Lake)
+# ============================================
+
+set -e  # Stop bij fouten
+
+# Kleuren voor output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo -e "${GREEN}============================================${NC}"
+echo -e "${GREEN}Debian 13 XFCE Optimalisatie voor Chromebook${NC}"
+echo -e "${GREEN}============================================${NC}"
+
+# Controleer of script als root wordt uitgevoerd
+if [ "$EUID" -eq 0 ]; then 
+    echo -e "${RED}Voer dit script NIET uit als root! Gebruik sudo alleen voor de commando's die het nodig hebben.${NC}"
+    exit 1
+fi
+
+# ============================================
+# 1. Systeem update
+# ============================================
+echo -e "\n${YELLOW}[1/10] Systeem updaten...${NC}"
+sudo apt update && sudo apt upgrade -y
+
+# ============================================
+# 2. Verwijder overbodige packages
+# ============================================
+echo -e "\n${YELLOW}[2/10] Overbodige packages verwijderen...${NC}"
+sudo apt autoremove --purge -y
+sudo apt clean
+sudo apt autoclean
+
+# ============================================
+# 3. Schakel XFCE compositing UIT (grootste snelheidswinst)
+# ============================================
+echo -e "\n${YELLOW}[3/10] XFCE compositing uitschakelen...${NC}"
+xfconf-query -c xfwm4 -p /general/use_compositing -s false 2>/dev/null || echo "Compositing was al uit of XFCE niet actief"
+
+# ============================================
+# 4. Swappiness aanpassen (minder swap = sneller op eMMC)
+# ============================================
+echo -e "\n${YELLOW}[4/10] Swappiness verlagen naar 10...${NC}"
+if grep -q "vm.swappiness" /etc/sysctl.conf; then
+    sudo sed -i 's/vm.swappiness=.*/vm.swappiness=10/' /etc/sysctl.conf
+else
+    echo "vm.swappiness=10" | sudo tee -a /etc/sysctl.conf
+fi
+sudo sysctl -p
+
+# ============================================
+# 5. Schijf TRIM inschakelen (voor eMMC/SSD levensduur)
+# ============================================
+echo -e "\n${YELLOW}[5/10] TRIM inschakelen voor SSD/eMMC...${NC}"
+sudo systemctl enable fstrim.timer
+sudo systemctl start fstrim.timer
+
+# ============================================
+# 6. CPU frequency scaling (powersave voor batterij, performance voor snelheid)
+# ============================================
+echo -e "\n${YELLOW}[6/10] CPU governor instellen op 'powersave' (batterij) of 'performance'?${NC}"
+echo "Opties: 1) powersave (langer batterijduur) 2) performance (sneller)"
+read -p "Kies 1 of 2 [1]: " cpu_choice
+cpu_choice=${cpu_choice:-1}
+
+if [ "$cpu_choice" -eq 2 ]; then
+    echo "performance" | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor 2>/dev/null || true
+    echo -e "${GREEN}CPU governor ingesteld op: performance${NC}"
+else
+    echo "powersave" | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor 2>/dev/null || true
+    echo -e "${GREEN}CPU governor ingesteld op: powersave${NC}"
+fi
+
+# Zet permanent via tuned of via rc.local
+if ! command -v tuned &> /dev/null; then
+    sudo apt install tuned -y
+    sudo systemctl enable tuned
+    sudo systemctl start tuned
+    if [ "$cpu_choice" -eq 2 ]; then
+        sudo tuned-adm profile throughput-performance
+    else
+        sudo tuned-adm profile powersave
+    fi
+fi
+
+# ============================================
+# 7. I/O scheduler optimalisatie (voor eMMC)
+# ============================================
+echo -e "\n${YELLOW}[7/10] I/O scheduler optimaliseren voor eMMC...${NC}"
+for disk in /sys/block/mmcblk*/queue/scheduler /sys/block/sd*/queue/scheduler; do
+    if [ -f "$disk" ]; then
+        echo "mq-deadline" | sudo tee "$disk" 2>/dev/null || true
+    fi
+done
+
+# ============================================
+# 8. Zram installeren (virtueel geheugen in RAM = sneller dan swap)
+# ============================================
+echo -e "\n${YELLOW}[8/10] Zram installeren voor betere geheugenprestaties...${NC}"
+sudo apt install zram-tools -y
+
+# Zram configuratie aanpassen
+if [ -f /etc/default/zramswap ]; then
+    sudo sed -i 's/^#*ALGO=.*/ALGO=lz4/' /etc/default/zramswap
+    sudo sed -i 's/^#*PERCENT=.*/PERCENT=25/' /etc/default/zramswap
+fi
+sudo systemctl restart zramswap
+
+# ============================================
+# 9. Preload installeren (leerpatroon voor sneller opstarten)
+# ============================================
+echo -e "\n${YELLOW}[9/10] Preload installeren...${NC}"
+sudo apt install preload -y
+
+# ============================================
+# 10. Grafische drivers optimalisatie (Intel i915)
+# ============================================
+echo -e "\n${YELLOW}[10/10] Intel graphics optimalisatie...${NC}"
+
+# Zet i915 module opties
+if [ ! -f /etc/modprobe.d/i915.conf ]; then
+    echo "options i915 enable_fbc=1 enable_guc=2" | sudo tee /etc/modprobe.d/i915.conf
+    sudo update-initramfs -u
+fi
+
+# ============================================
+# 11. Chromebook-specifieke toetsenbordinstellingen
+# ============================================
+echo -e "\n${YELLOW}[11/11] Chromebook toetsenbord instellen...${NC}"
+
+# Maak .xsessionrc aan voor permanente toetsenbordinstelling
+if [ ! -f ~/.xsessionrc ]; then
+    echo 'setxkbmap -model chromebook -layout us' > ~/.xsessionrc
+    echo -e "${GREEN}Toetsenbord ingesteld op Chromebook-indeling${NC}"
+else
+    if ! grep -q "chromebook" ~/.xsessionrc; then
+        echo 'setxkbmap -model chromebook -layout us' >> ~/.xsessionrc
+        echo -e "${GREEN}Chromebook-indeling toegevoegd aan .xsessionrc${NC}"
+    fi
+fi
+
+# ============================================
+# 12. Opruimen en afsluiten
+# ============================================
+echo -e "\n${YELLOW}Opruimen...${NC}"
+sudo apt autoremove --purge -y
+sudo apt clean
+
+echo -e "\n${GREEN}============================================${NC}"
+echo -e "${GREEN}Optimalisatie COMPLEET!${NC}"
+echo -e "${GREEN}============================================${NC}"
+echo -e "${YELLOW}Aanbevolen: herstart nu je systeem${NC}"
+echo -e "${YELLOW}sudo reboot${NC}"
+echo -e "\n${GREEN}Na herstart kun je controleren met:${NC}"
+echo "  • Compositing: xfconf-query -c xfwm4 -p /general/use_compositing"
+echo "  • Swappiness: cat /proc/sys/vm/swappiness"
+echo "  • CPU governor: cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"
+echo "  • Zram status: zramctl"
