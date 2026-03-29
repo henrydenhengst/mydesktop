@@ -1,0 +1,59 @@
+- name: Configureer Fish Shell en DevOps Aliassen (DT-Style)
+  hosts: all_nodes
+  become: no
+  tasks:
+    - name: Installeer Fish Shell
+      become: yes
+      apt:
+        name: fish
+        state: present
+
+    - name: Maak de Fish configuratiemap aan
+      file:
+        path: "{{ ansible_env.HOME }}/.config/fish"
+        state: directory
+        mode: '0755'
+
+    - name: Schrijf de config.fish met DevOps-Power
+      blockinfile:
+        path: "{{ ansible_env.HOME }}/.config/fish/config.fish"
+        create: yes
+        marker: "# {mark} ANSIBLE MANAGED FISH DEVOPS"
+        block: |
+          # --- FISH OPTIES ---
+          set -g fish_greeting "" # Haal de standaard begroeting weg (minimalisme)
+
+          # --- DEVOPS ALIASSEN ---
+          alias ..='cd ..'
+          alias ...='cd ../..'
+          alias bat='batcat'
+          alias fd='fdfind'
+          
+          # Monitoring & Infra
+          alias top='btop'
+          alias ports='ss -tulanp'
+          alias myip='curl -s ifconfig.me'
+          alias df='duf'
+          
+          # Containers & DevOps
+          alias p='podman'
+          alias pc='podman compose'
+          alias gs='git status'
+          alias gp='git pull'
+          alias adone='ansible-playbook'
+          
+          # Laptop Health Check
+          alias temp='sensors | grep "Core 0"'
+          alias battery='upower -i /org/freedesktop/UPower/devices/battery_BAT0 | grep percentage'
+
+          # --- FZF INTEGRATION ---
+          # Fish heeft vaak ingebouwde fzf-support via fzf_configure_bindings
+          if type -q fzf
+              fzf --fish | source
+          end
+
+    - name: Stel Fish in als standaard shell
+      become: yes
+      user:
+        name: "{{ ansible_user_id }}"
+        shell: /usr/bin/fish
