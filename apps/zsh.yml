@@ -1,0 +1,61 @@
+- name: Configureer Zsh, Aliassen en FZF Integratie
+  hosts: all_nodes
+  become: no  # Uitvoeren als de normale gebruiker
+  tasks:
+    - name: Zorg dat Zsh is geïnstalleerd (als dat nog niet zo was)
+      become: yes
+      apt:
+        name: zsh
+        state: present
+
+    - name: Check of de .zshrc bestaat
+      file:
+        path: "{{ ansible_env.HOME }}/.zshrc"
+        state: touch
+        mode: '0644'
+
+    - name: Voeg DevOps Power-Block toe aan .zshrc
+      blockinfile:
+        path: "{{ ansible_env.HOME }}/.zshrc"
+        marker: "# {mark} ANSIBLE MANAGED ZSH DEVOPS"
+        block: |
+          # --- ZSH SPECIFIEKE OPTIES ---
+          setopt autocd              # Typ een mapnaam om erheen te gaan (zonder 'cd')
+          setopt correct             # Spellingscorrectie voor commando's
+          setopt interactive_comments # Sta commentaar toe in de CLI
+          
+          # --- FZF INTEGRATIE (Zsh variant) ---
+          source /usr/share/doc/fzf/examples/key-bindings.zsh 2>/dev/null
+          source /usr/share/doc/fzf/examples/completion.zsh 2>/dev/null
+
+          # --- DEVOPS ALIASSEN ---
+          alias ..='cd ..'
+          alias ...='cd ../..'
+          alias bat='batcat'
+          alias fd='fdfind'
+          alias ll='ls -alhF --color=auto'
+          alias tree='tree -C'
+          alias ncdu='ncdu --color dark'
+          
+          # Monitoring & Infra
+          alias top='btop'
+          alias ports='ss -tulanp'   # 'ss' is de moderne 'netstat'
+          alias myip='curl -s ifconfig.me'
+          alias df='duf'
+          
+          # Containers & DevOps
+          alias p='podman'
+          alias pc='podman compose'
+          alias gs='git status'
+          alias gp='git pull'
+          alias adone='ansible-playbook'
+          
+          # Laptop Health Check
+          alias temp='sensors | grep "Core 0"'
+          alias battery='upower -i /org/freedesktop/UPower/devices/battery_BAT0 | grep percentage'
+
+    - name: Stel Zsh in als standaard shell voor deze gebruiker
+      become: yes
+      user:
+        name: "{{ ansible_user_id }}"
+        shell: /bin/zsh
