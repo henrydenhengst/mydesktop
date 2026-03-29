@@ -1,0 +1,51 @@
+---
+- name: Geoptimaliseerd Systeemonderhoud (Zonder Flatpak)
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: yes
+
+  tasks:
+    - name: 1. APT Pakketbeheer Opschonen & Updaten
+      apt:
+        update_cache: yes
+        upgrade: dist
+        autoremove: yes
+        autoclean: yes
+        purge: yes  # Verwijdert ook oude configuratiebestanden van verwijderde apps
+
+    - name: 2. SSD Onderhoud (FSTRIM)
+      # Cruciaal voor oude SSD's om ze snel te houden
+      shell: fstrim -av
+      register: trim_result
+      ignore_errors: yes
+
+    - name: 3. Firmware check (fwupdmgr)
+      shell: fwupdmgr get-updates || true
+      register: fw_check
+      ignore_errors: yes
+
+    - name: 4. Verwijder oude kernels (Ruimtebesparing)
+      # Oude laptops hebben vaak kleine /boot partities die volraken
+      shell: apt-get purge $(dpkg -l | awk '/^ii  linux-image-[0-9]/ && $2 != "linux-image-'"$(uname -r)"'" {print $2}') -y || true
+      ignore_errors: yes
+
+    - name: 5. Microcode & Icoon verversing
+      shell: |
+        update-initramfs -u
+        update-desktop-database /usr/share/applications || true
+      args:
+        executable: /bin/bash
+
+    - name: 6. Systeem Status ophalen
+      shell: |
+        echo "Uptime: $(uptime -p)"
+        echo "Disk: $(df -h / | grep / | awk '{print $5}') vol"
+        echo "Temp: $(sensors | grep 'Core 0' | awk '{print $3}' || echo 'N/A')"
+      register: sys_status
+
+    - name: Eindrapportage
+      debug:
+        msg: 
+          - "Onderhoud voltooid op {{ ansible_hostname }}"
+          - "{{ sys_status.stdout_lines }}"
