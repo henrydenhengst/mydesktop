@@ -1,0 +1,103 @@
+---
+- name: Universele Hardware Support (Firmware, Drivers & Optimalisatie)
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: yes
+
+  tasks:
+    # --- 1. REPOSITORIES (Cruciaal voor drivers) ---
+    - name: Activeer contrib, non-free en non-free-firmware
+      apt_repository:
+        repo: "deb http://deb.debian.org/debian/ {{ ansible_distribution_release }} main contrib non-free non-free-firmware"
+        state: present
+      register: repo_added
+
+    - name: Update cache als repo is toegevoegd
+      apt:
+        update_cache: yes
+      when: repo_added.changed
+
+    # --- 2. CPU & CORE FIRMWARE ---
+    - name: Installeer Microcode en Basis Firmware
+      apt:
+        name:
+          - firmware-linux-free
+          - firmware-linux-nonfree
+          - firmware-misc-nonfree
+          - intel-microcode
+          - amd64-microcode
+          - thermald           # Voorkomt oververhitting op oude laptops
+        state: present
+
+    # --- 3. NETWERK & WI-FI (De "Redders") ---
+    - name: Installeer Wi-Fi en Bluetooth drivers
+      apt:
+        name:
+          - firmware-iwlwifi    # Intel
+          - firmware-brcm80211  # Broadcom (veel laptops/Chromebooks)
+          - broadcom-sta-dkms   # Voor specifieke Broadcom chips
+          - firmware-realtek    # Realtek
+          - firmware-atheros    # Qualcomm/Atheros
+          - bluez-firmware
+          - bluetooth
+        state: present
+
+    # --- 4. GRAFISCH & INPUT (GPU & Touchpad) ---
+    - name: Installeer GPU versnelling en Touchpad support
+      apt:
+        name:
+          - firmware-amd-graphics
+          - mesa-utils
+          - va-driver-all
+          - xserver-xorg-input-libinput
+        state: present
+
+    # --- 5. AUDIO & MULTIMEDIA (Webcam/Sound) ---
+    - name: Installeer Audio (SOF) en Webcam tools
+      apt:
+        name:
+          - firmware-sof-signed  # Nodig voor geluid op veel (Chrome)books
+          - alsa-utils
+          - cheese
+          - v4l-utils
+        state: present
+
+    # --- 6. BESTANDSSYSTEEM & SMARTCARD ---
+    - name: Installeer NTFS, exFAT en Smartcard support
+      apt:
+        name:
+          - ntfs-3g
+          - exfat-fuse
+          - exfatprogs
+          - pcscd
+          - pcsc-tools
+          - opensc
+        state: present
+
+    - name: Zorg dat Smartcard service draait
+      systemd:
+        name: pcscd
+        state: started
+        enabled: yes
+
+    # --- 7. LAPTOP OPTIMALISATIE (Batterij & Hitte) ---
+    - name: Installeer TLP voor batterijbeheer
+      apt:
+        name:
+          - tlp
+          - tlp-rdw
+        state: present
+
+    - name: Start TLP service
+      systemd:
+        name: tlp
+        state: started
+        enabled: yes
+
+    # --- 8. GEBRUIKER RECHTEN ---
+    - name: Voeg huidige gebruiker toe aan hardware groepen
+      user:
+        name: "{{ ansible_env.USER if ansible_env.USER != 'root' else ansible_user_id }}"
+        groups: video,lp,scanner,plugdev,bluetooth,audio
+        append: yes
