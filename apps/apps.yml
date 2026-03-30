@@ -1,77 +1,93 @@
-- name: Installeer de Ultieme DevOps 50 Toolkit
+---
+- name: Setup Ultieme DevOps 50 Toolkit
+  hosts: all
   become: yes
-  apt:
-    update_cache: yes
-    state: present
-    name:
-      # --- SYSTEEM & MONITORING ---
-      - htop
-      - btop
-      - atop
-      - glances
-      - nmon
-      - iotop
-      - powertop
-      - lsof
-      - strace
-      - lm-sensors
-      
-      # --- NAVIGATIE & FILES ---
-      - ranger
-      - nnn
-      - mc
-      - ncdu
-      - tree
-      - fzf
-      - duf
-      
-      # --- NETWERK & DIAGNOSE ---
-      - nmap
-      - iperf3
-      - mtr-tiny
-      - tcpdump
-      - tshark
-      - bmon
-      - speedtest-cli
-      - dnsutils
-      - socat
-      - netcat-openbsd
-      - ethtool
-      - ipcalc
-      
-      # --- DATA & TEXT PROCESSING ---
-      - vim
-      - neovim
-      - batcat
-      - jq
-      - ripgrep
-      - fdfind
-      - diffutils
-      
-      # --- CONTAINERS & CLOUD ---
-      - podman
-      - rclone
-      - skopeo
-      - buildah
-      - ansible
-      - git
-      
-      # --- HARDWARE & SYSTEEM TOOLS ---
-      - smartmontools
-      - inxi
-      - pciutils
-      - usbutils
-      - tmux
-      - rsync
-      - curl
-      - wget
 
-- name: Configureer Aliassen voor moderne tools
-  become: yes
-  file:
-    src: "/usr/bin/{{ item.src }}"
-    dest: "/usr/local/bin/{{ item.dest }}"
-    state: link
-  loop:
-    - { src: 'batcat', dest: 'bat' }
-    - { src: 'fdfind', dest: 'fd' }
+  tasks:
+    - name: Update apt cache en installeer alle tools
+      ansible.builtin.apt:
+        update_cache: yes
+        state: present
+        cache_valid_time: 3600
+        name:
+          # --- SYSTEEM & MONITORING ---
+          - htop
+          - btop
+          - atop
+          - glances
+          - nmon
+          - iotop
+          - powertop
+          - lsof
+          - strace
+          - lm-sensors
+          
+          # --- NAVIGATIE & FILES ---
+          - ranger
+          - nnn
+          - mc
+          - ncdu
+          - tree
+          - fzf
+          - duf
+          
+          # --- NETWERK & DIAGNOSE ---
+          - nmap
+          - iperf3
+          - mtr-tiny
+          - tcpdump
+          - tshark
+          - bmon
+          - speedtest-cli
+          - dnsutils
+          - socat
+          - netcat-openbsd
+          - ethtool
+          - ipcalc
+          
+          # --- DATA & TEXT PROCESSING ---
+          - vim
+          - neovim
+          - bat
+          - jq
+          - ripgrep
+          - fd-find
+          - diffutils
+          
+          # --- CONTAINERS & CLOUD ---
+          - podman
+          - rclone
+          - skopeo
+          - buildah
+          - ansible
+          - git
+          
+          # --- HARDWARE & SYSTEEM TOOLS ---
+          - smartmontools
+          - inxi
+          - pciutils
+          - usbutils
+          - tmux
+          - rsync
+          - curl
+          - wget
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
+    - name: Configureer Aliassen voor moderne tools (Debian specifieke namen)
+      ansible.builtin.file:
+        src: "/usr/bin/{{ item.src }}"
+        dest: "/usr/local/bin/{{ item.dest }}"
+        state: link
+        force: yes
+      loop:
+        - { src: 'batcat', dest: 'bat' }
+        - { src: 'fdfind', dest: 'fd' }
+      # Alleen uitvoeren als de bronbestanden bestaan (voorkomt errors op non-Debian)
+      ignore_errors: yes
+
+    - name: Controleer of Avahi (mDNS) draait voor bereikbaarheid
+      ansible.builtin.systemd:
+        name: avahi-daemon
+        state: started
+        enabled: yes
