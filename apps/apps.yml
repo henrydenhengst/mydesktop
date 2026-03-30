@@ -1,6 +1,6 @@
 ---
 - name: Setup Ultieme DevOps 50 Toolkit
-  hosts: all
+  hosts: localhost
   become: yes
 
   tasks:
