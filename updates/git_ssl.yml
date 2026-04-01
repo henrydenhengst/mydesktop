@@ -1,0 +1,22 @@
+---
+- name: Zorg dat de Git remote op SSH staat
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Update remote URL naar SSH
+      community.general.git_config:
+        name: remote.origin.url
+        scope: local
+        # Het absolute pad naar de root van je repo
+        repo: "~/git/mydesktop"
+        value: "git@github.com:henrydenhengst/mydesktop.git"
+
+    - name: Bevestig de nieuwe configuratie
+      ansible.builtin.command: git remote -v
+      args:
+        chdir: "~/git/mydesktop"
+      register: git_remote_result
+
+    - name: Toon resultaat
+      ansible.builtin.debug:
+        msg: "{{ git_remote_result.stdout_lines }}"
