@@ -1,5 +1,5 @@
 ---
-- name: Geoptimaliseerd Systeemonderhoud (CLI & Server)
+- name: Geoptimaliseerd Systeemonderhoud (Failsafe Editie)
   hosts: all
   become: yes
   gather_facts: yes
@@ -12,34 +12,47 @@
         autoremove: yes
         autoclean: yes
         purge: yes
+      register: apt_res
+      until: apt_res is success
+      retries: 3
+      delay: 5
 
-    - name: 2. SSD Onderhoud (FSTRIM)
-      # Gebruikt de officiële module om TRIM uit te voeren op ondersteunde mounts
-      community.general.fstrim:
-        mountpoint: /
+    - name: 2a. Check of de schijf TRIM ondersteunt (SSD check)
+      ansible.builtin.shell: "cat /sys/block/$(lsblk -no pkname $(findmnt -nvo SOURCE /) | head -n1)/queue/rotational"
+      register: is_ssd
+      changed_when: false
+      failed_when: false
+      ignore_errors: yes
+
+    - name: 2b. SSD Onderhoud (FSTRIM)
+      # Alleen uitvoeren als de schijf niet-rotationeel is (0)
+      ansible.builtin.shell: fstrim -av
       register: trim_result
+      when: is_ssd.stdout | default('1') == "0"
+      failed_when: false
       ignore_errors: yes
 
     - name: 3. Firmware check (fwupdmgr)
-      # We gebruiken command omdat fwupdmgr geen native module heeft
       ansible.builtin.command: fwupdmgr get-updates
       register: fw_check
       changed_when: false
       failed_when: false
+      ignore_errors: yes
 
     - name: 4. Update initramfs
-      # Cruciaal na kernel updates of microcode wijzigingen
       ansible.builtin.command: update-initramfs -u
       changed_when: true
+      failed_when: false
+      ignore_errors: yes
 
     - name: 5. Systeem Status ophalen
-      # We gebruiken ansible_facts in plaats van shell voor disk en uptime
       ansible.builtin.set_fact:
         disk_usage: "{{ ansible_mounts | selectattr('mount', 'equalto', '/') | map(attribute='size_total') | first | default(0) }}"
         disk_free: "{{ ansible_mounts | selectattr('mount', 'equalto', '/') | map(attribute='size_available') | first | default(0) }}"
 
-    - name: 6. Haal CPU Temperatuur op (Indien sensors aanwezig)
-      ansible.builtin.shell: "sensors | grep 'Core 0' | awk '{print $3}' || echo 'N/A'"
+    - name: 6. Haal CPU Temperatuur op
+      # Gebruikt 'm 1' om bij de eerste match direct te stoppen
+      ansible.builtin.shell: "sensors | grep -m 1 'Core 0' | awk '{print $3}' || echo 'N/A'"
       register: temp_status
       changed_when: false
       ignore_errors: yes
@@ -48,6 +61,8 @@
       ansible.builtin.debug:
         msg: 
           - "Onderhoud voltooid op: {{ ansible_hostname }}"
-          - "Uptime: {{ ansible_uptime_seconds | int // 3600 }} uur"
-          - "Disk Gebruik: {{ ((1 - (disk_free|float / disk_usage|float)) * 100) | round(1) }}%"
-          - "CPU Temp: {{ temp_status.stdout }}"
+          - "Uptime: {{ (ansible_uptime_seconds | int // 3600) }} uur"
+          - "SSD Gedetecteerd: {{ 'Ja' if is_ssd.stdout | default('1') == '0' else 'Nee/Onbekend' }}"
+          - "Trim Resultaat: {{ trim_result.stdout | default('Overgeslagen') }}"
+          - "Disk Gebruik: {{ ((1 - (disk_free|float / disk_usage|float)) * 100) | round(1) if disk_usage|float > 0 else 'N/A' }}%"
+          - "CPU Temp: {{ temp_status.stdout | default('N/A') }}"
