@@ -1,11 +1,11 @@
 ---
-- name: Setup Ultieme DevOps Toolkit
+- name: Setup Ultieme DevOps Toolkit inclusief Firewall
   hosts: localhost
   connection: local
   become: yes
 
   tasks:
-    - name: Update apt cache en installeer alle tools
+    - name: Update apt cache en installeer alle pakketten
       ansible.builtin.apt:
         update_cache: yes
         state: present
@@ -14,7 +14,8 @@
           # --- ESSENTIALS ---
           - ansible
           - git
-          - ssh  # Correcte pakketnaam voor Debian
+          - ssh
+          - ufw
 
           # --- SYSTEEM & MONITORING ---
           - htop
@@ -77,6 +78,18 @@
           - wget
       environment:
         DEBIAN_FRONTEND: noninteractive
+
+    - name: SSH poort 22 openzetten in UFW
+      community.general.ufw:
+        rule: allow
+        port: '22'
+        proto: tcp
+
+    - name: UFW inschakelen en basisbeleid instellen (Deny incoming)
+      community.general.ufw:
+        state: enabled
+        direction: incoming
+        policy: deny
 
     - name: Zorg dat SSH-service draait
       ansible.builtin.systemd:
