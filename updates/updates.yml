@@ -1,14 +1,22 @@
 ---
+<<<<<<< Updated upstream
 - name: Geoptimaliseerd Systeemonderhoud (Failsafe Editie)
   hosts: localhost
   become: yes
   gather_facts: yes
+=======
+- name: Geoptimaliseerd Systeemonderhoud CLI en Server
+  hosts: localhost
+  become: true
+  gather_facts: true
+>>>>>>> Stashed changes
 
   tasks:
-    - name: 1. APT Pakketbeheer Opschonen & Updaten
+    - name: 1. APT Pakketbeheer Opschonen en Updaten
       ansible.builtin.apt:
-        update_cache: yes
+        update_cache: true
         upgrade: dist
+<<<<<<< Updated upstream
         autoremove: yes
         autoclean: yes
         purge: yes
@@ -33,6 +41,18 @@
       ignore_errors: yes
 
     - name: 3. Firmware check (fwupdmgr)
+=======
+        autoremove: true
+        autoclean: true
+        purge: true
+
+    - name: 2. SSD Onderhoud FSTRIM
+      ansible.builtin.command: fstrim -av
+      register: trim_result
+      ignore_errors: true
+
+    - name: 3. Firmware check met fwupdmgr
+>>>>>>> Stashed changes
       ansible.builtin.command: fwupdmgr get-updates
       register: fw_check
       changed_when: false
@@ -47,22 +67,62 @@
 
     - name: 5. Systeem Status ophalen
       ansible.builtin.set_fact:
-        disk_usage: "{{ ansible_mounts | selectattr('mount', 'equalto', '/') | map(attribute='size_total') | first | default(0) }}"
-        disk_free: "{{ ansible_mounts | selectattr('mount', 'equalto', '/') | map(attribute='size_available') | first | default(0) }}"
+        disk_usage: >-
+          {{ ansible_mounts | selectattr('mount', 'equalto', '/')
+          | map(attribute='size_total') | first | default(0) }}
+        disk_free: >-
+          {{ ansible_mounts | selectattr('mount', 'equalto', '/')
+          | map(attribute='size_available') | first | default(0) }}
 
+<<<<<<< Updated upstream
     - name: 6. Haal CPU Temperatuur op
       # Gebruikt 'm 1' om bij de eerste match direct te stoppen
       ansible.builtin.shell: "sensors | grep -m 1 'Core 0' | awk '{print $3}' || echo 'N/A'"
+=======
+    - name: 6. Haal CPU Temperatuur op indien sensors aanwezig
+      ansible.builtin.shell: |
+        if command -v sensors >/dev/null 2>&1; then
+          sensors 2>/dev/null | grep -i 'core 0' | awk '{print $3}' | sed 's/+//g' || echo "N/A"
+        else
+          echo "lm-sensors niet geïnstalleerd"
+        fi
+>>>>>>> Stashed changes
       register: temp_status
       changed_when: false
-      ignore_errors: yes
+      ignore_errors: true
 
-    - name: Eindrapportage
+    - name: 7. Controleer of herstart nodig is
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+
+    - name: 8. Eindrapportage
       ansible.builtin.debug:
-        msg: 
+        msg:
+          - "========================================="
           - "Onderhoud voltooid op: {{ ansible_hostname }}"
+<<<<<<< Updated upstream
           - "Uptime: {{ (ansible_uptime_seconds | int // 3600) }} uur"
           - "SSD Gedetecteerd: {{ 'Ja' if is_ssd.stdout | default('1') == '0' else 'Nee/Onbekend' }}"
           - "Trim Resultaat: {{ trim_result.stdout | default('Overgeslagen') }}"
           - "Disk Gebruik: {{ ((1 - (disk_free|float / disk_usage|float)) * 100) | round(1) if disk_usage|float > 0 else 'N/A' }}%"
           - "CPU Temp: {{ temp_status.stdout | default('N/A') }}"
+=======
+          - >-
+            Uptime:
+            {{ (ansible_uptime_seconds | int // 3600) if ansible_uptime_seconds is defined else 'N/A' }}
+            uur
+          - >-
+            Disk Gebruik:
+            {{ ((1 - (disk_free|float / disk_usage|float)) * 100) | round(1)
+            if disk_usage|float > 0 else 'N/A' }}%
+          - "CPU Temp: {{ temp_status.stdout | default('N/A') }}"
+          - "Trim resultaat: {{ trim_result.stdout | default('Uitgevoerd') }}"
+          - "Herstart nodig: {{ 'JA' if reboot_required.stat.exists else 'NEE' }}"
+          - "========================================="
+
+    - name: 9. Waarschuw voor herstart indien nodig
+      ansible.builtin.debug:
+        msg: "⚠️ BELANGRIJK: Een herstart wordt aanbevolen op {{ ansible_hostname }}!"
+      when: reboot_required.stat.exists
+>>>>>>> Stashed changes

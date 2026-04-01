@@ -1,0 +1,50 @@
+---
+- name: Installeer Nerd Fonts op Debian
+  hosts: localhost
+  connection: local
+  become: yes
+  vars:
+    # Voeg hier meer fonts toe uit de Nerd Fonts GitHub repo
+    nerd_fonts:
+      - JetBrainsMono
+      - RobotoMono
+      - Hack
+    font_dir: "/usr/local/share/fonts/nerdfonts"
+    temp_dir: "/tmp/nerdfonts"
+
+  tasks:
+    - name: Installeer benodigde pakketten
+      apt:
+        name: 
+          - unzip
+          - curl
+          - fontconfig
+        state: present
+        update_cache: yes
+
+    - name: Maak tijdelijke map en font map aan
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ temp_dir }}"
+        - "{{ font_dir }}"
+
+    - name: Download en unarchive Nerd Fonts
+      unarchive:
+        src: "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/{{ item }}.zip"
+        dest: "{{ font_dir }}"
+        remote_src: yes
+      loop: "{{ nerd_fonts }}"
+      register: download_fonts
+      ignore_errors: yes
+
+    - name: Update font cache
+      command: fc-cache -fv
+      when: download_fonts.changed
+
+    - name: Schoon tijdelijke bestanden op
+      file:
+        path: "{{ temp_dir }}"
+        state: absent

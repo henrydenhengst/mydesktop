@@ -1,0 +1,34 @@
+---
+- name: Onderdruk GRUB meldingen tijdens opstarten
+  hosts: localhost
+  connection: local
+  become: yes
+
+  tasks:
+    - name: Optimaliseer kernel parameters voor silent boot
+      ansible.builtin.lineinfile:
+        path: /etc/default/grub
+        regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
+        # 'vt.global_cursor_default=0' verbergt de knipperende cursor
+        line: 'GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=3 rd.systemd.show_status=false rd.udev.log_level=3 vt.global_cursor_default=0"'
+        state: present
+
+    - name: Verberg het GRUB menu
+      ansible.builtin.lineinfile:
+        path: /etc/default/grub
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      loop:
+        - { regexp: '^GRUB_TIMEOUT=', line: 'GRUB_TIMEOUT=0' }
+        - { regexp: '^GRUB_TIMEOUT_STYLE=', line: 'GRUB_TIMEOUT_STYLE=hidden' }
+        - { regexp: '^GRUB_RECORDFAIL_TIMEOUT=', line: 'GRUB_RECORDFAIL_TIMEOUT=0' }
+
+    - name: Update GRUB configuratie
+      # Gebruik een shell check om te zien welk commando beschikbaar is
+      ansible.builtin.shell: |
+        if command -v update-grub > /dev/null; then
+          update-grub
+        else
+          grub-mkconfig -o /boot/grub/grub.cfg
+        fi
+      changed_when: true

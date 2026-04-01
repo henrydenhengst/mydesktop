@@ -80,3 +80,4 @@ temp/
 # Lokale scripts
 update_git.sh
 reset_git_lastknowngood.sh
+fix.sh

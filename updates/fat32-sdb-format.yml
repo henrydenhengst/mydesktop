@@ -1,0 +1,39 @@
+---
+- name: Reformat and rebuild /dev/sdb to FAT32
+  hosts: localhost
+  become: yes
+  vars:
+    target_device: "/dev/sdb"
+
+  tasks:
+    - name: "Zorg dat de schijf niet gemount is"
+      ansible.posix.mount:
+        path: "{{ item.mount }}"
+        state: unmounted
+      loop: "{{ ansible_facts.mounts | selectattr('device', 'equalto', target_device) | list }}"
+
+    - name: "Vernietig alle bestaande metadata (Wipefs)"
+      command: "wipefs -a {{ target_device }}"
+      changed_when: true
+
+    - name: "Overschrijf de beginsector (Lage-niveau wipe)"
+      command: "dd if=/dev/zero of={{ target_device }} bs=512 count=100 conv=notrunc"
+      changed_when: true
+
+    - name: "Maak een nieuwe GPT partitietabel aan (Forceer label)"
+      command: "parted -s {{ target_device }} mklabel gpt"
+      changed_when: true
+
+    - name: "Maak de hoofdpartitie aan"
+      community.general.parted:
+        device: "{{ target_device }}"
+        number: 1
+        state: present
+        part_end: "100%"
+        fs_type: fat32
+
+    - name: "Formatteer de partitie naar FAT32"
+      community.general.filesystem:
+        fstype: vfat
+        dev: "{{ target_device }}1"
+        force: yes
