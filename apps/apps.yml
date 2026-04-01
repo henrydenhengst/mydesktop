@@ -1,6 +1,7 @@
 ---
-- name: Setup Ultieme DevOps 50 Toolkit
+- name: Setup Ultieme DevOps Toolkit
   hosts: localhost
+  connection: local
   become: yes
 
   tasks:
@@ -10,6 +11,11 @@
         state: present
         cache_valid_time: 3600
         name:
+          # --- ESSENTIALS ---
+          - ansible
+          - git
+          - ssh  # Correcte pakketnaam voor Debian
+
           # --- SYSTEEM & MONITORING ---
           - htop
           - btop
@@ -59,8 +65,6 @@
           - rclone
           - skopeo
           - buildah
-          - ansible
-          - git
           
           # --- HARDWARE & SYSTEEM TOOLS ---
           - smartmontools
@@ -74,7 +78,13 @@
       environment:
         DEBIAN_FRONTEND: noninteractive
 
-    - name: Configureer Aliassen voor moderne tools (Debian specifieke namen)
+    - name: Zorg dat SSH-service draait
+      ansible.builtin.systemd:
+        name: ssh
+        state: started
+        enabled: yes
+
+    - name: Configureer Aliassen voor moderne tools
       ansible.builtin.file:
         src: "/usr/bin/{{ item.src }}"
         dest: "/usr/local/bin/{{ item.dest }}"
@@ -83,10 +93,9 @@
       loop:
         - { src: 'batcat', dest: 'bat' }
         - { src: 'fdfind', dest: 'fd' }
-      # Alleen uitvoeren als de bronbestanden bestaan (voorkomt errors op non-Debian)
       ignore_errors: yes
 
-    - name: Controleer of Avahi (mDNS) draait voor bereikbaarheid
+    - name: Controleer Avahi (mDNS)
       ansible.builtin.systemd:
         name: avahi-daemon
         state: started
