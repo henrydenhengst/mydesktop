@@ -1,6 +1,6 @@
 ---
 - name: Geoptimaliseerd Systeemonderhoud (Failsafe Editie)
-  hosts: all
+  hosts: localhost
   become: yes
   gather_facts: yes
 
