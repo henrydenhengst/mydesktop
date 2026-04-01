@@ -1,23 +1,75 @@
 ---
-- name: Setup mDNS op basis van huidige hostname
+- name: Setup DevOps Toolkit, SSH en mDNS
   hosts: localhost
   connection: local
   gather_facts: yes
   become: yes
 
   tasks:
-    - name: Toon de gedetecteerde hostname
-      ansible.builtin.debug:
-        msg: "Ik configureer nu mDNS voor: {{ ansible_hostname }}"
+    # --- 1. SSH KEY GENERATION ---
+    - name: Genereer ED25519 SSH-sleutel voor de huidige gebruiker
+      ansible.builtin.command:
+        cmd: ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519
+        creates: ~/.ssh/id_ed25519
+      become: no  # Uitvoeren als de normale gebruiker, niet als root
 
-    - name: Installeer Avahi en mDNS packages
-      ansible.builtin.package:
+    # --- 2. INSTALLATIE BASIS TOOLS ---
+    - name: Update apt cache en installeer essentials (ssh, ufw, git, ansible)
+      ansible.builtin.apt:
+        update_cache: yes
+        state: present
+        cache_valid_time: 3600
         name:
+          - ssh
+          - ufw
+          - git
+          - ansible
           - avahi-daemon
           - libnss-mdns
-        state: present
+          - mosh
+          - clusterssh
+          - tmux
+          - htop
+      environment:
+        DEBIAN_FRONTEND: noninteractive
 
-    - name: Zorg dat het systeem .local namen kan vinden
+    # --- 3. FIREWALL & SSH CONFIGURATIE ---
+    - name: SSH poort 22 openzetten in UFW (TCP)
+      community.general.ufw:
+        rule: allow
+        port: '22'
+        proto: tcp
+
+    - name: Mosh UDP poorten openzetten in UFW
+      community.general.ufw:
+        rule: allow
+        port: 60000:61000
+        proto: udp
+
+    - name: UFW inschakelen en basisbeleid instellen
+      community.general.ufw:
+        state: enabled
+        direction: incoming
+        policy: deny
+
+    - name: Zorg dat SSH-service draait
+      ansible.builtin.systemd:
+        name: ssh
+        state: started
+        enabled: yes
+
+    - name: Zorg dat SSH-forwarding aan staat voor clusterssh (cssh)
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/ssh_config
+        regexp: '^    ForwardAgent'
+        line: '    ForwardAgent yes'
+
+    # --- 4. mDNS & NETWERK CONFIGURATIE ---
+    - name: Toon de gedetecteerde hostname voor mDNS
+      ansible.builtin.debug:
+        msg: "Ik configureer nu mDNS voor: {{ ansible_hostname }}.local"
+
+    - name: Zorg dat het systeem .local namen kan vinden (nsswitch)
       ansible.builtin.lineinfile:
         path: /etc/nsswitch.conf
         regexp: '^hosts:'
@@ -28,25 +80,3 @@
         name: avahi-daemon
         state: started
         enabled: yes
-
-    - name: Installeer beheer-tools
-      ansible.builtin.package:
-        name:
-          - mosh
-          - clusterssh
-          - tmux
-          - htop
-        state: present
-
-    - name: Zet Mosh UDP poorten open in UFW
-      community.general.ufw:
-        rule: allow
-        port: 60000:61000
-        proto: udp
-      when: ansible_os_family == "Debian"
-
-    - name: Zorg dat SSH-forwarding aan staat (voor cssh)
-      ansible.builtin.lineinfile:
-        path: /etc/ssh/ssh_config
-        regexp: '^    ForwardAgent'
-        line: '    ForwardAgent yes'
