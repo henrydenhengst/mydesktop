@@ -1,0 +1,2 @@
+.bashrc
+alias mosh-all='ansible -i ~/ansible/inventory all_nodes --list-hosts 2>/dev/null | tail -n +2 | xargs -I{} mosh {}'
