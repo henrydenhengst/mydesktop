@@ -5,6 +5,21 @@ ansible-playbook mdns.yml -K
 # 2) ALLEEN ALS 1 overal op staat: TRUST
 ansible-playbook sync_keys.yml -K
 
+# 3 Maar een hosts.ini
+cat > ~/ansible/inventory/hosts.ini << 'EOF'
+[all_nodes]
+laptop1.local
+laptop2.local
+server.local
+
+[laptops]
+laptop1.local
+laptop2.local
+
+[servers]
+server.local
+EOF
+
 # 3 Voeg aliases toe
 echo "alias cssh-all='ansible -i ~/ansible/inventory all_nodes --list-hosts 2>/dev/null | tail -n +2 | xargs -r cssh'" >> ~/.bashrc
 echo "alias cssh-all-debug='ansible -i ~/ansible/inventory all_nodes --list-hosts'" >> ~/.bashrc
