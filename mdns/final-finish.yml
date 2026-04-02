@@ -1,0 +1,67 @@
+---
+- name: Setup inventory, aliases, and ClusterSSH config
+  hosts: localhost
+  become: false
+  vars:
+    ansible_inventory_path: "~/ansible/inventory/hosts.ini"
+    clusterssh_config_path: "~/.clusterssh/config"
+    bash_aliases:
+      - { name: "cssh-all", cmd: "ansible -i ~/ansible/inventory all_nodes --list-hosts 2>/dev/null | tail -n +2 | xargs -r cssh" }
+      - { name: "cssh-all-debug", cmd: "ansible -i ~/ansible/inventory all_nodes --list-hosts" }
+      - { name: "mosh-all", cmd: "ansible -i ~/ansible/inventory all_nodes --list-hosts 2>/dev/null | tail -n +2 | xargs -I{} mosh {}" }
+
+  tasks:
+    - name: Ensure inventory directory exists
+      file:
+        path: "~/ansible/inventory"
+        state: directory
+        mode: '0755'
+
+    - name: Create hosts.ini inventory
+      copy:
+        dest: "{{ ansible_inventory_path }}"
+        content: |
+          [all_nodes]
+          laptop1.local
+          laptop2.local
+          server.local
+
+          [laptops]
+          laptop1.local
+          laptop2.local
+
+          [servers]
+          server.local
+        mode: '0644'
+
+    - name: Add aliases to ~/.bashrc if not already present
+      lineinfile:
+        path: "~/.bashrc"
+        line: "alias {{ item.name }}='{{ item.cmd }}'"
+        state: present
+      loop: "{{ bash_aliases }}"
+
+    - name: Reload bashrc
+      shell: source ~/.bashrc
+      args:
+        executable: /bin/bash
+      ignore_errors: yes
+
+    - name: Ensure ClusterSSH config directory exists
+      file:
+        path: "~/.clusterssh"
+        state: directory
+        mode: '0755'
+
+    - name: Write ClusterSSH config
+      copy:
+        dest: "{{ clusterssh_config_path }}"
+        content: |
+          auto_close 0
+          cols 2
+          terminal terminator
+          window_title yes
+          unique_servers yes
+          use_all_a_records 1
+          ssh_args -o ControlMaster=auto -o ControlPersist=60s -o ControlPath=~/.ssh/cm-%C -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -o ServerAliveInterval=30 -A
+        mode: '0644'
