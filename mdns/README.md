@@ -20,14 +20,14 @@ laptop2.local
 server.local
 EOF
 
-# 3 Voeg aliases toe
+# 4 Voeg aliases toe
 echo "alias cssh-all='ansible -i ~/ansible/inventory all_nodes --list-hosts 2>/dev/null | tail -n +2 | xargs -r cssh'" >> ~/.bashrc
 echo "alias cssh-all-debug='ansible -i ~/ansible/inventory all_nodes --list-hosts'" >> ~/.bashrc
 echo "alias mosh-all='ansible -i ~/ansible/inventory all_nodes --list-hosts 2>/dev/null | tail -n +2 | xargs -I{} mosh {}'" >> ~/.bashrc
 
 source ~/.bashrc
 
-# 4 Schrijf config (overschrijft het bestand als het al bestaat)
+# 5 Schrijf config (overschrijft het bestand als het al bestaat)
 cat > ~/.clusterssh/config << 'EOF'
 auto_close 0
 cols 2
