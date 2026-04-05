@@ -6,17 +6,18 @@
 
   vars:
     user_name: "{{ ansible_env.USER | default(ansible_user_id) }}"
+    # De Gereedschapskist (Universele tools)
+    tools_dir: "/home/{{ ansible_env.USER | default(ansible_user_id) }}/platform-tools"
+    # De Magazijnen (Specifieke bestanden)
     base_dir: "/home/{{ ansible_env.USER | default(ansible_user_id) }}/android"
     
-    # De 5 ROMs voor de submappen
     roms:
       - grapheneos
       - lineageos
-      - eos          # /e/OS
+      - eos
       - calyxos
       - evolutionx
 
-    # De exact 8 geselecteerde leveranciers
     leveranciers:
       - google
       - motorola
@@ -28,21 +29,47 @@
       - asus
 
   tasks:
-    - name: 1. Installeer Systeemtools en Chromium (Afdwingen via APT)
+    - name: 1. Installeer Systeem-afhankelijkheden
       apt:
         update_cache: yes
         name:
           - chromium
-          - adb
-          - fastboot
           - curl
           - wget
           - heimdall-flash
           - unzip
           - python3-minimal
+          - libusb-1.0-0
         state: present
 
-    - name: 2. Maak de hiërarchische mappenstructuur aan (8 Leveranciers)
+    - name: 2. Download en Installeer de Nieuwste Platform Tools (De Gereedschapskist)
+      block:
+        - name: Maak de tools map aan
+          file:
+            path: "{{ tools_dir }}"
+            state: directory
+            owner: "{{ user_name }}"
+            group: "{{ user_name }}"
+            mode: '0755'
+
+        - name: Download Google Platform Tools voor Linux
+          get_url:
+            url: "https://dl.google.com/android/repository/platform-tools-latest-linux.zip"
+            dest: "/tmp/platform-tools.zip"
+            mode: '0644'
+
+        - name: Pak tools uit in de thuismap
+          unarchive:
+            src: "/tmp/platform-tools.zip"
+            dest: "/home/{{ user_name }}"
+            remote_src: yes
+            owner: "{{ user_name }}"
+            group: "{{ user_name }}"
+      rescue:
+        - debug:
+            msg: "Fout bij downloaden platform-tools. Controleer internetverbinding."
+
+    - name: 3. Maak de hiërarchische mappenstructuur aan (De Magazijnen)
       file:
         path: "{{ base_dir }}/{{ item.0 }}/{{ item.1 }}/{{ item.2 }}"
         state: directory
@@ -52,9 +79,9 @@
       with_nested:
         - "{{ leveranciers }}"
         - "{{ roms }}"
-        - ['images', 'docs', 'tools', 'backups']
+        - ['images', 'docs', 'tools', 'backups', 'global/apps']
 
-    - name: 3. Plaats de Flashing Checklist in elke docs-map
+    - name: 4. Plaats de Flashing Checklist in elke docs-map
       copy:
         dest: "{{ base_dir }}/{{ item.0 }}/{{ item.1 }}/docs/CHECKLIST.txt"
         content: |
@@ -74,7 +101,7 @@
         - "{{ leveranciers }}"
         - "{{ roms }}"
 
-    - name: 4. Configureer Universele UDEV-regels voor alle 8 merken
+    - name: 5. Configureer Universele UDEV-regels voor alle 8 merken
       copy:
         dest: /etc/udev/rules.d/51-android.rules
         content: |
@@ -94,23 +121,29 @@
           SUBSYSTEM=="usb", ATTR{idVendor}=="0b05", MODE="0666", GROUP="plugdev"
         mode: '0644'
 
-    - name: 5. Voeg gebruiker toe aan de groepen 'plugdev' en 'dialout'
-      user:
-        name: "{{ user_name }}"
-        groups: plugdev,dialout
-        append: yes
+    - name: 6. Gebruikersrechten en Systeem-tweaks
+      block:
+        - name: Voeg gebruiker toe aan groepen
+          user:
+            name: "{{ user_name }}"
+            groups: plugdev,dialout
+            append: yes
 
-    - name: 6. Deactiveer fwupd (Geen USB-onderbrekingen)
-      systemd:
-        name: fwupd
-        state: stopped
-        enabled: no
-        masked: yes
-      ignore_errors: yes
+        - name: Maskeer fwupd (Voorkom USB-onderbrekingen)
+          systemd:
+            name: fwupd
+            state: stopped
+            enabled: no
+            masked: yes
+          ignore_errors: yes
 
-    - name: 7. Herlaad USB-regels op Debian
+    - name: 7. Herlaad USB-regels
       shell: udevadm control --reload-rules && udevadm trigger
 
     - name: 8. Finale Controle
       debug:
-        msg: "Setup van 8 leveranciers voltooid in {{ base_dir }}. Vergeet niet te herstarten!"
+        msg: 
+          - "Setup voltooid!"
+          - "Gereedschapskist: {{ tools_dir }}"
+          - "Magazijnen: {{ base_dir }}"
+          - "Herstart je computer om de USB-rechten te activeren."
