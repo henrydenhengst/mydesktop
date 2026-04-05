@@ -13,6 +13,24 @@ Plaats het script direct in de `android` hoofdmap voor snelle toegang:
 
 ---
 
+### Installeer Ansible
+
+```bash
+sudo apt install git ansible -y
+mkdir -p git
+cd git
+git clone https://github.com/henrydenhengst/mydesktop.git
+cd mydesktop
+cd roms
+ansible-playbook android_debian_flashstation.yml -K
+chmod +x flash-master.sh
+cp flash-master.sh /home/$USER/android
+cd /home/$USER/android
+./flash-master.sh
+# of
+# sudo ./flash-master.sh
+```
+
 ### 2. De Volledige Mappenboom
 De mappen worden automatisch beheerd door het script en je Ansible-setup:
 
