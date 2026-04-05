@@ -2,6 +2,46 @@
 
 Deze instructie beschrijft de inrichting en het gebruik van een Debian Linux-systeem als beheercentrum voor het installeren van alternatieve besturingssystemen op smartphones van de 8 belangrijkste fabrikanten.
 
+## Overzicht Mappenstructuur & Scriptlocatie (Debian Flashing Station)
+
+Voor een correcte werking van het `flash-master.sh` script is het essentieel dat de bestanden exact op de volgende locaties staan binnen je Gebruikersmap (`~`).
+
+### 1. Locatie van het Master-Script
+Plaats het script direct in de `android` hoofdmap voor snelle toegang:
+* **Bestandspad:** `~/android/flash-master.sh`
+* **Rechten:** Uitvoerbaar maken met `chmod +x ~/android/flash-master.sh`
+
+---
+
+### 2. De Volledige Mappenboom
+De mappen worden automatisch beheerd door het script en je Ansible-setup:
+
+```text
+/home/[gebruiker]/
+├── platform-tools/              # De nieuwste Google binaries (adb/fastboot)
+└── android/                     # Hoofdmap Flashing Station
+    ├── flash-master.sh          # Het centrale Dashboard script
+    ├── global/
+    │   └── apps/                # Plaats hier je .apk bestanden voor auto-install
+    ├── google/                  # Leverancier 1
+    │   ├── grapheneos/          # ROM 1
+    │   │   ├── images/          # .img en .zip bestanden
+    │   │   ├── docs/            # Handleidingen & CHECKLIST.txt
+    │   │   ├── tools/           # Specifieke flash-scripts
+    │   │   └── backups/         # Toestel-specifieke backups
+    │   ├── lineageos/           # ROM 2
+    │   ├── eos/                 # ROM 3
+    │   ├── calyxos/             # ROM 4
+    │   └── evolutionx/          # ROM 5
+    ├── motorola/                # Leverancier 2 (met dezelfde 5 ROM-mappen)
+    ├── samsung/                 # Leverancier 3
+    ├── xiaomi/                  # Leverancier 4
+    ├── fairphone/               # Leverancier 5
+    ├── sony/                    # Leverancier 6
+    ├── nothing/                 # Leverancier 7
+    └── asus/                    # Leverancier 8
+```
+
 ---
 
 ## 1. Systeemconfiguratie & Eisen
