@@ -1,0 +1,116 @@
+---
+- name: Ultiem Debian Flashing Station 2026 (8 Leveranciers & 5 ROMs)
+  hosts: localhost
+  connection: local
+  become: true
+
+  vars:
+    user_name: "{{ ansible_env.USER | default(ansible_user_id) }}"
+    base_dir: "/home/{{ ansible_env.USER | default(ansible_user_id) }}/android"
+    
+    # De 5 ROMs voor de submappen
+    roms:
+      - grapheneos
+      - lineageos
+      - eos          # /e/OS
+      - calyxos
+      - evolutionx
+
+    # De exact 8 geselecteerde leveranciers
+    leveranciers:
+      - google
+      - motorola
+      - samsung
+      - xiaomi
+      - fairphone
+      - sony
+      - nothing
+      - asus
+
+  tasks:
+    - name: 1. Installeer Systeemtools en Chromium (Afdwingen via APT)
+      apt:
+        update_cache: yes
+        name:
+          - chromium
+          - adb
+          - fastboot
+          - curl
+          - wget
+          - heimdall-flash
+          - unzip
+          - python3-minimal
+        state: present
+
+    - name: 2. Maak de hiërarchische mappenstructuur aan (8 Leveranciers)
+      file:
+        path: "{{ base_dir }}/{{ item.0 }}/{{ item.1 }}/{{ item.2 }}"
+        state: directory
+        owner: "{{ user_name }}"
+        group: "{{ user_name }}"
+        mode: '0755'
+      with_nested:
+        - "{{ leveranciers }}"
+        - "{{ roms }}"
+        - ['images', 'docs', 'tools', 'backups']
+
+    - name: 3. Plaats de Flashing Checklist in elke docs-map
+      copy:
+        dest: "{{ base_dir }}/{{ item.0 }}/{{ item.1 }}/docs/CHECKLIST.txt"
+        content: |
+          STAPPENPLAN VOOR FLASHEN (Leverancier: {{ item.0 | upper }} | ROM: {{ item.1 | upper }}):
+          1. [ ] Backup maken van originele data/firmware (in /backups).
+          2. [ ] Ontwikkelaarsopties activeren op toestel.
+          3. [ ] USB-debugging en OEM-unlock inschakelen.
+          4. [ ] Bootloader unlocken (Vendor-specifiek proces via /docs).
+          5. [ ] Juiste Recovery flashen (indien nodig).
+          6. [ ] Data-wipe / Factory Reset uitvoeren.
+          7. [ ] ROM-bestanden flashen vanuit de /images map.
+          8. [ ] Bootloader weer vergrendelen (INDIEN ondersteund door {{ item.1 }}).
+        owner: "{{ user_name }}"
+        group: "{{ user_name }}"
+        mode: '0644'
+      with_nested:
+        - "{{ leveranciers }}"
+        - "{{ roms }}"
+
+    - name: 4. Configureer Universele UDEV-regels voor alle 8 merken
+      copy:
+        dest: /etc/udev/rules.d/51-android.rules
+        content: |
+          # Google & Nothing
+          SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", MODE="0666", GROUP="plugdev"
+          # Motorola
+          SUBSYSTEM=="usb", ATTR{idVendor}=="22b8", MODE="0666", GROUP="plugdev"
+          # Samsung
+          SUBSYSTEM=="usb", ATTR{idVendor}=="04e8", MODE="0666", GROUP="plugdev"
+          # Xiaomi
+          SUBSYSTEM=="usb", ATTR{idVendor}=="2717", MODE="0666", GROUP="plugdev"
+          # Fairphone
+          SUBSYSTEM=="usb", ATTR{idVendor}=="2ae5", MODE="0666", GROUP="plugdev"
+          # Sony
+          SUBSYSTEM=="usb", ATTR{idVendor}=="054c", MODE="0666", GROUP="plugdev"
+          # ASUS
+          SUBSYSTEM=="usb", ATTR{idVendor}=="0b05", MODE="0666", GROUP="plugdev"
+        mode: '0644'
+
+    - name: 5. Voeg gebruiker toe aan de groepen 'plugdev' en 'dialout'
+      user:
+        name: "{{ user_name }}"
+        groups: plugdev,dialout
+        append: yes
+
+    - name: 6. Deactiveer fwupd (Geen USB-onderbrekingen)
+      systemd:
+        name: fwupd
+        state: stopped
+        enabled: no
+        masked: yes
+      ignore_errors: yes
+
+    - name: 7. Herlaad USB-regels op Debian
+      shell: udevadm control --reload-rules && udevadm trigger
+
+    - name: 8. Finale Controle
+      debug:
+        msg: "Setup van 8 leveranciers voltooid in {{ base_dir }}. Vergeet niet te herstarten!"
