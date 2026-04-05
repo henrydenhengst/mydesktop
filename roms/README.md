@@ -285,3 +285,44 @@ Veel van de toestellen in de 51-100 reeks zijn **refurbished** zeer goedkoop aan
 
 **Let op:** Bij tablets (zoals de Samsung Tab en Lenovo) is de ondersteuning voor de stylus of specifieke toetsenbord-covers soms beperkt in Custom ROMs. Controleer de "Known Issues" in de documentatie voordat je begint.
 
+# Officiële Downloadbronnen voor de 5 ROMs
+
+Gebruik deze links om de `.img` of `.zip` bestanden te downloaden naar de bijbehorende `~/android/[vendor]/[rom]/images/` map op je Debian station.
+
+---
+
+### 1. GrapheneOS (Alleen voor Google Pixel)
+De meest beveiligde ROM op de markt.
+* **Website:** [https://grapheneos.org/releases](https://grapheneos.org/releases)
+* **Installatietip:** Gebruik de "Web Installer" in Chromium voor de makkelijkste ervaring.
+
+### 2. LineageOS (De Universele Standaard)
+De breedst ondersteunde ROM voor bijna alle fabrikanten.
+* **Website:** [https://download.lineageos.org/](https://download.lineageos.org/)
+* **Zoekmethode:** Zoek op de codenaam van je toestel (bijv. `curtana` voor de Redmi Note 9S).
+
+### 3. /e/OS (De-Googled & Privacy)
+Ideaal voor Samsung, Fairphone en oudere toestellen.
+* **Website:** [https://doc.e.foundation/devices](https://doc.e.foundation/devices)
+* **Zoekmethode:** Klik op je toestelmodel voor de directe downloadlink en specifieke installatie-instructies.
+
+### 4. CalyxOS (Privacy met Gemak)
+Een uitstekend alternatief voor GrapheneOS, ook voor de Fairphone en Motorola.
+* **Website:** [https://calyxos.org/install/](https://calyxos.org/install/)
+* **Installatietip:** CalyxOS gebruikt vaak een eigen `device-flasher` tool die je in de `/tools` map kunt zetten.
+
+### 5. Evolution X (Pixel Features op andere hardware)
+Voor wie alle Google Pixel-functies wil, maar dan op een Xiaomi of OnePlus.
+* **Website:** [https://evolution-x.org/download](https://evolution-x.org/download)
+* **Zoekmethode:** Selecteer je fabrikant en vervolgens je specifieke modelnaam.
+
+---
+
+## Belangrijke Veiligheidscheck (Checksums)
+Bij bijna alle downloads zie je een lange reeks tekens (bijv. SHA-256). Controleer na het downloaden in je Debian terminal of het bestand niet corrupt is:
+
+```bash
+cd ~/android/[vendor]/[rom]/images/
+sha256sum [bestandsnaam].zip
+```
+
