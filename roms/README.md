@@ -313,8 +313,9 @@ Een uitstekend alternatief voor GrapheneOS, ook voor de Fairphone en Motorola.
 
 ### 5. Evolution X (Pixel Features op andere hardware)
 Voor wie alle Google Pixel-functies wil, maar dan op een Xiaomi of OnePlus.
-* **Website:** [https://evolution-x.org/download](https://evolution-x.org/download)
+* **Website:** [https://evolution-x.org/devices](https://evolution-x.org/devices)
 * **Zoekmethode:** Selecteer je fabrikant en vervolgens je specifieke modelnaam.
+
 
 ---
 
