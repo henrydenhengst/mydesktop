@@ -73,19 +73,16 @@ Je station is nu klaar voor gebruik. Zo begin je aan je eerste telefoon (bijv. d
 ### Installeer Ansible
 
 ```bash
-sudo apt install git ansible -y
-mkdir -p git
-cd git
-git clone https://github.com/henrydenhengst/mydesktop.git
-cd mydesktop
-cd roms
-ansible-playbook android_debian_flashstation.yml -K
-chmod +x flash-master.sh
-cp flash-master.sh /home/$USER/android
-cd /home/$USER/android
+sudo apt update && sudo apt install git ansible -y && \
+mkdir -p ~/git && cd ~/git && \
+git clone https://github.com/henrydenhengst/mydesktop.git && \
+cd mydesktop/roms && \
+ansible-playbook android_debian_flashstation.yml -K && \
+chmod +x flash-master.sh && \
+cp flash-master.sh ~/android/ && \
+cd ~/android && \
 ./flash-master.sh
-# of
-# sudo ./flash-master.sh
+
 ```
 
 ### 2. De Volledige Mappenboom
