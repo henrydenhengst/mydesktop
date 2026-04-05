@@ -70,7 +70,7 @@ Je station is nu klaar voor gebruik. Zo begin je aan je eerste telefoon (bijv. d
 
 ---
 
-### Installeer Ansible
+### Flash Master, maar eerst Ansible & Git
 
 ```bash
 sudo apt update && sudo apt install git ansible -y && \
