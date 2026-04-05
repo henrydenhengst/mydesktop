@@ -13,6 +13,63 @@ Plaats het script direct in de `android` hoofdmap voor snelle toegang:
 
 ---
 
+### STAPPENPLAN: ACTIVATIE VAN JE ANDROID FLASHING STATION
+
+Volg deze vier stappen om je Debian-systeem om te toveren tot een professioneel beheercentrum voor 100 verschillende smartphones.
+
+---
+
+### STAP 1: DE SYSTEEM-INRICHTING (DE FUNDERING)
+In deze stap regelt Ansible automatisch alle 200+ mappen, de USB-rechten voor de 8 fabrikanten en de installatie van de nieuwste Google-tools.
+
+1. Sla de YAML-code op als een bestand genaamd: setup_android_station.yml
+2. Open je terminal en ga naar de map waar dit bestand staat.
+3. Voer het installatie-commando uit (gebruik je wachtwoord wanneer gevraagd).
+```bash
+ansible-playbook setup_android_station.yml -K
+```
+4. HERSTART JE COMPUTER. Dit is verplicht om de nieuwe USB-toegang en gebruikersgroepen te activeren.
+
+---
+
+### STAP 2: HET DASHBOARD ACTIVEREN (DE COCKPIT)
+Nu de mappenstructuur er staat, plaatsen we het centrale besturingsscript op de juiste plek.
+
+1. Kopieer de volledige tekst van het "flash-master.sh" script.
+2. Maak een nieuw tekstbestand aan op de locatie: ~/android/flash-master.sh
+3. Plak de tekst erin en sla het bestand op.
+4. Maak het bestand "uitvoerbaar" via de terminal of via de rechtermuisknop bij de bestandseigenschappen.
+```bash
+chmod +x ~/android/flash-master.sh
+```
+
+---
+
+### STAP 3: DE SNELKOPPELING MAKEN (HET GEMAK)
+Zorg ervoor dat je het station voortaan met één simpel commando kunt starten.
+
+```bash
+echo "alias flashstation='~/android/flash-master.sh'" >> ~/.bashrc
+source ~/.bashrc
+```
+
+1. Voeg een alias (snelkoppeling) toe aan je systeeminstellingen (.bashrc).
+2. Noem de snelkoppeling bijvoorbeeld: flashstation
+3. Vernieuw je terminalinstellingen zodat de nieuwe snelkoppeling direct werkt.
+4. Test het door simpelweg "flashstation" te typen in je terminal.
+
+---
+
+### STAP 4: JE EERSTE PROJECT (DE UITVOERING)
+Je station is nu klaar voor gebruik. Zo begin je aan je eerste telefoon (bijv. de Samsung Galaxy A16).
+
+1. DOWNLOAD DE ROM: Ga naar de officiële website van de gekozen software (bijv. LineageOS of /e/OS).
+2. PLAATS HET BESTAND: Zet de gedownloade installatiebestanden (.zip of .img) in de specifieke map: ~/android/samsung/lineageos/images/
+3. START HET DASHBOARD: Typ je nieuwe commando "flashstation" in de terminal.
+4. VOLG HET MENU: Kies de fabrikant en de ROM. Gebruik eerst de optie "Check verbinding" om te zien of je telefoon goed wordt herkend door je nieuwe systeem.
+
+---
+
 ### Installeer Ansible
 
 ```bash
