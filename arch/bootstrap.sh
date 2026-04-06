@@ -13,9 +13,9 @@ DISK=$(lsblk -bno NAME,SIZE,TYPE,ROTA,TRAN | awk '$3=="disk" && $4=="0" && $5!="
 MCODE=$(grep -iq "Intel" /proc/cpuinfo && echo "intel-ucode" || echo "amd-ucode")
 GPU_PKG=$(lspci | grep -iq "nvidia" && echo "nvidia-dkms nvidia-utils lib32-nvidia-utils opencl-nvidia libva-nvidia-driver" || echo "mesa lib32-mesa vulkan-radeon lib32-vulkan-radeon libva-mesa-driver")
 
-HOSTNAME="robot-001"
-USERNAME="elliot"
-PASSWORD="Password1"
+HOSTNAME="arch-desktop"
+USERNAME="henry"
+PASSWORD="Password1!"
 
 # --- 2. MIRROR OPTIMALISATIE ---
 timedatectl set-ntp true
