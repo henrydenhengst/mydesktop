@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# --- 0. DE "BEN JE WEL ONLINE?" CHECK ---
+echo "--- Checking for life signs (Internet) ---"
+if ! ping -c 1 google.com &>/dev/null; then
+    echo "ERROR: No internet connection. Connect via 'iwctl' or plug in a cable, then try again."
+    exit 1
+fi
+echo "Connection confirmed. Proceeding with Robot-001 deployment..."
+
 # --- 1. HARDWARE & DISK AUTO-SCAN ---
 DISK=$(lsblk -bno NAME,SIZE,TYPE,ROTA,TRAN | awk '$3=="disk" && $4=="0" && $5!="usb" {print "/dev/"$1}' | sort -k2 -rn | head -n 1)
 MCODE=$(grep -iq "Intel" /proc/cpuinfo && echo "intel-ucode" || echo "amd-ucode")
