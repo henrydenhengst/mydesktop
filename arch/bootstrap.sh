@@ -1,39 +1,35 @@
 #!/bin/bash
 set -euo pipefail
-IFS=$'
-\t'
+IFS=$'\n\t'
 
 LOGFILE="/tmp/arch_install.log"
 exec > >(tee -a "$LOGFILE") 2>&1
-
 trap 'echo "ERROR on line $LINENO. See $LOGFILE"' ERR
 
 echo "--- ROBOT-001 INSTALL SCRIPT START ---"
 
+# --- Helper function for required commands ---
 require_cmd() {
-  command -v "$1" >/dev/null 2>&1 || {
-    echo "ERROR: required command not found: $1"
-    exit 1
-  }
+  command -v "$1" >/dev/null 2>&1 || { echo "ERROR: required command not found: $1"; exit 1; }
 }
 
-for cmd in lsblk awk grep ping timedatectl reflector wipefs sgdisk mkfs.vfat mkfs.btrfs mount umount arch-chroot blkid; do
+# --- Required binaries check ---
+for cmd in lsblk awk grep ping timedatectl reflector wipefs sgdisk mkfs.vfat mkfs.btrfs mount umount arch-chroot blkid partprobe udevadm lspci; do
   require_cmd "$cmd"
 done
 
-echo "--- Checking for Internet connectivity ---"
+# --- Internet check ---
+echo "--- Checking Internet connectivity ---"
 if ! ping -c 1 -W 2 1.1.1.1 >/dev/null 2>&1; then
   echo "ERROR: No internet connection."
   exit 1
 fi
 echo "Internet connection OK."
 
-echo "--- Detecting hardware ---"
-
+# --- Disk selection ---
+echo "--- Detecting disks ---"
 DISKS=()
-while IFS= read -r d; do
-  DISKS+=("$d")
-done < <(lsblk -dnpo NAME,TYPE,ROTA,TRAN | awk '$2=="disk" && $3=="0" && $4!="usb" {print $1}')
+while IFS= read -r d; do DISKS+=("$d"); done < <(lsblk -dnpo NAME,TYPE,ROTA,TRAN | awk '$2=="disk" && $3=="0" && $4!="usb" {print $1}')
 
 if [[ ${#DISKS[@]} -eq 0 ]]; then
   echo "ERROR: No suitable disk found."
@@ -42,14 +38,12 @@ fi
 
 echo "Available target disks:"
 select DISK in "${DISKS[@]}"; do
-  if [[ -n "${DISK:-}" ]]; then
-    break
-  fi
+  [[ -n "${DISK:-}" ]] && break
   echo "Invalid selection."
 done
-
 echo "Target disk: $DISK"
 
+# --- CPU microcode ---
 if grep -qi 'GenuineIntel' /proc/cpuinfo; then
   MCODE="intel-ucode"
 elif grep -qi 'AuthenticAMD' /proc/cpuinfo; then
@@ -57,19 +51,22 @@ elif grep -qi 'AuthenticAMD' /proc/cpuinfo; then
 else
   MCODE=""
 fi
-
 echo "CPU microcode package: ${MCODE:-none}"
 
+# --- GPU packages ---
 if lspci | grep -qi nvidia; then
   GPU_PKG=(nvidia-dkms nvidia-utils lib32-nvidia-utils opencl-nvidia libva-nvidia-driver)
+  GPU_PARAMS="nvidia-drm.modeset=1"
 elif lspci | grep -qi amd; then
   GPU_PKG=(mesa lib32-mesa vulkan-radeon lib32-vulkan-radeon libva-mesa-driver)
+  GPU_PARAMS=""
 else
   GPU_PKG=(mesa lib32-mesa vulkan-intel lib32-vulkan-intel libva-mesa-driver)
+  GPU_PARAMS=""
 fi
-
 echo "GPU packages: ${GPU_PKG[*]}"
 
+# --- User config ---
 HOSTNAME="arch-desktop"
 USERNAME="henry"
 
@@ -77,22 +74,18 @@ read -rsp "Set password for $USERNAME: " PASSWORD
 echo
 read -rsp "Confirm password for $USERNAME: " PASSWORD2
 echo
+[[ "$PASSWORD" != "$PASSWORD2" ]] && { echo "ERROR: Passwords do not match."; exit 1; }
 
-if [[ "$PASSWORD" != "$PASSWORD2" ]]; then
-  echo "ERROR: Passwords do not match."
-  exit 1
-fi
-
+# --- Mirror optimization ---
 timedatectl set-ntp true
 reflector --latest 30 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
 
+# --- Confirm disk wipe ---
 echo "WARNING: This will erase all data on $DISK!"
 read -rp "Type 'YES' to continue: " CONFIRM
-if [[ "$CONFIRM" != "YES" ]]; then
-  echo "Aborted by user."
-  exit 1
-fi
+[[ "$CONFIRM" != "YES" ]] && { echo "Aborted by user."; exit 1; }
 
+# --- Partition & Btrfs setup ---
 wipefs -a "$DISK"
 sgdisk -Z "$DISK"
 sgdisk -o "$DISK"
@@ -109,10 +102,7 @@ mkfs.vfat -F 32 -n EFI "$PART_EFI"
 mkfs.btrfs -f -L ROOT "$PART_ROOT"
 
 mount "$PART_ROOT" /mnt
-btrfs subvolume create /mnt/@
-btrfs subvolume create /mnt/@home
-btrfs subvolume create /mnt/@snapshots
-btrfs subvolume create /mnt/@var_log
+for sub in @ @home @snapshots @var_log; do btrfs subvolume create /mnt/$sub; done
 umount /mnt
 
 MOUNT_OPTS="noatime,compress=zstd:3,discard=async,space_cache=v2"
@@ -123,6 +113,7 @@ mount -o "$MOUNT_OPTS,subvol=@snapshots" "$PART_ROOT" /mnt/.snapshots
 mount -o "$MOUNT_OPTS,subvol=@var_log" "$PART_ROOT" /mnt/var/log
 mount "$PART_EFI" /mnt/boot
 
+# --- Pacstrap packages ---
 PKGS=(
   base linux-zen linux-zen-headers linux-firmware base-devel
   btrfs-progs git sudo networkmanager
@@ -137,76 +128,67 @@ PKGS=(
   reflector
 )
 
-if [[ -n "$MCODE" ]]; then
-  PKGS+=("$MCODE")
-fi
-
+[[ -n "$MCODE" ]] && PKGS+=("$MCODE")
 PKGS+=("${GPU_PKG[@]}")
 
 pacstrap /mnt "${PKGS[@]}"
 genfstab -U /mnt >> /mnt/etc/fstab
 
+# --- Chroot configuration ---
 arch-chroot /mnt /bin/bash <<EOF
 set -euo pipefail
 
-ln -sf /usr/share/zoneinfo/UTC /etc/localtime
+# --- Timezone via Geo-IP ---
+TZ=\$(curl -s https://ipapi.co/timezone || echo "UTC")
+ln -sf /usr/share/zoneinfo/\$TZ /etc/localtime
 hwclock --systohc
 
+# --- Locale & hostname ---
 sed -i 's/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
 locale-gen
-cat > /etc/locale.conf <<EOT
-LANG=en_US.UTF-8
-EOT
-
-cat > /etc/hostname <<EOT
-$HOSTNAME
-EOT
-
+echo "LANG=en_US.UTF-8" > /etc/locale.conf
+echo "$HOSTNAME" > /etc/hostname
 cat >> /etc/hosts <<EOT
 127.0.0.1 localhost
 ::1       localhost
 127.0.1.1 $HOSTNAME.localdomain $HOSTNAME
 EOT
 
+# --- User setup ---
 useradd -m -G wheel -s /bin/bash $USERNAME
 echo "$USERNAME:$PASSWORD" | chpasswd
 echo '%wheel ALL=(ALL:ALL) ALL' > /etc/sudoers.d/wheel
 chmod 440 /etc/sudoers.d/wheel
 
+# --- Bootloader: systemd-boot ---
 bootctl --path=/boot install
-
 cat > /boot/loader/loader.conf <<EOT
 default arch.conf
 timeout 3
 editor no
 EOT
 
-UUID=$(blkid -s UUID -o value "$PART_ROOT")
-
+UUID=\$(blkid -s UUID -o value "$PART_ROOT")
 cat > /boot/loader/entries/arch.conf <<EOT
 title   Arch Linux (Zen)
 linux   /vmlinuz-linux-zen
 EOT
+[[ -n "$MCODE" ]] && echo "initrd  /$MCODE.img" >> /boot/loader/entries/arch.conf
+echo "initrd  /initramfs-linux-zen.img" >> /boot/loader/entries/arch.conf
+echo "options root=UUID=$UUID rootflags=@ rw $GPU_PARAMS quiet" >> /boot/loader/entries/arch.conf
 
-if [[ -n "$MCODE" ]]; then
-cat >> /boot/loader/entries/arch.conf <<EOT
-initrd  /$MCODE.img
-EOT
-fi
-
-cat >> /boot/loader/entries/arch.conf <<EOT
-initrd  /initramfs-linux-zen.img
-options root=UUID=$UUID rootflags=subvol=@ rw quiet
-EOT
-
+# --- Snapper ---
 pacman -S --noconfirm snapper
 snapper -c root create-config /
 mkdir -p /.snapshots
 chmod 750 /.snapshots
 chown :wheel /.snapshots
+systemctl enable snapper-timeline.timer snapper-cleanup.timer
 
+# --- Enable services ---
 systemctl enable NetworkManager bluetooth sddm
 
+# --- Aliases & dotfiles ---
 cat > /home/$USERNAME/.bashrc <<'EOT'
 alias ls='eza --icons --group-directories-first'
 alias ll='eza -l --icons --group-directories-first'
@@ -229,6 +211,5 @@ chown -R $USERNAME:$USERNAME /home/$USERNAME
 EOF
 
 echo "--- INSTALL COMPLETE ---"
-echo "Reboot in 5 seconds..."
-sleep 5
-reboot
+read -rp "Reboot now? (y/N): " REBOOT
+[[ "$REBOOT" =~ ^[Yy]$ ]] && reboot || echo "Reboot skipped. You can reboot manually."
