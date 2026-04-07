@@ -1,0 +1,143 @@
+office_post_install:
+  description: "Arch Linux Office / Productivity post-install configuration with KDE look & feel"
+  target_user: "${SUDO_USER:-$USER}"
+  prerequisites:
+    - sudo
+    - internet_connection
+  system_update:
+    pacman:
+      command: "Syu"
+      options: "--noconfirm"
+  packages:
+    office_suite:
+      pacman:
+        - libreoffice-fresh
+        - hunspell
+        - hunspell-en_us
+        - hunspell-nl
+        - hyphen
+        - hyphen-en
+        - hyphen-nl
+    documents_pdf:
+      pacman:
+        - okular
+        - evince
+        - pdfarranger
+        - poppler
+        - imagemagick
+    notes_productivity:
+      pacman:
+        - obsidian
+        - joplin-desktop
+        - zathura
+        - zathura-pdf-mupdf
+    communication:
+      pacman:
+        - thunderbird
+        - telegram-desktop
+        - signal-desktop
+        - zoom
+    browsers:
+      pacman:
+        - firefox
+        - chromium
+    file_management:
+      pacman:
+        - dolphin
+        - ark
+        - file-roller
+        - gvfs
+        - gvfs-mtp
+        - gvfs-smb
+        - samba
+        - cifs-utils
+    printing_scanning:
+      pacman:
+        - cups
+        - cups-pdf
+        - system-config-printer
+        - sane
+        - simple-scan
+    fonts:
+      pacman:
+        - ttf-dejavu
+        - ttf-liberation
+        - noto-fonts
+        - noto-fonts-cjk
+        - noto-fonts-emoji
+    utilities:
+      pacman:
+        - flameshot
+        - xclip
+        - wl-clipboard
+        - unzip
+        - zip
+        - p7zip
+        - keepassxc
+        - gnome-keyring
+        - seahorse
+    cloud_sync:
+      pacman:
+        - nextcloud-client
+        - syncthing
+  services:
+    system:
+      - cups
+      - bluetooth
+    user:
+      - syncthing.service
+  locale_preferences:
+    file: "/home/${SUDO_USER:-$USER}/.config/locale.conf"
+    variables:
+      LC_TIME: "nl_NL.UTF-8"
+      LC_NUMERIC: "nl_NL.UTF-8"
+      LC_MONETARY: "nl_NL.UTF-8"
+  xdg_user_dirs: true
+  bash_aliases:
+    file: "/home/${SUDO_USER:-$USER}/.bashrc"
+    aliases:
+      open: "xdg-open"
+      pdf: "okular"
+      edit: "kate"
+      notes: "obsidian"
+  kde_look_and_feel:
+    global_theme: "Breeze Light"
+    icons: "Papirus-Light"
+    cursor_theme: "Breeze_Snow"
+    fonts:
+      system: "Noto Sans"
+      terminal: "JetBrains Mono Nerd Font 11pt"
+    panel:
+      position: "bottom"
+      auto_hide: false
+      task_manager: "icons and text"
+    widgets:
+      - clock_calendar
+      - system_monitor
+      - quick_launcher
+    compositor:
+      tearing_prevention: "automatic"
+      blur: "subtle"
+      animations_speed: "medium"
+    wayland: true
+    shortcuts:
+      krunner: "Alt+Space"
+      terminal: "Ctrl+Alt+T"
+      lock_screen: "Ctrl+Alt+L"
+      screenshot: "Print"
+  recommendations:
+    office_workflow:
+      - "LibreOffice templates voor brieven, spreadsheets en presentaties"
+      - "Joplin / Obsidian voor notities en knowledge base"
+      - "Zorg voor backups via Nextcloud of Syncthing"
+    document_processing:
+      - "Automatiseer PDF verwerking met pdfarranger en imagemagick scripts"
+      - "OCR tools: tesseract, gscan2pdf"
+    productivity_tips:
+      - "Gebruik Dolphin met slimme tags en kleurcodering"
+      - "Thunderbird + kalender integratie voor planning"
+      - "Zet KDE hotkeys voor snel openen van apps en documenten"
+    collaboration:
+      - "Syncthing voor realtime project sync"
+      - "Nextcloud + Collabora Online voor teamwerk"
+      - "Gebruik Git voor document versiebeheer indien nodig"
