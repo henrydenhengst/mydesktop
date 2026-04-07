@@ -117,15 +117,30 @@ TZ=\$(curl -s --max-time 5 https://ipapi.co/timezone || echo "Europe/Amsterdam")
 ln -sf /usr/share/zoneinfo/\$TZ /etc/localtime
 hwclock --systohc
 
-# Locale & hostname
+
+# --- Locale & hostname ---
+# Enable locales
 sed -i 's/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+sed -i 's/^#nl_NL.UTF-8 UTF-8/nl_NL.UTF-8 UTF-8/' /etc/locale.gen
+
 locale-gen
-echo "LANG=en_US.UTF-8" > /etc/locale.conf
+
+# Set locale (English system, Dutch formatting)
+cat > /etc/locale.conf <<EOT
+LANG=en_US.UTF-8
+LC_TIME=nl_NL.UTF-8
+LC_NUMERIC=nl_NL.UTF-8
+LC_MONETARY=nl_NL.UTF-8
+EOT
+
+# Hostname
 echo "$HOSTNAME" > /etc/hostname
-cat >> /etc/hosts <<EOT
-127.0.0.1	localhost
-::1		localhost
-127.0.1.1	$HOSTNAME.localdomain	$HOSTNAME
+
+# Hosts file
+cat > /etc/hosts <<EOT
+127.0.0.1   localhost
+::1         localhost
+127.0.1.1   $HOSTNAME.localdomain   $HOSTNAME
 EOT
 
 # User & sudo
