@@ -1,0 +1,118 @@
+gaming_post_install:
+  description: "Arch Linux Ultimate Gaming post-install configuration with KDE look & feel"
+  target_user: "${SUDO_USER:-$USER}"
+  prerequisites:
+    - sudo
+    - internet_connection
+  system_update:
+    pacman:
+      command: "Syu"
+      options: "--noconfirm"
+  packages:
+    core_gaming:
+      pacman:
+        - steam
+        - lutris
+        - heroic-games-launcher
+        - wine
+        - winetricks
+        - gamemode
+        - lib32-gamemode
+        - mangohud
+        - lib32-mangohud
+        - goverlay
+        - gamescope
+        - vulkan-icd-loader
+        - lib32-vulkan-icd-loader
+        - vulkan-tools
+        - mesa-demos
+        - obs-studio
+        - discord
+    performance:
+      pacman:
+        - power-profiles-daemon
+        - irqbalance
+        - earlyoom
+    emulators:
+      pacman:
+        - retroarch
+        - retroarch-assets-xmb
+        - dolphin-emu
+        - pcsx2
+        - rpcs3
+        - yuzu-mainline-bin
+    containers:
+      pacman:
+        - docker
+        - docker-compose
+  services:
+    enable_now:
+      - bluetooth
+      - docker
+      - irqbalance
+      - power-profiles-daemon
+      - earlyoom
+  permissions:
+    docker_group:
+      add_user: true
+      user: "${SUDO_USER:-$USER}"
+  gaming_configs:
+    gamemode:
+      path: "/home/${SUDO_USER:-$USER}/.config/gamemode.ini"
+      content: |
+        [general]
+        renice=10
+        softrealtime=auto
+
+        [gpu]
+        apply_gpu_optimisations=accept-responsibility
+    mangohud:
+      path: "/home/${SUDO_USER:-$USER}/.config/MangoHud/MangoHud.conf"
+      content: |
+        fps
+        frametime
+        cpu_temp
+        gpu_temp
+        vram
+        ram
+        io_read
+        io_write
+  environment_tweaks:
+    bashrc_path: "/home/${SUDO_USER:-$USER}/.bashrc"
+    exports:
+      MANGOHUD: "1"
+      ENABLE_VKBASALT: "0"
+      __GL_SHADER_DISK_CACHE: "1"
+      STEAM_COMPAT_CLIENT_INSTALL_PATH: "$HOME/.steam/root"
+      STEAM_COMPAT_DATA_PATH: "$HOME/.steam/steamapps/compatdata"
+      MOZ_ENABLE_WAYLAND: "1"
+      SDL_VIDEODRIVER: "wayland"
+      CLUTTER_BACKEND: "wayland"
+  optional_dirs:
+    - "/home/${SUDO_USER:-$USER}/Games"
+    - "/home/${SUDO_USER:-$USER}/Emulators"
+  kde_look_and_feel:
+    global_theme: "Breeze Dark"
+    icons: "Papirus-Dark"
+    cursor_theme: "Breeze_Snow"
+    fonts:
+      system: "Noto Sans"
+      terminal: "JetBrains Mono Nerd Font 11pt"
+    panel:
+      position: "bottom"
+      auto_hide: true
+      task_manager: "grouped icons only"
+    widgets:
+      - clock_calendar
+      - system_monitor
+      - quick_launcher
+    compositor:
+      tearing_prevention: "automatic"
+      blur: "subtle"
+      animations_speed: "medium"
+    wayland: true
+    shortcuts:
+      krunner: "Alt+Space"
+      terminal: "Ctrl+Alt+T"
+      lock_screen: "Ctrl+Alt+L"
+      screenshot: "Print"
