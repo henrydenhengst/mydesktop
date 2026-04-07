@@ -92,16 +92,12 @@ echo "--- Applying environment tuning ---"
 cat >> /home/$USERNAME/.bashrc <<'EOF'
 
 # === MULTIMEDIA / CONTENT CREATION ===
-
 # FFmpeg threads (auto)
 export FFMPEG_THREADS=0
-
 # PipeWire low latency
 export PIPEWIRE_LATENCY="128/48000"
-
 # VAAPI (hardware accel)
 export LIBVA_DRIVER_NAME=iHD
-
 # OBS Wayland fix
 export QT_QPA_PLATFORM=wayland
 EOF
@@ -110,4 +106,48 @@ EOF
 chown -R $USERNAME:$USERNAME /home/$USERNAME
 
 echo "--- MULTIMEDIA INSTALL COMPLETE ---"
+
+# --- Aanbevelingen / optionele extra tools ---
+cat <<EOT
+
+💡 Aanbevelingen voor YouTubers / content creators:
+
+1. **OBS Studio Plugins**
+   - obs-websocket (remote control)
+   - obs-ndi (NDI capture)
+   - stream-effects (filters)
+
+2. **Audio plugins**
+   - Calf Studio Gear (extra EQs, compressors)
+   - LV2 plugins voor Ardour / Carla
+
+3. **Hardware acceleration**
+   - NVIDIA users: nvidia-vaapi-driver
+   - Intel/AMD: controleer VAAPI of Vulkan encoding
+
+4. **Workflow tools**
+   - Timeline / shot logging: Kdenlive markers
+   - Thumbnail design: Krita templates
+   - Asset management: organize in /home/$USERNAME/Projects
+
+5. **Cloud & backup**
+   - Nextcloud of Syncthing voor project sync
+   - Git for version control van scripts / project assets
+
+6. **Automation**
+   - ffmpeg batch scripts
+   - yt-dlp automation scripts
+   - OBS profiles / scene collections
+
+7. **System tuning**
+   - CPU governor: performance voor rendering
+   - Realtime group: audio low-latency
+   - Monitor GPU/CPU temp: hwinfo, nvtop
+
+8. **Optional GUI helpers**
+   - Helvum (PipeWire routing)
+   - QPWGraph (visual JACK routing)
+
+EOT
+
 echo "Reboot recommended for full performance."
