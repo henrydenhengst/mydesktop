@@ -1,0 +1,175 @@
+hackers_post_install:
+  description: "Arch Linux Pentesting / Ethical Hacking post-install configuration with KDE look & feel"
+  target_user: "${SUDO_USER:-$USER}"
+  prerequisites:
+    - sudo
+    - internet_connection
+  system_update:
+    pacman:
+      command: "Syu"
+      options: "--noconfirm"
+  packages:
+    core_tools:
+      pacman:
+        - git
+        - vim
+        - neovim
+        - tmux
+        - htop
+        - wget
+        - curl
+        - unzip
+        - zip
+        - p7zip
+        - nmap
+        - netcat
+        - tcpdump
+        - wireshark-qt
+        - john
+        - hashcat
+        - hydra
+        - aircrack-ng
+        - crunch
+        - sqlmap
+        - nikto
+        - metasploit
+        - gdb
+        - strace
+        - ltrace
+        - binutils
+    python_tools:
+      pacman:
+        - python
+        - python-pip
+      pip:
+        - requests
+        - beautifulsoup4
+        - selenium
+        - pwntools
+        - scapy
+        - paramiko
+    virtualization_containers:
+      pacman:
+        - docker
+        - podman
+        - qemu
+        - virt-manager
+        - libvirt
+        - edk2-ovmf
+        - ebtables
+        - dnsmasq
+        - bridge-utils
+    proxy_sniffing:
+      pacman:
+        - burpsuite
+        - mitmproxy
+        - tor
+        - torsocks
+        - proxychains-ng
+    exploit_forensics:
+      pacman:
+        - volatility
+        - foremost
+        - binwalk
+        - radare2
+        - ghex
+    gpu_acceleration:
+      nvidia:
+        pacman:
+          - nvidia-dkms
+          - nvidia-utils
+      amd:
+        pacman:
+          - mesa
+          - vulkan-radeon
+          - opencl-mesa
+    networking_utilities:
+      pacman:
+        - net-tools
+        - iproute2
+        - mtr
+        - traceroute
+        - ethtool
+        - nmap
+  services:
+    enable_now:
+      - docker
+      - libvirtd
+  directories:
+    - "/home/${SUDO_USER:-$USER}/Labs"
+    - "/home/${SUDO_USER:-$USER}/Exploits"
+    - "/home/${SUDO_USER:-$USER}/Scripts"
+    - "/home/${SUDO_USER:-$USER}/Reports"
+    - "/home/${SUDO_USER:-$USER}/Recon"
+  environment_tweaks:
+    bashrc_path: "/home/${SUDO_USER:-$USER}/.bashrc"
+    aliases:
+      ls: "ls --color=auto"
+      ll: "ls -lh"
+      grep: "grep --color=auto"
+    history:
+      HISTCONTROL: "ignoredups:erasedups"
+      HISTSIZE: 10000
+      HISTFILESIZE: 20000
+  kde_look_and_feel:
+    global_theme: "Breeze Dark"
+    icons: "Papirus-Dark"
+    cursor_theme: "Breeze_Snow"
+    fonts:
+      system: "Noto Sans"
+      terminal: "JetBrains Mono Nerd Font 11pt"
+    panel:
+      position: "bottom"
+      auto_hide: true
+      task_manager: "grouped icons only"
+    widgets:
+      - clock_calendar
+      - system_monitor
+      - quick_launcher
+    compositor:
+      tearing_prevention: "automatic"
+      blur: "subtle"
+      animations_speed: "medium"
+    wayland: true
+    shortcuts:
+      krunner: "Alt+Space"
+      terminal: "Ctrl+Alt+T"
+      lock_screen: "Ctrl+Alt+L"
+      screenshot: "Print"
+  recommendations:
+    network_pentesting:
+      - "Wireshark filters"
+      - "nmap scripts"
+      - "tcpdump analysis"
+      - "Metasploit modules"
+      - "exploit-db scripts"
+    web_security:
+      - "Burp Suite extensions"
+      - "sqlmap automation"
+      - "OWASP ZAP alternative"
+    wireless_rf:
+      - "Aircrack-ng suite"
+      - "WiFi adapters monitor mode + injection support"
+    reverse_engineering:
+      - "Radare2"
+      - "Ghidra"
+      - "GDB"
+      - "IDA Free"
+      - "Binary patching / debugging"
+    forensics_osint:
+      - "Volatility (memory analysis)"
+      - "Foremost"
+      - "Binwalk"
+      - "Recon-ng"
+      - "theHarvester"
+      - "Maltego"
+    containers_labs:
+      - "QEMU/KVM VMs voor veilige exploit testing"
+      - "Docker / Podman voor reproducible environments"
+    password_cracking:
+      - "Hashcat met NVIDIA/AMD GPU drivers"
+      - "John the Ripper + wordlists"
+    workflow_documentation:
+      - "Scripts in ~/Scripts"
+      - "Reports in ~/Reports"
+      - "Gebruik Git voor versiebeheer van labomgevingen"
