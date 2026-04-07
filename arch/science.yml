@@ -1,0 +1,161 @@
+science_post_install:
+  description: "Arch Linux Science / Data Science post-install configuration with KDE look & feel"
+  target_user: "${SUDO_USER:-$USER}"
+  prerequisites:
+    - sudo
+    - internet_connection
+  system_update:
+    pacman:
+      command: "Syu"
+      options: "--noconfirm"
+  packages:
+    base_dev_tools:
+      pacman:
+        - base-devel
+        - git
+        - vim
+        - neovim
+        - tmux
+        - wget
+        - curl
+        - unzip
+        - zip
+        - p7zip
+    programming_languages:
+      pacman:
+        - python
+        - python-pip
+        - python-virtualenv
+        - r
+        - r-libs
+        - julia
+        - go
+        - nodejs
+        - npm
+        - ruby
+        - rust
+    jupyter_python:
+      pacman:
+        - jupyter-notebook
+        - jupyterlab
+      pip:
+        - numpy
+        - scipy
+        - pandas
+        - matplotlib
+        - seaborn
+        - scikit-learn
+        - tensorflow
+        - torch
+        - jupyterlab-git
+    r_julia_packages:
+      R:
+        - tidyverse
+        - data.table
+        - ggplot2
+        - caret
+        - shiny
+      Julia:
+        - DataFrames
+        - Plots
+        - Flux
+        - MLJ
+    gpu_acceleration:
+      pacman:
+        nvidia: [nvidia-dkms, nvidia-utils, cuda]
+        amd: [mesa, vulkan-radeon, opencl-mesa]
+    containers:
+      pacman:
+        - docker
+        - podman
+        - podman-docker
+        - buildah
+      systemctl:
+        enable: [docker]
+    visualization_tools:
+      pacman:
+        - gnuplot
+        - graphviz
+        - imagemagick
+        - ffmpeg
+    productivity_tools:
+      pacman:
+        - libreoffice-fresh
+        - zathura
+        - zathura-pdf-mupdf
+        - obsidian
+        - joplin-desktop
+    fonts:
+      pacman:
+        - ttf-dejavu
+        - ttf-liberation
+        - noto-fonts
+        - ttf-iosevka
+        - nerd-fonts-complete
+  directories:
+    user_home: "/home/${SUDO_USER:-$USER}"
+    project_dirs:
+      - Projects
+      - Data
+      - Notebooks
+      - Publications
+      - Scripts
+  environment_tuning:
+    bashrc:
+      file: "/home/${SUDO_USER:-$USER}/.bashrc"
+      lines:
+        - 'export PYTHONWARNINGS="ignore"'
+        - 'export JUPYTER_ALLOW_INSECURE_WRITES=1'
+  kde_look_and_feel:
+    global_theme: "Breeze Light"
+    icons: "Papirus-Light"
+    cursor_theme: "Breeze_Snow"
+    fonts:
+      system: "Noto Sans"
+      terminal: "JetBrains Mono Nerd Font 11pt"
+    panel:
+      position: "bottom"
+      auto_hide: false
+      task_manager: "icons and text"
+    widgets:
+      - clock_calendar
+      - system_monitor
+      - quick_launcher
+    compositor:
+      tearing_prevention: "automatic"
+      blur: "subtle"
+      animations_speed: "medium"
+    wayland: true
+    shortcuts:
+      krunner: "Alt+Space"
+      terminal: "Ctrl+Alt+T"
+      lock_screen: "Ctrl+Alt+L"
+      screenshot: "Print"
+  recommendations:
+    python:
+      - "Conda / Miniconda voor environment management"
+      - "Poetry of Pipenv voor reproduceerbare projecten"
+      - "JupyterLab extensions: jupyterlab-git, jupyterlab-toc"
+    R:
+      - "RStudio IDE"
+      - "Shiny apps voor web visualisatie"
+      - "Bioconductor voor bio-informatics"
+    Julia:
+      - "Pluto.jl interactieve notebooks"
+      - "MLJ en Flux voor machine learning"
+    gpu_hpc:
+      - "CUDA toolkit / cuDNN (NVIDIA)"
+      - "ROCm stack (AMD)"
+      - "Singularity / Apptainer voor HPC containers"
+    data_management:
+      - "PostgreSQL / MariaDB"
+      - "SQLite"
+      - "DVC (Data Version Control)"
+    workflow:
+      - "Git & Git LFS"
+      - "Makefiles / Snakemake"
+      - "Docker / Podman voor reproduceerbare pipelines"
+    visualization:
+      - "Matplotlib, Seaborn, Plotly"
+      - "Graphviz, Gnuplot"
+      - "ffmpeg voor video visualisatie"
