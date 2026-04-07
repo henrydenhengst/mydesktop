@@ -1,0 +1,136 @@
+multimedia_post_install:
+  description: "Arch Linux Multimedia / YouTuber post-install configuration with KDE look & feel"
+  target_user: "${SUDO_USER:-$USER}"
+  prerequisites:
+    - sudo
+    - internet_connection
+  system_update:
+    pacman:
+      command: "Syu"
+      options: "--noconfirm"
+  packages:
+    video_editing:
+      pacman:
+        - kdenlive
+        - blender
+        - obs-studio
+        - shotcut
+    audio_production:
+      pacman:
+        - audacity
+        - ardour
+        - calf
+        - lsp-plugins
+        - easyeffects
+        - noise-suppression-for-voice
+    graphics_tools:
+      pacman:
+        - gimp
+        - krita
+        - inkscape
+        - darktable
+    streaming_encoding:
+      pacman:
+        - ffmpeg
+        - handbrake
+        - yt-dlp
+    fonts_assets:
+      pacman:
+        - noto-fonts
+        - noto-fonts-emoji
+        - noto-fonts-cjk
+        - ttf-dejavu
+        - ttf-liberation
+    camera_media_tools:
+      pacman:
+        - v4l-utils
+        - obs-v4l2sink
+    pipewire_stack:
+      pacman:
+        - pipewire
+        - pipewire-alsa
+        - pipewire-pulse
+        - pipewire-jack
+        - wireplumber
+        - helvum
+        - qpwgraph
+    gpu_acceleration_tools:
+      pacman:
+        - libva-utils
+        - intel-media-driver
+    utilities:
+      pacman:
+        - flameshot
+        - simplescreenrecorder
+        - wl-clipboard
+        - xclip
+        - unzip
+        - zip
+        - p7zip
+  directories:
+    - "/home/${SUDO_USER:-$USER}/Videos"
+    - "/home/${SUDO_USER:-$USER}/Audio"
+    - "/home/${SUDO_USER:-$USER}/Projects"
+    - "/home/${SUDO_USER:-$USER}/Thumbnails"
+    - "/home/${SUDO_USER:-$USER}/Exports"
+  environment_tweaks:
+    bashrc_path: "/home/${SUDO_USER:-$USER}/.bashrc"
+    variables:
+      FFMPEG_THREADS: 0
+      PIPEWIRE_LATENCY: "128/48000"
+      LIBVA_DRIVER_NAME: "iHD"
+      QT_QPA_PLATFORM: "wayland"
+  kde_look_and_feel:
+    global_theme: "Breeze Dark"
+    icons: "Papirus-Dark"
+    cursor_theme: "Breeze_Snow"
+    fonts:
+      system: "Noto Sans"
+      terminal: "JetBrains Mono Nerd Font 11pt"
+    panel:
+      position: "bottom"
+      auto_hide: true
+      task_manager: "grouped icons only"
+    widgets:
+      - clock_calendar
+      - system_monitor
+      - quick_launcher
+    compositor:
+      tearing_prevention: "automatic"
+      blur: "subtle"
+      animations_speed: "medium"
+    wayland: true
+    shortcuts:
+      krunner: "Alt+Space"
+      terminal: "Ctrl+Alt+T"
+      lock_screen: "Ctrl+Alt+L"
+      screenshot: "Print"
+  recommendations:
+    obs_plugins:
+      - obs-websocket
+      - obs-ndi
+      - stream-effects
+    audio_plugins:
+      - Calf Studio Gear
+      - LV2 plugins (Ardour / Carla)
+    hardware_acceleration:
+      - NVIDIA: "nvidia-vaapi-driver"
+      - Intel/AMD: "controleer VAAPI of Vulkan encoding"
+    workflow_tools:
+      - "Timeline / shot logging: Kdenlive markers"
+      - "Thumbnail design: Krita templates"
+      - "Asset management: organize in ~/Projects"
+    cloud_backup:
+      - "Nextcloud of Syncthing voor project sync"
+      - "Git for version control van scripts / assets"
+    automation:
+      - "ffmpeg batch scripts"
+      - "yt-dlp automation scripts"
+      - "OBS profiles / scene collections"
+    system_tuning:
+      - "CPU governor: performance voor rendering"
+      - "Realtime group: audio low-latency"
+      - "Monitor GPU/CPU temp: hwinfo, nvtop"
+    optional_gui_helpers:
+      - Helvum
+      - QPWGraph
