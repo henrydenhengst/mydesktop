@@ -1,7 +1,7 @@
 # OPNsense + Freedom Internet Functioneel Ontwerp
 
 ## Netwerkoverzicht
-
+```
 [Freedom ONT]  
       | (WAN-kabel)  
    [OPNsense igb0 - WAN]  
@@ -15,6 +15,7 @@
       |--- VLAN 30 → Wi-Fi guest  
       |--- VLAN 40 → IoT  
       |--- VLAN 4  → TV settopboxen
+```
 
 ## VLAN-indeling
 
