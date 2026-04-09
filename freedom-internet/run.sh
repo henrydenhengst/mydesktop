@@ -1,2 +1,2 @@
 #!/bin/sh
-sh -c "$(curl -sL https://raw.githubusercontent.com/henrydenhengst/mydesktop/main/freedom-internet/freedom-bootstrap-pro.sh)"
+sudo sh -c "$(curl -sL https://raw.githubusercontent.com/henrydenhengst/mydesktop/main/freedom-internet/freedom-bootstrap-pro.sh)"
