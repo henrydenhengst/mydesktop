@@ -56,3 +56,12 @@
 - Firewallregels per VLAN bepalen toegang tot internet of andere VLANs  
 - Management VLAN apart en beveiligd  
 - TV VLAN enkel multicast en internet, gescheiden van rest
+
+
+## Bronnen
+
+https://helpdesk.freedom.nl/algemene-instellingen-eigen-modem
+
+https://www.freedom.nl/over-freedom/nieuws
+
+https://community.freedom.nl/
