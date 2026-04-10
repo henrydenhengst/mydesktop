@@ -1,0 +1,82 @@
+---
+- name: "Debian Display Manager Force: Slick Nord Edition"
+  hosts: localhost
+  connection: local
+  become: yes
+
+  tasks:
+    # 1. SCHOONMAAK: Verwijder andere Display Managers
+    - name: Stop en deactiveer concurrerende DM services
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      loop:
+        - gdm3
+        - sddm
+        - slim
+        - lxdm
+      failed_when: false
+
+    - name: Verwijder andere DM pakketten volledig (purge)
+      apt:
+        name: [gdm3, sddm, slim, lxdm]
+        state: absent
+        purge: yes
+
+    # 2. INSTALLATIE: LightDM & Slick Greeter
+    - name: Installeer LightDM en de Slick Greeter
+      apt:
+        name:
+          - lightdm
+          - lightdm-settings
+          - slick-greeter
+          - numlockx  # Handig extraatje voor het inlogscherm
+        state: present
+        update_cache: yes
+
+    # 3. CONFIGURATIE: LightDM dwingen naar Slick
+    - name: Forceer LightDM als de default manager
+      copy:
+        content: "/usr/sbin/lightdm\n"
+        dest: /etc/X11/default-display-manager
+
+    - name: Stel Slick-Greeter in als de actieve sessie
+      ini_file:
+        path: /etc/lightdm/lightdm.conf
+        section: "Seat:*"
+        option: greeter-session
+        value: slick-greeter
+        create: yes
+
+    # 4. STYLING: De Nord "Slick" Look
+    - name: Maak Slick-Greeter config map aan
+      file:
+        path: /etc/lightdm/slick-greeter.conf.d
+        state: directory
+
+    - name: Pas Nord styling toe op Slick Greeter
+      copy:
+        dest: /etc/lightdm/slick-greeter.conf
+        content: |
+          [Greeter]
+          theme-name=Nordic
+          icon-theme-name=Papirus-Dark
+          font-name=JetBrainsMono Nerd Font 11
+          background-color=#2e3440
+          draw-user-backgrounds=false
+          draw-grid=false
+          show-hostname=true
+          high-contrast=false
+
+    # 5. ACTIVATIE
+    - name: Zorg dat LightDM service gestart en geactiveerd is
+      systemd:
+        name: lightdm
+        state: reloaded
+        enabled: yes
+      ignore_errors: yes
+
+    - name: Melding voor de groep
+      debug:
+        msg: "De 'Slick' Nord login staat klaar. Bij de volgende herstart is de transformatie compleet!"
