@@ -1,0 +1,101 @@
+---
+- name: Debian XFCE Nord Setup
+  hosts: localhost
+  connection: local
+  become: yes
+
+  vars:
+    # uBlock Origin Firefox Extension ID
+    ublock_id: "uBlock0@raymondhill.net"
+
+  tasks:
+    - name: Voeg contrib en non-free toe aan repositories
+      apt_repository:
+        repo: "deb http://deb.debian.org/debian/ {{ ansible_distribution_release }} main contrib non-free non-free-firmware"
+        state: present
+
+    - name: Update apt en installeer pakketten
+      apt:
+        name:
+          - firefox-esr
+          - terminator
+          - micro
+          - flameshot
+          - xfce4-whiskermenu-plugin
+          - ttf-mscorefonts-installer
+          - papirus-icon-theme
+          - git
+          - unzip
+          - wget
+        state: present
+        update_cache: yes
+
+    - name: Pre-accept Microsoft EULA
+      debconf:
+        name: ttf-mscorefonts-installer
+        question: msttcorefonts/accepted-mscorefonts-eula
+        value: 'true'
+        vtype: select
+
+    - name: Installeer JetBrains Mono Nerd Font
+      unarchive:
+        src: https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip
+        dest: /usr/local/share/fonts
+        remote_src: yes
+        creates: /usr/local/share/fonts/JetBrainsMonoNerdFont-Regular.ttf
+
+    - name: Download Nordic GTK Thema
+      git:
+        repo: https://github.com/EliverLara/Nordic.git
+        dest: /usr/share/themes/Nordic
+        depth: 1
+
+    - name: Systeem-brede Firefox Adblocker (uBlock Origin)
+      file:
+        path: "/usr/lib/firefox-esr/distribution/extensions"
+        state: directory
+        mode: '0755'
+
+    - name: Download uBlock Origin voor Firefox
+      get_url:
+        url: https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/addon-607454-latest.xpi
+        dest: "/usr/lib/firefox-esr/distribution/extensions/{{ ublock_id }}.xpi"
+        mode: '0644'
+
+    - name: Gebruikersconfiguratie (zonder sudo)
+      become: no
+      block:
+        - name: Maak config mappen aan
+          file:
+            path: "{{ item }}"
+            state: directory
+          loop:
+            - "~/.config/terminator"
+            - "~/.config/micro"
+
+        - name: Stel Terminator in met Nord kleuren
+          copy:
+            dest: "~/.config/terminator/config"
+            content: |
+              [global_config]
+              [keybindings]
+              [profiles]
+                [[default]]
+                  background_color = "#2e3440"
+                  foreground_color = "#d8dee9"
+                  cursor_color = "#d8dee9"
+                  palette = "#3b4252:#bf616a:#a3be8c:#ebcb8b:#81a1c1:#b48ead:#88c0d0:#e5e9f0:#4c566a:#bf616a:#a3be8c:#ebcb8b:#81a1c1:#b48ead:#8fbcbb:#eceff4"
+                  font = JetBrainsMono Nerd Font 11
+                  use_system_font = False
+
+        - name: Stel Micro editor in op Nord
+          copy:
+            dest: "~/.config/micro/settings.json"
+            content: '{"colorscheme": "nord", "mkspools": true}'
+
+        - name: Pas XFCE look aan via xfconf
+          shell: |
+            xfconf-query -c xsettings -p /Net/ThemeName -s "Nordic"
+            xfconf-query -c xsettings -p /Net/IconThemeName -s "Papirus-Dark"
+            xfconf-query -c xfwm4 -p /general/theme -s "Nordic"
+          ignore_errors: yes
