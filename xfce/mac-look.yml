@@ -1,0 +1,142 @@
+---
+- name: "Debian XFCE Transformatie: Nord-Mac Hybride"
+  hosts: localhost
+  connection: local
+  become: yes
+
+  vars:
+    ublock_id: "uBlock0@raymondhill.net"
+    target_user: "{{ ansible_user_id }}"
+
+  tasks:
+    # 1. REPOSITORIES & SYSTEEM UPDATE
+    - name: Configureer Debian Repositories (contrib & non-free)
+      apt_repository:
+        repo: "deb http://deb.debian.org/debian/ {{ ansible_distribution_release }} main contrib non-free non-free-firmware"
+        state: present
+
+    - name: Pre-accept Microsoft EULA voor Fonts
+      debconf:
+        name: ttf-mscorefonts-installer
+        question: msttcorefonts/accepted-mscorefonts-eula
+        value: 'true'
+        vtype: select
+
+    # 2. INSTALLATIE SOFTWARE
+    - name: Installeer geselecteerde software pakketten
+      apt:
+        name:
+          - firefox-esr
+          - terminator
+          - micro
+          - flameshot
+          - plank
+          - xfce4-whiskermenu-plugin
+          - xfce4-appmenu-plugin
+          - ttf-mscorefonts-installer
+          - papirus-icon-theme
+          - git
+          - unzip
+          - wget
+        state: present
+        update_cache: yes
+
+    # 3. THEMA'S & FONTS (Systeem-breed)
+    - name: Download JetBrains Mono Nerd Font
+      unarchive:
+        src: https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip
+        dest: /usr/local/share/fonts
+        remote_src: yes
+        creates: /usr/local/share/fonts/JetBrainsMonoNerdFont-Regular.ttf
+
+    - name: Ververs font cache
+      command: fc-cache -f -v
+
+    - name: Download Nordic GTK Thema
+      git:
+        repo: https://github.com/EliverLara/Nordic.git
+        dest: /usr/share/themes/Nordic
+        depth: 1
+
+    # 4. FIREFOX ADBLOCKER (Systeem-breed)
+    - name: Installeer uBlock Origin in Firefox distributie map
+      block:
+        - file:
+            path: "/usr/lib/firefox-esr/distribution/extensions"
+            state: directory
+            mode: '0755'
+        - get_url:
+            url: https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/addon-607454-latest.xpi
+            dest: "/usr/lib/firefox-esr/distribution/extensions/{{ ublock_id }}.xpi"
+            mode: '0644'
+
+    # 5. GEBRUIKERS CONFIGURATIE (Zonder sudo)
+    - name: Gebruikers-specifieke instellingen
+      become: no
+      block:
+        - name: Maak config mappen aan
+          file:
+            path: "{{ item }}"
+            state: directory
+          loop:
+            - "~/.config/terminator"
+            - "~/.config/micro"
+            - "~/.config/autostart"
+
+        - name: Configureer Terminator (Nord Kleuren & No Titlebar)
+          copy:
+            dest: "~/.config/terminator/config"
+            content: |
+              [global_config]
+              [profiles]
+                [[default]]
+                  background_color = "#2e3440"
+                  foreground_color = "#d8dee9"
+                  cursor_color = "#d8dee9"
+                  palette = "#3b4252:#bf616a:#a3be8c:#ebcb8b:#81a1c1:#b48ead:#88c0d0:#e5e9f0:#4c566a:#bf616a:#a3be8c:#ebcb8b:#81a1c1:#b48ead:#8fbcbb:#eceff4"
+                  font = JetBrainsMono Nerd Font 11
+                  use_system_font = False
+                  show_titlebar = False
+
+        - name: Stel Micro editor in op Nord
+          copy:
+            dest: "~/.config/micro/settings.json"
+            content: '{"colorscheme": "nord", "mkspools": true}'
+
+        - name: Zorg dat Plank (Dock) opstart bij inloggen
+          copy:
+            dest: "~/.config/autostart/plank.desktop"
+            content: |
+              [Desktop Entry]
+              Type=Application
+              Exec=plank
+              Hidden=false
+              NoDisplay=false
+              X-GNOME-Autostart-enabled=true
+              Name=Plank
+
+        - name: XFCE Desktop Tweaks (macOS Look & Feel)
+          shell: |
+            # Thema en Iconen
+            xfconf-query -c xsettings -p /Net/ThemeName -s "Nordic"
+            xfconf-query -c xsettings -p /Net/IconThemeName -s "Papirus-Dark"
+            xfconf-query -c xfwm4 -p /general/theme -s "Nordic"
+            
+            # macOS Window Layout (Knoppen links)
+            xfconf-query -c xfwm4 -p /general/button_layout -s "O|HMC"
+            
+            # Paneel naar boven verplaatsen
+            xfconf-query -c xfce4-panel -p /panels/panel-1/position -s "p=6;x=0;y=0"
+            
+            # Alt+Space voor Spotlight-ervaring (Whisker Menu)
+            xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/<Alt>space" -n -t string -s "xfce4-popup-whiskermenu"
+            
+            # Subtiele Transparantie (Resources vriendelijk)
+            xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s true
+            xfconf-query -c xfwm4 -p /general/inactive_opacity -n -t int -s 80
+            xfconf-query -c xfwm4 -p /general/show_frame_shadows -n -t bool -s true
+          ignore_errors: yes
+
+    - name: Finale melding
+      debug:
+        msg: "Setup voltooid! Herstart je sessie (uitloggen) om alle wijzigingen te zien."
