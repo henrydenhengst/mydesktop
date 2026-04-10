@@ -1,0 +1,79 @@
+---
+- name: "Configureer de Lifestyle Terminal"
+  hosts: localhost
+  connection: local
+  vars:
+    lifestyle_aliases:
+      # Navigatie (1-10)
+      - { a: 'penthouse', c: 'cd ~' }
+      - { a: 'backstage', c: 'cd ..' }
+      - { a: 'kelder', c: 'cd /' }
+      - { a: 'gps', c: 'pwd' }
+      - { a: 'receptie', c: 'ls -hal' }
+      - { a: 'glans', c: 'clear' }
+      - { a: 'bezoek', c: 'cd -' }
+      - { a: 'plattegrond', c: 'tree -L 2' }
+      - { a: 'shortcut', c: 'ln -s' }
+      - { a: 'verhuizen', c: 'mv' }
+      # Playboy & Ansible (11-18)
+      - { a: 'playboy', c: 'ansible-playbook' }
+      - { a: 'crew', c: 'ansible-inventory' }
+      - { a: 'geheim', c: 'ansible-vault' }
+      - { a: 'casting', c: 'ansible-galaxy' }
+      - { a: 'repetitie', c: 'ansible-playbook --check' }
+      - { a: 'briefing', c: 'ansible --version' }
+      - { a: 'ad-hoc', c: 'ansible all -m ping' }
+      - { a: 'script', c: 'cat playbook.yml' }
+      # Git & Productie (19-28)
+      - { a: 'auditie', c: 'git status' }
+      - { a: 'take', c: 'git commit -m' }
+      - { a: 'premiere', c: 'git push' }
+      - { a: 'update', c: 'git pull' }
+      - { a: 'rol', c: 'git checkout -b' }
+      - { a: 'archief', c: 'git log --oneline' }
+      - { a: 'repetitie_ruimte', c: 'git branch' }
+      - { a: 'visagie', c: 'git diff' }
+      - { a: 'redden', c: 'git stash' }
+      - { a: 'terughalen', c: 'git stash pop' }
+      # Systeem & Uitsmijters (29-38)
+      - { a: 'uitsmijter', c: 'kill -9' }
+      - { a: 'bewaking', c: 'sudo' }
+      - { a: 'ober', c: 'tail -f' }
+      - { a: 'menukaart', c: 'cat' }
+      - { a: 'spion', c: 'ps aux' }
+      - { a: 'paparazzi', c: 'grep' }
+      - { a: 'conditie', c: 'htop' }
+      - { a: 'voorraad', c: 'df -h' }
+      - { a: 'poortwachter', c: 'netstat -tulanp' }
+      - { a: 'identiteit', c: 'whoami' }
+      # Netwerk & Haven (39-44)
+      - { a: 'bellen', c: 'ssh' }
+      - { a: 'postbode', c: 'scp' }
+      - { a: 'signaal', c: 'ping -c 5' }
+      - { a: 'wereldbol', c: 'curl ifconfig.me' }
+      - { a: 'ontvangen', c: 'wget' }
+      - { a: 'haven', c: 'docker ps' }
+      # Onderhoud & Afsluiting (45-50)
+      - { a: 'dagboek', c: 'history' }
+      - { a: 'papierbak', c: 'rm -i' }
+      - { a: 'wasmachine', c: 'docker system prune -f' }
+      - { a: 'klok', c: 'date' }
+      - { a: 'spoedcursus', c: 'man' }
+      - { a: 'vrijdag', c: 'exit' }
+
+  tasks:
+    - name: "Zorg dat het aliassen blok in .bashrc staat"
+      blockinfile:
+        path: "{{ ansible_env.HOME }}/.bashrc"
+        marker: "# {mark} LIFESTYLE ALIASES"
+        block: |
+          {% for item in lifestyle_aliases %}
+          alias {{ item.a }}='{{ item.c }}'
+          {% endfor %}
+      register: bashrc_updated
+
+    - name: "Ververs de bash configuratie direct"
+      shell: "source {{ ansible_env.HOME }}/.bashrc"
+      args:
+        executable: /bin/bash
+      if: bashrc_updated.changed
