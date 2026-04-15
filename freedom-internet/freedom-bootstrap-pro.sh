@@ -1,38 +1,9 @@
 #!/bin/sh
-
-###############################################################################
-# Freedom Internet + TV PRO bootstrap script voor OPNsense
-#
-# INSTALLATIE / GEBRUIK:
-# 1. Upload dit script naar OPNsense:
-#    scp freedom-bootstrap-pro.sh root@opnsense:/tmp/
-# 2. Login via SSH:
-#    ssh root@opnsense
-# 3. Maak het script uitvoerbaar:
-#    chmod +x /tmp/freedom-bootstrap-pro.sh
-# 4. Voer het script uit:
-#    /tmp/freedom-bootstrap-pro.sh
-#
-# WAT DOET DIT SCRIPT:
-# - Backup van config.xml
-# - VLAN 6 configuratie (Freedom Internet)
-# - VLAN 4 configuratie (TV)
-# - PPPoE setup (fake@freedom.nl / 1234)
-# - MSS clamping fix (1448)
-# - IPv6 DHCPv6 + /48 prefix delegation
-# - DHCP/NAT setup voor TV subnet
-# - IGMP proxy inschakelen voor TV
-# - XML validatie (indien xmllint aanwezig)
-# - Config reload + interface restart
-# - Automatische reboot
-#
-# BELANGRIJK:
-# - WAN interface moet igb0 zijn
-# - LAN interface moet igb1 zijn
-# - SSH verbinding gaat weg bij reboot
-###############################################################################
-
 set -e
+
+###############################################################################
+# Freedom Internet + TV PRO (FIXED BOOTSTRAP)
+###############################################################################
 
 LOG="/var/log/freedom-bootstrap.log"
 CONFIG="/conf/config.xml"
@@ -42,132 +13,157 @@ TMP="/tmp/config.xml.new"
 WAN_IF="igb0"
 LAN_IF="igb1"
 
-PPPOE_USER="fake@freedom.nl"
-PPPOE_PASS="1234"
-
-# TV VLAN subnet (DHCP)
-TV_SUBNET="192.168.100.0/24"
-
 log() {
-  echo "$(date '+%Y-%m-%d %H:%M:%S') $1" | tee -a ${LOG}
+  echo "$(date '+%Y-%m-%d %H:%M:%S') $1" | tee -a $LOG
 }
 
 rollback() {
-  log "[!] FOUT GEDTECTEERD - rollback uitvoeren"
-  cp ${BACKUP} ${CONFIG}
+  log "[!] FOUT - rollback"
+  cp $BACKUP $CONFIG
   configctl system reload
-  log "[!] Oude configuratie hersteld"
   exit 1
 }
 
 trap rollback ERR
 
-log "[*] Start Freedom + TV PRO bootstrap"
+log "[*] Start bootstrap"
 
-# Backup
-log "[*] Backup maken"
-cp ${CONFIG} ${BACKUP}
+cp $CONFIG $BACKUP
+cp $CONFIG $TMP
 
-# Temp config
-cp ${CONFIG} ${TMP}
-
-### VLAN 6 voor Internet ###
-if ! grep -q "<tag>6</tag>" ${TMP}; then
-  log "[*] VLAN 6 toevoegen voor Internet"
-  sed -i '' '/<vlans>/a\
-    <vlan>\
-      <if>'${WAN_IF}'</if>\
-      <tag>6</tag>\
-      <descr>WAN_VLAN6</descr>\
-    </vlan>' ${TMP}
+###############################################################################
+# VLAN 6 (Internet)
+###############################################################################
+if ! grep -q "<tag>6</tag>" $TMP; then
+  log "[*] VLAN6 toevoegen"
+  sed -i '' "/<vlans>/a\\
+    <vlan>\\
+      <if>${WAN_IF}</if>\\
+      <tag>6</tag>\\
+      <descr>WAN_VLAN6</descr>\\
+    </vlan>" $TMP
 fi
 
-### VLAN 4 voor TV ###
-if ! grep -q "<tag>4</tag>" ${TMP}; then
-  log "[*] VLAN 4 toevoegen voor TV"
-  sed -i '' '/<vlans>/a\
-    <vlan>\
-      <if>'${WAN_IF}'</if>\
-      <tag>4</tag>\
-      <descr>WAN_VLAN4_TV</descr>\
-    </vlan>' ${TMP}
+###############################################################################
+# VLAN 4 (IPTV)
+###############################################################################
+if ! grep -q "<tag>4</tag>" $TMP; then
+  log "[*] VLAN4 toevoegen"
+  sed -i '' "/<vlans>/a\\
+    <vlan>\\
+      <if>${WAN_IF}</if>\\
+      <tag>4</tag>\\
+      <descr>WAN_VLAN4_TV</descr>\\
+    </vlan>" $TMP
 fi
 
-### PPPoE voor VLAN6 ###
-if ! grep -q "<ppps>" ${TMP}; then
+###############################################################################
+# PPPoE op VLAN6
+###############################################################################
+if ! grep -q "freedom_pppoe" $TMP; then
   log "[*] PPPoE toevoegen"
-  sed -i '' '/<\/opnsense>/i\
-  <ppps>\
-    <ppp>\
-      <ptpid>0</ptpid>\
-      <type>pppoe</type>\
-      <if>'${WAN_IF}'_vlan6</if>\
-      <username>'${PPPOE_USER}'</username>\
-      <password>'${PPPOE_PASS}'</password>\
-      <descr>Freedom PPPoE</descr>\
-    </ppp>\
-  </ppps>' ${TMP}
+
+  sed -i '' "/<opnsense>/i\\
+  <ppps>\\
+    <ppp>\\
+      <ptpid>0</ptpid>\\
+      <type>pppoe</type>\\
+      <if>${WAN_IF}_vlan6</if>\\
+      <username>fake@freedom.nl</username>\\
+      <password>1234</password>\\
+      <descr>freedom_pppoe</descr>\\
+    </ppp>\\
+  </ppps>" $TMP
 fi
 
-# WAN → PPPoE
-sed -i '' 's|<if>'${WAN_IF}'</if>|<if>pppoe0</if>|' ${TMP}
+###############################################################################
+# WAN -> PPPoE (belangrijk)
+###############################################################################
+sed -i '' "s|<if>${WAN_IF}</if>|<if>pppoe0</if>|" $TMP
 
-### MSS Clamping ###
-if ! grep -q "<maxmss>1448</maxmss>" ${TMP}; then
-  sed -i '' '/<firewall>/a\
-    <scrub>\
-      <maxmss>1448</maxmss>\
-    </scrub>' ${TMP}
+###############################################################################
+# MTU FIX (geen MSS clamp)
+###############################################################################
+if ! grep -q "<mtu>1510</mtu>" $TMP; then
+  log "[*] MTU instellen"
+  sed -i '' "/<wan>/a\\
+      <mtu>1510</mtu>" $TMP
 fi
 
-### IPv6 ###
-if ! grep -q "<ipaddrv6>dhcp6</ipaddrv6>" ${TMP}; then
-  sed -i '' '/<wan>/a\
-      <ipaddrv6>dhcp6</ipaddrv6>\
-      <dhcp6-ia-pd-len>48</dhcp6-ia-pd-len>' ${TMP}
+###############################################################################
+# IPv6 (PD /48)
+###############################################################################
+if ! grep -q "dhcp6" $TMP; then
+  log "[*] IPv6 toevoegen"
+  sed -i '' "/<wan>/a\\
+      <ipaddrv6>dhcp6</ipaddrv6>\\
+      <dhcp6-ia-pd-len>48</dhcp6-ia-pd-len>" $TMP
 fi
 
-### TV DHCP/NAT setup (VLAN4) ###
-log "[*] DHCP/NAT configuratie voor TV VLAN4"
-if ! grep -q "<dhcpd>" ${TMP}; then
-  sed -i '' '/<\/opnsense>/i\
-  <dhcpd>\
-    <lan>\
-      <enable>1</enable>\
-      <range>'${TV_SUBNET%.*}.10' - '${TV_SUBNET%.*}.200'</range>\
-      <interface>'${WAN_IF}'_vlan4</interface>\
-    </lan>\
-  </dhcpd>' ${TMP}
+###############################################################################
+# VLAN4 DHCP CLIENT OP WAN (BELANGRIJK FIX)
+###############################################################################
+if ! grep -q "igb0_vlan4_dhcp" $TMP; then
+  log "[*] VLAN4 DHCP client toevoegen"
+
+  sed -i '' "/<opnsense>/i\\
+  <dhcpd>\\
+    <wan_vlan4>\\
+      <enable>1</enable>\\
+      <interface>${WAN_IF}_vlan4</interface>\\
+    </wan_vlan4>\\
+  </dhcpd>" $TMP
 fi
 
-# IGMP Proxy voor TV
-log "[*] IGMP proxy inschakelen"
-if ! grep -q "<igmpd>" ${TMP}; then
-  sed -i '' '/<\/opnsense>/i\
-  <igmpd>\
-    <enable>1</enable>\
-    <interfaces>\
-      <wan>'${WAN_IF}'_vlan4</wan>\
-      <lan>'${LAN_IF}'</lan>\
-    </interfaces>\
-  </igmpd>' ${TMP}
+###############################################################################
+# IPTV LAN subnet (simpel + stabiel)
+###############################################################################
+TV_NET="192.168.100"
+
+if ! grep -q "192.168.100" $TMP; then
+  log "[*] IPTV LAN DHCP"
+
+  sed -i '' "/<dhcpd>/a\\
+    <lan>\\
+      <enable>1</enable>\\
+      <range>${TV_NET}.10 ${TV_NET}.200</range>\\
+      <interface>${LAN_IF}</interface>\\
+    </lan>" $TMP
 fi
 
-### XML Validatie ###
+###############################################################################
+# IGMP PROXY (basic correct model)
+###############################################################################
+if ! grep -q "igmpproxy" $TMP; then
+  log "[*] IGMP proxy"
+
+  sed -i '' "/<opnsense>/i\\
+  <igmpproxy>\\
+    <enable>1</enable>\\
+    <interfaces>\\
+      <upstream>${WAN_IF}_vlan4</upstream>\\
+      <downstream>${LAN_IF}</downstream>\\
+    </interfaces>\\
+  </igmpproxy>" $TMP
+fi
+
+###############################################################################
+# VALIDATE
+###############################################################################
 if command -v xmllint >/dev/null 2>&1; then
-  log "[*] XML validatie"
-  xmllint --noout ${TMP} || rollback
+  log "[*] XML check"
+  xmllint --noout $TMP || rollback
 fi
 
-# Apply config
-cp ${TMP} ${CONFIG}
+###############################################################################
+# APPLY
+###############################################################################
+cp $TMP $CONFIG
+
+log "[*] Reload config"
 configctl system reload
 configctl interface reload all
 
-log "[*] Reboot over 5 seconden"
+log "[*] Reboot in 5s"
 sleep 5
-
-# Cleanup tijdelijk bestand
-rm -f /tmp/freedom-bootstrap-pro.sh
-
 reboot
