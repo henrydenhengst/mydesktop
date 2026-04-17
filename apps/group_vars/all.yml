@@ -14,3 +14,25 @@ current_theme_repo: "https://github.com/adityatelange/hugo-PaperMod.git"
 # Content Instellingen
 first_post_title: "Eerste Bericht"
 first_post_filename: "eerste-bericht.md"
+
+---
+# ... (hugo_version en mappen blijven hetzelfde)
+
+# Site Instellingen
+site_title: "Mijn Ansible Hugo Site"
+base_url: "https://www.jouwdomein.nl"
+language_code: "nl-nl"
+
+# Thema Keuze
+current_theme_name: "papermod"
+current_theme_repo: "https://github.com/adityatelange/hugo-PaperMod.git"
+
+# Hier kun je uit kiezen (Params)
+# Dit zijn zaken die je thema-maker heeft gedefinieerd
+theme_params:
+  description: "Een website volledig gebouwd met Ansible en Hugo"
+  author: "Jouw Naam"
+  show_share_buttons: true
+  show_reading_time: true
+  display_vibrant_colors: true
+
