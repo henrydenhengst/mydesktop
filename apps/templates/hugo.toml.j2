@@ -2,14 +2,20 @@ baseURL = '{{ base_url }}'
 languageCode = '{{ language_code }}'
 title = '{{ site_title }}'
 theme = '{{ current_theme_name }}'
+copyright = '{{ site_author }} ({{ license_type }})'
 
 [params]
   description = '{{ theme_params.description }}'
-  author = '{{ theme_params.author }}'
+  author = '{{ site_author }}'
   showShareButtons = {{ theme_params.show_share_buttons | lower }}
   showReadingTime = {{ theme_params.show_reading_time | lower }}
+  footerText = '{{ footer_text }}'
+  licenseText = '{{ license_text }}'
+  contactEndpoint = '{{ contact_endpoint }}'
+  contactEmail = '{{ site_author_email }}'
+  privacyText = '{{ privacy_vermelding }}'
 
-# Automatisch gegenereerd menu
+# Navigatiemenu
 {% for item in main_menu %}
 [[menu.main]]
   name = "{{ item.name }}"
@@ -17,7 +23,9 @@ theme = '{{ current_theme_name }}'
   weight = {{ item.weight }}
 {% endfor %}
 
-[params]
-  contactEndpoint = '{{ contact_endpoint }}'
-  contactEmail = '{{ contact_email_ontvanger }}'
-  privacyText = '{{ privacy_vermelding }}'
+# Social Media Icons
+{% for link in social_links %}
+[[params.socialIcons]]
+  name = "{{ link.platform }}"
+  url = "{{ link.url }}"
+{% endfor %}
