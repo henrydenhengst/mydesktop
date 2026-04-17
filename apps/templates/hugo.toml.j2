@@ -1,0 +1,18 @@
+baseURL = '{{ base_url }}'
+languageCode = '{{ language_code }}'
+title = '{{ site_title }}'
+theme = '{{ current_theme_name }}'
+
+[params]
+  description = '{{ theme_params.description }}'
+  author = '{{ theme_params.author }}'
+  showShareButtons = {{ theme_params.show_share_buttons | lower }}
+  showReadingTime = {{ theme_params.show_reading_time | lower }}
+
+# Automatisch gegenereerd menu
+{% for item in main_menu %}
+[[menu.main]]
+  name = "{{ item.name }}"
+  url = "{{ item.url }}"
+  weight = {{ item.weight }}
+{% endfor %}
