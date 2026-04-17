@@ -2,17 +2,25 @@ baseURL = '{{ base_url }}'
 languageCode = '{{ language_code }}'
 title = '{{ site_title }}'
 theme = '{{ current_theme_name }}'
-copyright = '{{ site_author }} ({{ license_type }})'
+# De eigenaar bezit het copyright en de licentie
+copyright = '© {{ site_owner }} ({{ license_type }})'
 
 [params]
   description = '{{ theme_params.description }}'
-  author = '{{ site_author }}'
+  # De eigenaar is de auteur van de site-inhoud
+  author = '{{ site_owner }}'
+  # Jij wordt als maker specifiek benoemd
+  siteMaker = '{{ site_maker }}'
   showShareButtons = {{ theme_params.show_share_buttons | lower }}
   showReadingTime = {{ theme_params.show_reading_time | lower }}
+  
+  # Teksten uit de all.yml
   footerText = '{{ footer_text }}'
   licenseText = '{{ license_text }}'
+  
+  # Formulier-instellingen (Gekoppeld aan de eigenaar)
   contactEndpoint = '{{ contact_endpoint }}'
-  contactEmail = '{{ site_author_email }}'
+  contactEmail = '{{ site_owner_email }}'
   privacyText = '{{ privacy_vermelding }}'
 
 # Navigatiemenu
@@ -23,7 +31,7 @@ copyright = '{{ site_author }} ({{ license_type }})'
   weight = {{ item.weight }}
 {% endfor %}
 
-# Social Media Icons
+# Social Media Icons (GitHub/Facebook van Henry)
 {% for link in social_links %}
 [[params.socialIcons]]
   name = "{{ link.platform }}"
