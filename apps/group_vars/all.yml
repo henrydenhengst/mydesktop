@@ -26,3 +26,19 @@ main_menu:
   - { name: "Archief", url: "/archives", weight: 2 }
   - { name: "Tags", url: "/tags", weight: 3 }
   - { name: "Over mij", url: "/about", weight: 4 }
+
+---
+# ... (de rest van je instellingen blijven gelijk)
+
+# Formulier & Privacy
+contact_endpoint: "https://jouw-eigen-server.nl/mail.php" # Of de URL van een EU-dienst
+contact_email_ontvanger: "eigenaar@jouwdomein.nl"
+privacy_vermelding: "Je gegevens worden alleen gebruikt om contact op te nemen."
+
+# Social Media & Footer
+social_links:
+  - { platform: "github", url: "https://github.com/henrydenhengst" }
+  - { platform: "facebook", url: "https://www.facebook.com/share/g/1CRuMqw1Wn/" } 
+
+footer_text: "Gebouwd met ❤️ en Ansible"
+
