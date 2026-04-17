@@ -11,7 +11,6 @@
         dest: "/usr/local/bin"
         remote_src: yes
         exclude: ["README.md", "LICENSE"]
-      # Ansible downloadt dit alleen als het nog niet in /usr/local/bin staat
       args:
         creates: "/usr/local/bin/hugo"
 
@@ -20,7 +19,7 @@
       args:
         creates: "{{ project_dir }}/hugo.toml"
 
-    - name: Zorg dat de templates map bestaat voor de config
+    - name: Zorg dat de lokale templates map bestaat
       file:
         path: "templates"
         state: directory
@@ -30,12 +29,23 @@
         repo: "{{ current_theme_repo }}"
         dest: "{{ project_dir }}/themes/{{ current_theme_name }}"
         version: master
-        depth: 1  # Download alleen de laatste commit om tijd te besparen
+        depth: 1
 
     - name: Genereer de hugo.toml vanuit de Jinja2 template
       template:
         src: templates/hugo.toml.j2
         dest: "{{ project_dir }}/hugo.toml"
+        mode: '0644'
+
+    - name: Zorg dat de static map in het project bestaat
+      file:
+        path: "{{ project_dir }}/static"
+        state: directory
+
+    - name: Plaats het PHP mail script in de static map
+      template:
+        src: templates/mail.php.j2
+        dest: "{{ project_dir }}/static/mail.php"
         mode: '0644'
 
     - name: Maak het eerste blogbericht aan
@@ -50,16 +60,5 @@
           - "Installatie voltooid!"
           - "Project locatie: {{ project_dir }}"
           - "Thema: {{ current_theme_name }}"
+          - "PHP Mailer: {{ project_dir }}/static/mail.php"
           - "Commando om te starten: cd {{ project_dir }} && hugo server -D"
-
-
-    - name: Zorg dat de static map bestaat
-      file:
-        path: "{{ project_dir }}/static"
-        state: directory
-
-    - name: Plaats het PHP mail script in de static map
-      template:
-        src: templates/mail.php.j2
-        dest: "{{ project_dir }}/static/mail.php"
-        mode: '0644'
