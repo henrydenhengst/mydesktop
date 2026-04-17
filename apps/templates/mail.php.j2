@@ -1,13 +1,13 @@
 <?php
-// Gegevens uit Ansible variabelen
-$to = "{{ site_author_email }}";
+// Gegevens uit Ansible variabelen - Gekoppeld aan de Eigenaar
+$to = "{{ site_owner_email }}";
 $subject = "Nieuw bericht van {{ site_title }}";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
     // HONEYPOT CHECK: 
-    // Bots vullen alle velden in. Mensen zien dit veld niet. 
-    // Als 'website' niet leeg is, negeren we de verzending.
+    // Bots vullen alle velden in. Mensen zien dit veld niet via CSS. 
+    // Als 'website' niet leeg is, is het een bot.
     if (!empty($_POST["website"])) {
         http_response_code(403);
         exit("Spam gedetecteerd.");
@@ -17,7 +17,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = filter_var(trim($_POST["email"]), FILTER_SANITIZE_EMAIL);
     $message = trim($_POST["message"]);
 
-    // Validatie
+    // Validatie van de invoer
     if (empty($name) || !filter_var($email, FILTER_VALIDATE_EMAIL) || empty($message)) {
         http_response_code(400);
         echo "Vul a.u.b. alle velden correct in.";
@@ -28,20 +28,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email_content .= "Email: $email\n\n";
     $email_content .= "Bericht:\n$message\n";
 
-    // Headers met Reply-To zodat je direct kunt antwoorden
-    $headers = "From: {{ site_author_email }}\r\n"; // Gebruik je eigen domein om spamfilters te passeren
+    // Headers: We verzenden 'namens' het domein van de eigenaar voor betere aflevering
+    $headers = "From: {{ site_owner_email }}\r\n"; 
     $headers .= "Reply-To: $email\r\n";
     $headers .= "X-Mailer: PHP/" . phpversion();
 
     if (mail($to, $subject, $email_content, $headers)) {
         http_response_code(200);
-        echo "Bedankt! Je bericht is verzonden.";
+        echo "Bedankt! Je bericht is verzonden naar de eigenaar.";
     } else {
         http_response_code(500);
         echo "Oeps! Er ging iets mis bij het verzenden op de server.";
     }
 } else {
     http_response_code(403);
-    echo "Er is een probleem met je verzending.";
+    echo "Er is een probleem met de verzendmethode.";
 }
 ?>
