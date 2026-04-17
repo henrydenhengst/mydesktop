@@ -51,3 +51,15 @@
           - "Project locatie: {{ project_dir }}"
           - "Thema: {{ current_theme_name }}"
           - "Commando om te starten: cd {{ project_dir }} && hugo server -D"
+
+
+    - name: Zorg dat de static map bestaat
+      file:
+        path: "{{ project_dir }}/static"
+        state: directory
+
+    - name: Plaats het PHP mail script in de static map
+      template:
+        src: templates/mail.php.j2
+        dest: "{{ project_dir }}/static/mail.php"
+        mode: '0644'
