@@ -1,38 +1,28 @@
 ---
-# Hugo Installatie Instellingen
+# Hugo Installatie & Project
 hugo_version: "0.124.1"
 hugo_binary_url: "https://github.com/gohugoio/hugo/releases/download/v{{ hugo_version }}/hugo_extended_{{ hugo_version }}_linux-amd64.tar.gz"
-
-# Project Instellingen
 project_dir: "~/mijn_hugo_site"
-site_title: "Mijn Nieuwe Hugo Site"
 
-# Thema Instellingen (Variabel gemaakt)
-current_theme_name: "papermod"
-current_theme_repo: "https://github.com/adityatelange/hugo-PaperMod.git"
-
-# Content Instellingen
-first_post_title: "Eerste Bericht"
-first_post_filename: "eerste-bericht.md"
-
----
-# ... (hugo_version en mappen blijven hetzelfde)
-
-# Site Instellingen
+# Site Metadata
 site_title: "Mijn Ansible Hugo Site"
 base_url: "https://www.jouwdomein.nl"
 language_code: "nl-nl"
 
-# Thema Keuze
+# Thema
 current_theme_name: "papermod"
 current_theme_repo: "https://github.com/adityatelange/hugo-PaperMod.git"
 
-# Hier kun je uit kiezen (Params)
-# Dit zijn zaken die je thema-maker heeft gedefinieerd
+# Thema Specifieke Params
 theme_params:
   description: "Een website volledig gebouwd met Ansible en Hugo"
   author: "Jouw Naam"
   show_share_buttons: true
   show_reading_time: true
-  display_vibrant_colors: true
 
+# Navigatie Menu
+main_menu:
+  - { name: "Home", url: "/", weight: 1 }
+  - { name: "Archief", url: "/archives", weight: 2 }
+  - { name: "Tags", url: "/tags", weight: 3 }
+  - { name: "Over mij", url: "/about", weight: 4 }
