@@ -1,0 +1,60 @@
+---
+- name: Setup een volledige Hugo ontwikkelomgeving
+  hosts: localhost
+  connection: local
+  vars:
+    hugo_version: "0.124.1"
+    project_dir: "~/mijn_hugo_site"
+    theme_repo: "https://github.com/theNewDynamic/gohugo-theme-ananke.git"
+    theme_name: "ananke"
+
+  tasks:
+    - name: Installeer benodigde pakketten (Git)
+      become: yes
+      package:
+        name: git
+        state: present
+
+    - name: Download Hugo Extended binary
+      get_url:
+        url: "https://github.com/gohugoio/hugo/releases/download/v{{ hugo_version }}/hugo_extended_{{ hugo_version }}_linux-amd64.tar.gz"
+        dest: "/tmp/hugo.tar.gz"
+
+    - name: Pak Hugo uit naar /usr/local/bin
+      become: yes
+      unarchive:
+        src: "/tmp/hugo.tar.gz"
+        dest: "/usr/local/bin"
+        remote_src: yes
+        exclude: ["README.md", "LICENSE"]
+
+    - name: Controleer of Hugo project al bestaat
+      stat:
+        path: "{{ project_dir }}/hugo.toml"
+      register: project_status
+
+    - name: Initialiseer nieuw Hugo project
+      command: "hugo new site {{ project_dir }}"
+      when: not project_status.stat.exists
+
+    - name: Voeg thema toe als Git submodule
+      git:
+        repo: "{{ theme_repo }}"
+        dest: "{{ project_dir }}/themes/{{ theme_name }}"
+        version: master
+
+    - name: Configureer het thema in hugo.toml
+      lineinfile:
+        path: "{{ project_dir }}/hugo.toml"
+        line: 'theme = "{{ theme_name }}"'
+        create: yes
+
+    - name: Maak een eerste blogbericht aan
+      command: "hugo new posts/eerste-bericht.md"
+      args:
+        chdir: "{{ project_dir }}"
+      creates: "{{ project_dir }}/content/posts/eerste-bericht.md"
+
+    - name: Succes melding
+      debug:
+        msg: "Je Hugo site staat klaar in {{ project_dir }}. Start de server met: cd {{ project_dir }} && hugo server -D"
