@@ -1,0 +1,16 @@
+---
+# Hugo Installatie Instellingen
+hugo_version: "0.124.1"
+hugo_binary_url: "https://github.com/gohugoio/hugo/releases/download/v{{ hugo_version }}/hugo_extended_{{ hugo_version }}_linux-amd64.tar.gz"
+
+# Project Instellingen
+project_dir: "~/mijn_hugo_site"
+site_title: "Mijn Nieuwe Hugo Site"
+
+# Thema Instellingen (Variabel gemaakt)
+current_theme_name: "papermod"
+current_theme_repo: "https://github.com/adityatelange/hugo-PaperMod.git"
+
+# Content Instellingen
+first_post_title: "Eerste Bericht"
+first_post_filename: "eerste-bericht.md"
