@@ -19,10 +19,14 @@
       args:
         creates: "{{ project_dir }}/hugo.toml"
 
-    - name: Zorg dat de lokale templates map bestaat
+    - name: Zorg dat de benodigde mappen bestaan
       file:
-        path: "templates"
+        path: "{{ item }}"
         state: directory
+      loop:
+        - "templates"
+        - "{{ project_dir }}/static"
+        - "{{ project_dir }}/content/posts"
 
     - name: Installeer het gekozen thema via Git
       git:
@@ -36,11 +40,6 @@
         src: templates/hugo.toml.j2
         dest: "{{ project_dir }}/hugo.toml"
         mode: '0644'
-
-    - name: Zorg dat de static map in het project bestaat
-      file:
-        path: "{{ project_dir }}/static"
-        state: directory
 
     - name: Plaats het PHP mail script in de static map
       template:
@@ -60,5 +59,5 @@
           - "Installatie voltooid!"
           - "Project locatie: {{ project_dir }}"
           - "Thema: {{ current_theme_name }}"
-          - "PHP Mailer: {{ project_dir }}/static/mail.php"
+          - "PHP Mailer: {{ project_dir }}/static/mail.php (Vergeet PHP-FPM niet op je server)"
           - "Commando om te starten: cd {{ project_dir }} && hugo server -D"
