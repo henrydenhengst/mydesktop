@@ -1,40 +1,53 @@
 ---
-- name: Setup Hugo site via group_vars
+- name: Setup Hugo site via Centralized Config
   hosts: localhost
   connection: local
-  
+
   tasks:
-    - name: Download en installeer Hugo
+    - name: Download en installeer de juiste Hugo versie
       become: yes
       unarchive:
         src: "{{ hugo_binary_url }}"
         dest: "/usr/local/bin"
         remote_src: yes
         exclude: ["README.md", "LICENSE"]
+      # Ansible downloadt dit alleen als het nog niet in /usr/local/bin staat
+      args:
+        creates: "/usr/local/bin/hugo"
 
-    - name: Maak Hugo project aan
+    - name: Initialiseer de mappenstructuur van het project
       command: "hugo new site {{ project_dir }}"
       args:
         creates: "{{ project_dir }}/hugo.toml"
 
-    - name: Installeer het thema
+    - name: Zorg dat de templates map bestaat voor de config
+      file:
+        path: "templates"
+        state: directory
+
+    - name: Installeer het gekozen thema via Git
       git:
         repo: "{{ current_theme_repo }}"
         dest: "{{ project_dir }}/themes/{{ current_theme_name }}"
         version: master
+        depth: 1  # Download alleen de laatste commit om tijd te besparen
 
-    - name: Configureer hugo.toml
-      lineinfile:
-        path: "{{ project_dir }}/hugo.toml"
-        regexp: "{{ item.regexp }}"
-        line: "{{ item.line }}"
-        create: yes
-      loop:
-        - { regexp: '^theme\s*=', line: 'theme = "{{ current_theme_name }}"' }
-        - { regexp: '^title\s*=', line: 'title = "{{ site_title }}"' }
+    - name: Genereer de hugo.toml vanuit de Jinja2 template
+      template:
+        src: templates/hugo.toml.j2
+        dest: "{{ project_dir }}/hugo.toml"
+        mode: '0644'
 
-    - name: Maak eerste bericht aan
+    - name: Maak het eerste blogbericht aan
       command: "hugo new posts/{{ first_post_filename }}"
       args:
         chdir: "{{ project_dir }}"
       creates: "{{ project_dir }}/content/posts/{{ first_post_filename }}"
+
+    - name: Statusoverzicht
+      debug:
+        msg: 
+          - "Installatie voltooid!"
+          - "Project locatie: {{ project_dir }}"
+          - "Thema: {{ current_theme_name }}"
+          - "Commando om te starten: cd {{ project_dir }} && hugo server -D"
