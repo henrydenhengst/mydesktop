@@ -1,53 +1,43 @@
 ---
-# ==============================================================================
-# HUGO PROJECT CONFIGURATIE (Beheerd via Ansible)
-# ==============================================================================
-
 # Systeem & Installatie
 hugo_version: "0.124.1"
 hugo_binary_url: "https://github.com/gohugoio/hugo/releases/download/v{{ hugo_version }}/hugo_extended_{{ hugo_version }}_linux-amd64.tar.gz"
 project_dir: "~/mijn_hugo_site"
 
-# Site Metadata & Eigenaarschap
+# Rollen & Identiteit
+site_owner: "Naam van de Eigenaar"       # De rechtmatige eigenaar
+site_owner_email: "eigenaar@domein.nl"   # Waar de contactmails landen
+site_maker: "Henry den Hengst"           # Jij (de technisch bouwer)
+
+# Site Metadata
 site_title: "Mijn Ansible Hugo Site"
 base_url: "https://www.jouwdomein.nl"
 language_code: "nl-nl"
-site_author: "Henry den Hengst"
-site_author_email: "eigenaar@jouwdomein.nl"
 
-# Licentie & Copyleft (De eigenaar bepaalt de licentie)
+# Licentie & Copyleft
 license_type: "Copyleft"
 license_text: "Vrij om te delen en aan te passen onder dezelfde voorwaarden."
-license_url: "https://creativecommons.org/licenses/by-sa/4.0/"
 
-# Thema Instellingen
+# Thema & Params
 current_theme_name: "papermod"
 current_theme_repo: "https://github.com/adityatelange/hugo-PaperMod.git"
-
-# Thema Specifieke Params
 theme_params:
-  description: "Een website volledig gebouwd met Ansible en Hugo"
+  description: "Website ontwikkeld door Henry den Hengst"
   show_share_buttons: true
   show_reading_time: true
 
-# Formulier & Privacy (PHP-Mailer)
+# Formulier
 contact_endpoint: "/mail.php"
-privacy_vermelding: "Je gegevens worden alleen gebruikt om contact op te nemen."
+privacy_vermelding: "Uw gegevens worden verwerkt volgens het privacybeleid van de eigenaar."
 
-# Navigatie Menu (Verschijnt in de menubalk)
+# Menu & Socials
 main_menu:
   - { name: "Home", url: "/", weight: 1 }
-  - { name: "Archief", url: "/archives", weight: 2 }
-  - { name: "Tags", url: "/tags", weight: 3 }
-  - { name: "Over mij", url: "/about", weight: 4 }
   - { name: "Contact", url: "/contact", weight: 5 }
 
-# Social Media & Footer
 social_links:
   - { platform: "github", url: "https://github.com/henrydenhengst" }
   - { platform: "facebook", url: "https://www.facebook.com/share/g/1CRuMqw1Wn/" }
 
-footer_text: "Gebouwd met ❤️ en Ansible"
-
-# Content Instellingen
+footer_text: "Technisch gerealiseerd door {{ site_maker }} met Ansible"
 first_post_filename: "eerste-bericht.md"
