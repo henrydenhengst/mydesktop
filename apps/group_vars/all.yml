@@ -1,24 +1,34 @@
 ---
-# Hugo Installatie & Project
+# Hugo Installatie & Systeem
 hugo_version: "0.124.1"
 hugo_binary_url: "https://github.com/gohugoio/hugo/releases/download/v{{ hugo_version }}/hugo_extended_{{ hugo_version }}_linux-amd64.tar.gz"
 project_dir: "~/mijn_hugo_site"
 
-# Site Metadata
+# Site Metadata & Eigenaarschap
 site_title: "Mijn Ansible Hugo Site"
 base_url: "https://www.jouwdomein.nl"
 language_code: "nl-nl"
+site_author: "Henry den Hengst"
+site_author_email: "eigenaar@jouwdomein.nl"
 
-# Thema
+# Licentie (Copyleft)
+license_type: "Copyleft"
+license_text: "Vrij om te delen en aan te passen onder dezelfde voorwaarden."
+license_url: "https://creativecommons.org/licenses/by-sa/4.0/"
+
+# Thema Instellingen
 current_theme_name: "papermod"
 current_theme_repo: "https://github.com/adityatelange/hugo-PaperMod.git"
 
 # Thema Specifieke Params
 theme_params:
   description: "Een website volledig gebouwd met Ansible en Hugo"
-  author: "Jouw Naam"
   show_share_buttons: true
   show_reading_time: true
+
+# Formulier & Privacy
+contact_endpoint: "/mail.php"
+privacy_vermelding: "Je gegevens worden alleen gebruikt om contact op te nemen."
 
 # Navigatie Menu
 main_menu:
@@ -26,19 +36,14 @@ main_menu:
   - { name: "Archief", url: "/archives", weight: 2 }
   - { name: "Tags", url: "/tags", weight: 3 }
   - { name: "Over mij", url: "/about", weight: 4 }
-
----
-# ... (de rest van je instellingen blijven gelijk)
-
-# Formulier & Privacy
-contact_endpoint: "https://jouw-eigen-server.nl/mail.php" # Of de URL van een EU-dienst
-contact_email_ontvanger: "eigenaar@jouwdomein.nl"
-privacy_vermelding: "Je gegevens worden alleen gebruikt om contact op te nemen."
+  - { name: "Contact", url: "/contact", weight: 5 }
 
 # Social Media & Footer
 social_links:
   - { platform: "github", url: "https://github.com/henrydenhengst" }
-  - { platform: "facebook", url: "https://www.facebook.com/share/g/1CRuMqw1Wn/" } 
+  - { platform: "facebook", url: "https://www.facebook.com/share/g/1CRuMqw1Wn/" }
 
 footer_text: "Gebouwd met ❤️ en Ansible"
 
+# Content Instellingen
+first_post_filename: "eerste-bericht.md"
