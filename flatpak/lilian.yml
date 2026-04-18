@@ -1,9 +1,8 @@
 ---
-- name: Configureer Flatpak en applicaties op Debian
+- name: Volledige Flatpak configuratie voor Debian
   hosts: all
   become: true
   vars:
-    # Lijst van applicaties om te installeren
     flatpak_apps:
       - us.zoom.Zoom
       - com.google.Chrome
@@ -11,33 +10,41 @@
       - com.github.IsmaelMartinez.teams_for_linux
 
   tasks:
-    - name: Installeer flatpak runtime via apt
+    - name: Installeer Flatpak en Desktop Portals
       ansible.builtin.apt:
-        name: flatpak
+        name: 
+          - flatpak
+          - xdg-desktop-portal-gtk  # Nodig voor correcte integratie in Debian
         state: present
         update_cache: yes
 
-    - name: Voeg de Flathub repository toe
+    - name: Voeg Flathub repository toe
       community.general.flatpak_remote:
         name: flathub
         state: present
         flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
 
-    - name: Installeer de gewenste Flatpak applicaties
+    - name: Installeer de applicaties
       community.general.flatpak:
         name: "{{ item }}"
         state: present
         remote: flathub
       loop: "{{ flatpak_apps }}"
 
-    - name: Configureer rechten (Home-toegang en hardwareversnelling)
-      # We gebruiken de command module omdat specifieke overrides 
-      # vaak makkelijker te beheren zijn via de CLI dan complexe modules
+    - name: Stel globale rechten in voor alle Flatpaks
+      # Dit stelt de rechten in voor alle apps tegelijk (--global)
+      # --filesystem=home: Toegang tot de gehele homedrive
+      # --device=all: Toegang tot GPU, Webcams en andere hardware
+      # --socket=pulseaudio: Essentieel voor geluid in Zoom/Teams
       ansible.builtin.command: >
-        flatpak override {{ item }} 
+        flatpak override --global 
         --filesystem=home 
         --device=all 
         --socket=wayland 
-        --socket=x11
-      loop: "{{ flatpak_apps }}"
+        --socket=x11 
+        --socket=pulseaudio
+      changed_when: false
+
+    - name: Zorg dat de wijzigingen direct effectief zijn
+      ansible.builtin.command: flatpak update --appstream
       changed_when: false
