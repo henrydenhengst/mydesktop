@@ -1,8 +1,9 @@
 ---
-- name: Volledige Flatpak configuratie voor Debian
+- name: Volledige Flatpak en Audio Configuratie (Debian)
   hosts: all
   become: true
   vars:
+    # De 4 specifieke applicaties uit je verzoek
     flatpak_apps:
       - us.zoom.Zoom
       - com.google.Chrome
@@ -10,41 +11,54 @@
       - com.github.IsmaelMartinez.teams_for_linux
 
   tasks:
-    - name: Installeer Flatpak en Desktop Portals
+    - name: Update apt cache en installeer Flatpak + PipeWire componenten
       ansible.builtin.apt:
-        name: 
+        name:
           - flatpak
-          - xdg-desktop-portal-gtk  # Nodig voor correcte integratie in Debian
+          - xdg-desktop-portal-gtk
+          - pipewire-audio-client-libraries
+          - pipewire-pulse
+          - wireplumber
         state: present
         update_cache: yes
 
-    - name: Voeg Flathub repository toe
+    - name: Voeg de Flathub repository toe
       community.general.flatpak_remote:
         name: flathub
         state: present
         flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
 
-    - name: Installeer de applicaties
+    - name: Installeer de 4 Flatpak applicaties
       community.general.flatpak:
         name: "{{ item }}"
         state: present
         remote: flathub
       loop: "{{ flatpak_apps }}"
 
-    - name: Stel globale rechten in voor alle Flatpaks
-      # Dit stelt de rechten in voor alle apps tegelijk (--global)
-      # --filesystem=home: Toegang tot de gehele homedrive
-      # --device=all: Toegang tot GPU, Webcams en andere hardware
-      # --socket=pulseaudio: Essentieel voor geluid in Zoom/Teams
+    - name: Configureer globale permissies (Hardware, Homedrive, Audio)
+      # Dit zorgt dat de 4 apps (en toekomstige apps) overal bij kunnen
       ansible.builtin.command: >
-        flatpak override --global 
-        --filesystem=home 
-        --device=all 
-        --socket=wayland 
-        --socket=x11 
+        flatpak override --global
+        --filesystem=home
+        --device=all
+        --socket=wayland
+        --socket=x11
         --socket=pulseaudio
       changed_when: false
 
-    - name: Zorg dat de wijzigingen direct effectief zijn
+    - name: Controleer of de PipeWire services geactiveerd zijn (User Level)
+      # Noodzakelijk voor correct geluid in de 4 apps
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        scope: user
+        enabled: yes
+        state: started
+      loop:
+        - pipewire
+        - pipewire-pulse
+        - wireplumber
+      become: false 
+
+    - name: Forceer update van appstream informatie
       ansible.builtin.command: flatpak update --appstream
       changed_when: false
