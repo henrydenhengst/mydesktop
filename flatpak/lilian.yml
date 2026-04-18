@@ -1,0 +1,43 @@
+---
+- name: Configureer Flatpak en applicaties op Debian
+  hosts: all
+  become: true
+  vars:
+    # Lijst van applicaties om te installeren
+    flatpak_apps:
+      - us.zoom.Zoom
+      - com.google.Chrome
+      - org.onlyoffice.desktopeditors
+      - com.github.IsmaelMartinez.teams_for_linux
+
+  tasks:
+    - name: Installeer flatpak runtime via apt
+      ansible.builtin.apt:
+        name: flatpak
+        state: present
+        update_cache: yes
+
+    - name: Voeg de Flathub repository toe
+      community.general.flatpak_remote:
+        name: flathub
+        state: present
+        flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+
+    - name: Installeer de gewenste Flatpak applicaties
+      community.general.flatpak:
+        name: "{{ item }}"
+        state: present
+        remote: flathub
+      loop: "{{ flatpak_apps }}"
+
+    - name: Configureer rechten (Home-toegang en hardwareversnelling)
+      # We gebruiken de command module omdat specifieke overrides 
+      # vaak makkelijker te beheren zijn via de CLI dan complexe modules
+      ansible.builtin.command: >
+        flatpak override {{ item }} 
+        --filesystem=home 
+        --device=all 
+        --socket=wayland 
+        --socket=x11
+      loop: "{{ flatpak_apps }}"
+      changed_when: false
