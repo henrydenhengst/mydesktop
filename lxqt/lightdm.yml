@@ -1,0 +1,94 @@
+---
+- name: "Debian Display Manager Force: Slick Nord Edition (Stable)"
+  hosts: localhost
+  connection: local
+  become: yes
+
+  tasks:
+
+    # =========================
+    # 1. CLEANUP DM'S
+    # =========================
+    - name: Stop andere display managers
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      loop:
+        - gdm3
+        - sddm
+        - slim
+        - lxdm
+      failed_when: false
+
+    - name: Purge andere DM pakketten
+      apt:
+        name:
+          - gdm3
+          - sddm
+          - slim
+          - lxdm
+        state: absent
+        purge: yes
+
+    # =========================
+    # 2. INSTALL LIGHTDM
+    # =========================
+    - name: Installeer LightDM + Slick
+      apt:
+        name:
+          - lightdm
+          - slick-greeter
+          - lightdm-settings
+          - numlockx
+        state: present
+        update_cache: yes
+
+    # =========================
+    # 3. SET DEFAULT DISPLAY MANAGER
+    # =========================
+    - name: Force LightDM default
+      copy:
+        dest: /etc/X11/default-display-manager
+        content: "/usr/sbin/lightdm\n"
+
+    - name: LightDM config (full safe config)
+      copy:
+        dest: /etc/lightdm/lightdm.conf
+        content: |
+          [Seat:*]
+          greeter-session=slick-greeter
+          user-session=lxqt
+          allow-guest=false
+          greeter-hide-users=false
+          greeter-show-manual-login=true
+
+    # =========================
+    # 4. SLICK THEME (NORD)
+    # =========================
+    - name: Slick greeter config
+      copy:
+        dest: /etc/lightdm/slick-greeter.conf
+        content: |
+          [Greeter]
+          theme-name=Nordic
+          icon-theme-name=Papirus-Dark
+          font-name=JetBrainsMono Nerd Font 11
+          background-color=#2e3440
+          draw-user-backgrounds=false
+          draw-grid=false
+          show-hostname=false
+          high-contrast=false
+
+    # =========================
+    # 5. ENABLE SERVICE SAFELY
+    # =========================
+    - name: Enable LightDM
+      systemd:
+        name: lightdm
+        enabled: yes
+        state: started
+
+    - name: Final message
+      debug:
+        msg: "LightDM + Slick Nord is actief. Herstart om login screen te zien."
