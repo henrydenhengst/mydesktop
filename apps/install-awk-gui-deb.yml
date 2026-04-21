@@ -1,5 +1,5 @@
 ---
-- name: AWK GUI - Volledige installatie
+- name: AWK GUI - Installeren of verwijderen
   hosts: localhost
   connection: local
   become: yes
@@ -7,21 +7,19 @@
     deb_name: awk-gui
     deb_version: 1.0.0
     build_dir: /tmp/awk-gui-build
-    
-  tasks:
-    # 1. Prerequisites installeren
-    - name: Installeer python3-tk (benodigd voor GUI)
+    action: "{{ action | default('install') }}"  # install of uninstall
+
+- name: Installatie modus
+  when: action == "install"
+  block:
+    - name: Installeer prerequisites
       apt:
-        name: python3-tk
+        name:
+          - python3-tk
+          - dpkg-dev
         state: present
         update_cache: yes
         
-    - name: Installeer dpkg-dev (voor dpkg-deb commando)
-      apt:
-        name: dpkg-dev
-        state: present
-        
-    # 2. Bouwmap voorbereiden
     - name: Creëer bouwmap
       file:
         path: "{{ build_dir }}"
@@ -46,7 +44,6 @@
         state: directory
         mode: '0755'
         
-    # 3. Python script plaatsen
     - name: Plaats awk-gui Python script
       copy:
         dest: "{{ build_dir }}/usr/local/bin/awk-gui"
@@ -141,7 +138,6 @@
           
           root.mainloop()
           
-    # 4. .desktop bestand plaatsen
     - name: Plaats .desktop bestand
       copy:
         dest: "{{ build_dir }}/usr/share/applications/awk-gui.desktop"
@@ -158,7 +154,6 @@
           Categories=Development;Utility;
           Keywords=awk;text;processing;
           
-    # 5. DEBIAN control bestand
     - name: Plaats control bestand
       copy:
         dest: "{{ build_dir }}/DEBIAN/control"
@@ -177,13 +172,11 @@
            voor gebruikers die niet met de commandoregel willen werken.
            Ondersteunt scheidingstekens en bevat voorbeeldscripts.
           
-    # 6. .deb bestand bouwen
     - name: Bouw .deb bestand
       command: dpkg-deb --build {{ build_dir }} {{ build_dir }}/{{ deb_name }}.deb
       args:
         creates: "{{ build_dir }}/{{ deb_name }}.deb"
         
-    # 7. .deb bestand naar huidige directory kopiëren
     - name: Kopieer .deb naar huidige map
       copy:
         src: "{{ build_dir }}/{{ deb_name }}.deb"
@@ -191,19 +184,16 @@
         remote_src: yes
         mode: '0644'
         
-    # 8. .deb bestand installeren
     - name: Installeer awk-gui.deb
       dpkg:
         deb: "./{{ deb_name }}.deb"
         state: present
         
-    # 9. Opruimen
     - name: Verwijder tijdelijke bouwmap
       file:
         path: "{{ build_dir }}"
         state: absent
         
-    # 10. Bevestiging
     - name: Toon succesbericht
       debug:
         msg: |
@@ -211,3 +201,27 @@
           
           Je kunt de app vinden in het startmenu onder "AWK GUI"
           Of starten met het commando: awk-gui
+
+- name: Uninstall modus
+  when: action == "uninstall"
+  block:
+    - name: Verwijder awk-gui pakket
+      dpkg:
+        name: awk-gui
+        state: absent
+        
+    - name: Verwijder eventueel achtergebleven bestanden
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /usr/local/bin/awk-gui
+        - /usr/share/applications/awk-gui.desktop
+        
+    - name: Toon succesbericht
+      debug:
+        msg: |
+          ✅ AWK GUI succesvol verwijderd!
+          
+          Eventuele prerequisites (python3-tk) blijven geïnstalleerd.
+          Die kun je handmatig verwijderen met: sudo apt remove python3-tk
