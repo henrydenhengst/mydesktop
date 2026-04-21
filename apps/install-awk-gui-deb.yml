@@ -1,0 +1,213 @@
+---
+- name: AWK GUI - Volledige installatie
+  hosts: localhost
+  connection: local
+  become: yes
+  vars:
+    deb_name: awk-gui
+    deb_version: 1.0.0
+    build_dir: /tmp/awk-gui-build
+    
+  tasks:
+    # 1. Prerequisites installeren
+    - name: Installeer python3-tk (benodigd voor GUI)
+      apt:
+        name: python3-tk
+        state: present
+        update_cache: yes
+        
+    - name: Installeer dpkg-dev (voor dpkg-deb commando)
+      apt:
+        name: dpkg-dev
+        state: present
+        
+    # 2. Bouwmap voorbereiden
+    - name: Creëer bouwmap
+      file:
+        path: "{{ build_dir }}"
+        state: directory
+        mode: '0755'
+        
+    - name: Creëer DEBIAN map
+      file:
+        path: "{{ build_dir }}/DEBIAN"
+        state: directory
+        mode: '0755'
+        
+    - name: Creëer usr/local/bin map
+      file:
+        path: "{{ build_dir }}/usr/local/bin"
+        state: directory
+        mode: '0755'
+        
+    - name: Creëer usr/share/applications map
+      file:
+        path: "{{ build_dir }}/usr/share/applications"
+        state: directory
+        mode: '0755'
+        
+    # 3. Python script plaatsen
+    - name: Plaats awk-gui Python script
+      copy:
+        dest: "{{ build_dir }}/usr/local/bin/awk-gui"
+        mode: '0755'
+        content: |
+          #!/usr/bin/env python3
+          
+          import subprocess
+          import tkinter as tk
+          from tkinter import filedialog, scrolledtext, messagebox
+          import os
+          
+          def run_awk():
+              awk_code = code_entry.get("1.0", tk.END).strip()
+              if not awk_code:
+                  messagebox.showerror("Fout", "Voer een awk-programma in.")
+                  return
+              
+              if not file_path.get():
+                  messagebox.showerror("Fout", "Selecteer een bestand.")
+                  return
+              
+              separator = sep_entry.get().strip()
+              
+              cmd = ['awk']
+              if separator:
+                  cmd.extend(['-F', separator])
+              cmd.extend([awk_code, file_path.get()])
+              
+              try:
+                  result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+                  output_text.delete("1.0", tk.END)
+                  output_text.insert(tk.END, result.stdout)
+                  if result.stderr:
+                      output_text.insert(tk.END, f"\n--- Fouten ---\n{result.stderr}")
+              except Exception as e:
+                  messagebox.showerror("Fout", str(e))
+          
+          def select_file():
+              filename = filedialog.askopenfilename(
+                  title="Selecteer een tekstbestand",
+                  filetypes=[("Alle bestanden", "*.*")]
+              )
+              if filename:
+                  file_path.set(filename)
+          
+          # GUI
+          root = tk.Tk()
+          root.title("AWK GUI")
+          root.geometry("750x650")
+          root.resizable(True, True)
+          
+          file_path = tk.StringVar()
+          
+          # Bestand
+          tk.Label(root, text="📁 1. Kies een bestand:", font=("Arial", 10, "bold")).pack(pady=(10,0))
+          file_frame = tk.Frame(root)
+          file_frame.pack(pady=5)
+          tk.Entry(file_frame, textvariable=file_path, width=60).pack(side=tk.LEFT, padx=5)
+          tk.Button(file_frame, text="Bladeren", command=select_file, bg="#4CAF50", fg="white").pack(side=tk.LEFT)
+          
+          # Scheidingsteken
+          tk.Label(root, text="🔧 2. Scheidingsteken (optioneel, bv. ',' voor CSV):").pack(pady=(10,0))
+          sep_entry = tk.Entry(root, width=20)
+          sep_entry.pack(pady=5)
+          tk.Label(root, text="(laat leeg voor spatie/tab)", font=("Arial", 8)).pack()
+          
+          # Awk code
+          tk.Label(root, text="📝 3. Awk-programma:", font=("Arial", 10, "bold")).pack(pady=(10,0))
+          code_entry = scrolledtext.ScrolledText(root, height=6, width=85, font=("Courier", 9))
+          code_entry.pack(pady=5)
+          code_entry.insert(tk.END, "{print $0}")
+          
+          # Voorbeelden
+          def insert_example(example):
+              code_entry.delete("1.0", tk.END)
+              code_entry.insert(tk.END, example)
+          
+          examples_frame = tk.Frame(root)
+          examples_frame.pack(pady=5)
+          tk.Button(examples_frame, text="Toon eerste kolom", command=lambda: insert_example("{print $1}"), bg="#2196F3", fg="white", font=("Arial", 8)).pack(side=tk.LEFT, padx=2)
+          tk.Button(examples_frame, text="Toon regel met 'error'", command=lambda: insert_example("/error/ {print $0}"), bg="#2196F3", fg="white", font=("Arial", 8)).pack(side=tk.LEFT, padx=2)
+          tk.Button(examples_frame, text="Som van kolom 1", command=lambda: insert_example("{sum += $1} END {print sum}"), bg="#2196F3", fg="white", font=("Arial", 8)).pack(side=tk.LEFT, padx=2)
+          
+          # Uitvoer
+          tk.Label(root, text="📄 4. Resultaat:", font=("Arial", 10, "bold")).pack(pady=(10,0))
+          output_text = scrolledtext.ScrolledText(root, height=18, width=85, font=("Courier", 9))
+          output_text.pack(pady=5)
+          
+          # Knop
+          tk.Button(root, text="🚀 Voer AWK uit", command=run_awk, bg="#FF9800", fg="white", font=("Arial", 10, "bold"), padx=20, pady=5).pack(pady=10)
+          
+          root.mainloop()
+          
+    # 4. .desktop bestand plaatsen
+    - name: Plaats .desktop bestand
+      copy:
+        dest: "{{ build_dir }}/usr/share/applications/awk-gui.desktop"
+        mode: '0644'
+        content: |
+          [Desktop Entry]
+          Version=1.0
+          Name=AWK GUI
+          Comment=Grafische interface voor het AWK commando
+          Exec=/usr/local/bin/awk-gui
+          Icon=text-x-script
+          Terminal=false
+          Type=Application
+          Categories=Development;Utility;
+          Keywords=awk;text;processing;
+          
+    # 5. DEBIAN control bestand
+    - name: Plaats control bestand
+      copy:
+        dest: "{{ build_dir }}/DEBIAN/control"
+        mode: '0644'
+        content: |
+          Package: awk-gui
+          Version: {{ deb_version }}
+          Section: utils
+          Priority: optional
+          Architecture: all
+          Essential: no
+          Depends: python3, python3-tk
+          Maintainer: Ansible Installer <ansible@localhost>
+          Description: Grafische gebruikersinterface voor AWK
+           Een eenvoudige GUI die het AWK commando toegankelijk maakt
+           voor gebruikers die niet met de commandoregel willen werken.
+           Ondersteunt scheidingstekens en bevat voorbeeldscripts.
+          
+    # 6. .deb bestand bouwen
+    - name: Bouw .deb bestand
+      command: dpkg-deb --build {{ build_dir }} {{ build_dir }}/{{ deb_name }}.deb
+      args:
+        creates: "{{ build_dir }}/{{ deb_name }}.deb"
+        
+    # 7. .deb bestand naar huidige directory kopiëren
+    - name: Kopieer .deb naar huidige map
+      copy:
+        src: "{{ build_dir }}/{{ deb_name }}.deb"
+        dest: "./{{ deb_name }}.deb"
+        remote_src: yes
+        mode: '0644'
+        
+    # 8. .deb bestand installeren
+    - name: Installeer awk-gui.deb
+      dpkg:
+        deb: "./{{ deb_name }}.deb"
+        state: present
+        
+    # 9. Opruimen
+    - name: Verwijder tijdelijke bouwmap
+      file:
+        path: "{{ build_dir }}"
+        state: absent
+        
+    # 10. Bevestiging
+    - name: Toon succesbericht
+      debug:
+        msg: |
+          ✅ AWK GUI succesvol geïnstalleerd!
+          
+          Je kunt de app vinden in het startmenu onder "AWK GUI"
+          Of starten met het commando: awk-gui
