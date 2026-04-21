@@ -1,0 +1,302 @@
+---
+- name: Debian LXQt macOS Ultra Complete
+  hosts: localhost
+  connection: local
+  become: yes
+
+  vars:
+    ublock_id: "uBlock0@raymondhill.net"
+
+  tasks:
+
+    # =========================
+    # BASE SYSTEM
+    # =========================
+    - name: Repositories
+      apt_repository:
+        repo: "deb http://deb.debian.org/debian/ {{ ansible_distribution_release }} main contrib non-free non-free-firmware"
+        state: present
+
+    - name: Install packages
+      apt:
+        name:
+          - lxqt
+          - lxqt-panel
+          - pcmanfm-qt
+          - qterminal
+          - firefox-esr
+          - plank
+          - rofi
+          - picom
+          - feh
+          - lxappearance
+          - qt5ct
+          - kvantum
+          - kvantum-qt5
+          - papirus-icon-theme
+          - breeze-cursor-theme
+          - fonts-inter
+          - ttf-mscorefonts-installer
+          - numlockx
+          - flameshot
+          - git
+          - unzip
+          - wget
+        state: present
+        update_cache: yes
+
+    # =========================
+    # FONTS
+    # =========================
+    - name: JetBrains Nerd Font
+      unarchive:
+        src: https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip
+        dest: /usr/local/share/fonts
+        remote_src: yes
+
+    - name: Refresh fonts
+      command: fc-cache -f -v
+
+    # =========================
+    # THEMES
+    # =========================
+    - name: Nordic GTK theme
+      git:
+        repo: https://github.com/EliverLara/Nordic.git
+        dest: /usr/share/themes/Nordic
+        depth: 1
+
+    - name: macOS icon theme (WhiteSur)
+      git:
+        repo: https://github.com/vinceliuice/WhiteSur-icon-theme.git
+        dest: /usr/share/icons/WhiteSur
+        depth: 1
+
+    - name: macOS Plank theme
+      git:
+        repo: https://github.com/vinceliuice/WhiteSur-gtk-theme.git
+        dest: /usr/share/plank/themes/WhiteSur
+        depth: 1
+
+    # =========================
+    # FIREFOX
+    # =========================
+    - name: uBlock
+      file:
+        path: "/usr/lib/firefox-esr/distribution/extensions"
+        state: directory
+
+    - name: Download uBlock
+      get_url:
+        url: https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/addon-607454-latest.xpi
+        dest: "/usr/lib/firefox-esr/distribution/extensions/{{ ublock_id }}.xpi"
+
+    # =========================
+    # USER CONFIG
+    # =========================
+    - name: User setup
+      become: no
+      block:
+
+        - name: Create dirs
+          file:
+            path: "{{ item }}"
+            state: directory
+          loop:
+            - "~/.config/lxqt"
+            - "~/.config/qt5ct"
+            - "~/.config/Kvantum"
+            - "~/.config/picom"
+            - "~/.config/rofi"
+            - "~/.config/autostart"
+            - "~/.config/gtk-3.0"
+            - "~/.local/bin"
+            - "~/.config/plank"
+            - "~/Pictures"
+
+        # =========================
+        # GTK + QT LOOK
+        # =========================
+        - name: GTK settings
+          copy:
+            dest: "~/.config/gtk-3.0/settings.ini"
+            content: |
+              [Settings]
+              gtk-theme-name=Nordic
+              gtk-icon-theme-name=WhiteSur
+              gtk-font-name=Inter 11
+              gtk-cursor-theme-name=Breeze
+
+        - name: Qt config
+          copy:
+            dest: "~/.config/qt5ct/qt5ct.conf"
+            content: |
+              [Appearance]
+              icon_theme=WhiteSur
+              style=kvantum
+
+        - name: Force Qt theme
+          copy:
+            dest: "~/.profile"
+            content: |
+              export QT_QPA_PLATFORMTHEME=qt5ct
+
+        - name: Kvantum theme
+          copy:
+            dest: "~/.config/Kvantum/kvantum.kvconfig"
+            content: |
+              [General]
+              theme=Nordic
+
+        # =========================
+        # PICOM (blur + animation feel)
+        # =========================
+        - name: Picom config (macOS blur + rounded corners)
+          copy:
+            dest: "~/.config/picom/picom.conf"
+            content: |
+              backend = "glx";
+
+              blur-method = "dual_kawase";
+              blur-strength = 10;
+
+              corner-radius = 14;
+              rounded-corners-exclude = [
+                "class_g = 'lxqt-panel'"
+              ];
+
+              opacity-rule = [
+                "90:class_g = 'lxqt-panel'"
+              ];
+
+              wintypes:
+              {
+                tooltip = { opacity = 0.9; };
+                dropdown_menu = { opacity = 0.95; };
+              };
+
+        - name: Autostart Picom
+          copy:
+            dest: "~/.config/autostart/picom.desktop"
+            content: |
+              [Desktop Entry]
+              Type=Application
+              Exec=picom --config ~/.config/picom/picom.conf
+
+        # =========================
+        # DOCK (macOS)
+        # =========================
+        - name: Plank autostart
+          copy:
+            dest: "~/.config/autostart/plank.desktop"
+            content: |
+              [Desktop Entry]
+              Type=Application
+              Exec=plank
+
+        # =========================
+        # SPOTLIGHT (MACOS STYLE ROFI)
+        # =========================
+        - name: Spotlight theme
+          copy:
+            dest: "~/.config/rofi/spotlight.rasi"
+            content: |
+              * {
+                font: "Inter 16";
+                background: #1e1e2ecc;
+                foreground: #ffffff;
+                border-radius: 14px;
+              }
+
+              window {
+                width: 600px;
+                location: center;
+                padding: 20px;
+              }
+
+              inputbar {
+                children: [ prompt, entry ];
+              }
+
+              listview {
+                lines: 6;
+                spacing: 8px;
+              }
+
+              element {
+                padding: 8px;
+                border-radius: 10px;
+              }
+
+              element selected {
+                background-color: #3b4252;
+              }
+
+        - name: Spotlight launcher
+          copy:
+            dest: "~/.local/bin/spotlight"
+            mode: '0755'
+            content: |
+              #!/bin/bash
+              rofi -show drun -theme ~/.config/rofi/spotlight.rasi
+
+        - name: Keybinding Spotlight
+          copy:
+            dest: "~/.config/lxqt/globalkeyshortcuts.conf"
+            content: |
+              [spotlight]
+              Command=~/.local/bin/spotlight
+              Shortcut=Alt+space
+
+        # =========================
+        # PANEL (macOS minimal top bar)
+        # =========================
+        - name: LXQt top bar
+          copy:
+            dest: "~/.config/lxqt/panel.conf"
+            content: |
+              [panel1]
+              position=Top
+              size=28
+
+              [panel1/plugins]
+              1=mainmenu
+              2=spacer
+              3=taskbar
+              4=tray
+              5=clock
+
+              [panel1/plugin2]
+              type=spacer
+              expanding=true
+
+        # =========================
+        # WALLPAPER
+        # =========================
+        - name: macOS wallpaper
+          get_url:
+            url: https://wallpapercave.com/wp/wp7406323.jpg
+            dest: "~/Pictures/macos.jpg"
+
+        - name: Wallpaper autostart
+          copy:
+            dest: "~/.config/autostart/wallpaper.desktop"
+            content: |
+              [Desktop Entry]
+              Type=Application
+              Exec=feh --bg-fill ~/Pictures/macos.jpg
+
+        # =========================
+        # SYSTEM TWEAKS
+        # =========================
+        - name: Numlock
+          copy:
+            dest: "~/.config/autostart/numlock.desktop"
+            content: |
+              [Desktop Entry]
+              Type=Application
+              Exec=numlockx on
+
+    - name: Finish
+      debug:
+        msg: "macOS LXQt Ultra setup complete. Reboot for full effect."
