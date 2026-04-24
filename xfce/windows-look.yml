@@ -6,9 +6,9 @@
 
   vars:
     user_name: "{{ ansible_user_id }}"
-    base_font_size: "12"
-    mono_font_size: "13"
-    firefox_zoom: "1.2"
+    base_font_size: "14"
+    mono_font_size: "16"
+    firefox_zoom: "1.3"
 
   tasks:
 
