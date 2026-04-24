@@ -129,13 +129,18 @@
             groups: plugdev,dialout
             append: yes
 
+        - name: Controleer of fwupd bestaat
+          stat:
+            path: /lib/systemd/system/fwupd.service
+          register: fwupd_check
+
         - name: Maskeer fwupd (Voorkom USB-onderbrekingen)
           systemd:
             name: fwupd
             state: stopped
             enabled: no
             masked: yes
-          ignore_errors: yes
+          when: fwupd_check.stat.exists
 
     - name: 7. Herlaad USB-regels
       shell: udevadm control --reload-rules && udevadm trigger
