@@ -1,24 +1,27 @@
 ---
-- name: Debian 13 XFCE Nord Windows setup (stable)
+- name: Debian 13 XFCE Nord Windows Setup (Stable)
   hosts: localhost
   connection: local
   become: yes
 
   vars:
     user_name: "{{ ansible_user_id }}"
-    base_font_size: "14"
-    mono_font_size: "16"
-    firefox_zoom: "1.3"
+    base_font_size: "13"
+    mono_font_size: "14"
+    firefox_zoom: "1.25"
+    panel_size: "42"
 
   tasks:
 
     # =========================
-    # PACKAGES
+    # SYSTEM PACKAGES
     # =========================
-    - name: Installeer basis pakketten
+    - name: Installeer pakketten
       apt:
         name:
           - firefox-esr
+          - libreoffice
+          - libreoffice-gtk3
           - terminator
           - micro
           - git
@@ -31,7 +34,6 @@
           - blueman
           - xfce4-systemload-plugin
           - xfce4-battery-plugin
-          - xfce4-taskmanager
         state: present
         update_cache: yes
 
@@ -42,7 +44,7 @@
         enabled: yes
 
     # =========================
-    # THEMES (SAFE INSTALL)
+    # THEMES (SAFE)
     # =========================
     - name: Clone Nordic theme
       git:
@@ -50,7 +52,7 @@
         dest: /tmp/Nordic
         depth: 1
 
-    - name: Installeer theme system-wide
+    - name: Install theme system-wide
       copy:
         src: /tmp/Nordic/
         dest: /usr/local/share/themes/Nordic
@@ -59,7 +61,7 @@
     # =========================
     # FONTS (SAFE)
     # =========================
-    - name: Download JetBrainsMono Nerd Font
+    - name: Download JetBrainsMono
       get_url:
         url: https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip
         dest: /tmp/jb.zip
@@ -74,20 +76,29 @@
       command: fc-cache -f
 
     # =========================
-    # USER CONFIG
+    # XFCE SETTINGS (SAFE SESSION HANDLING)
     # =========================
-    - name: XFCE appearance (safe)
+    - name: XFCE appearance settings
       become_user: "{{ user_name }}"
       shell: |
         xfconf-query -c xsettings -p /Net/ThemeName -s "Nordic" || true
         xfconf-query -c xsettings -p /Net/IconThemeName -s "Papirus-Dark" || true
         xfconf-query -c xfwm4 -p /general/theme -s "Nordic" || true
         xfconf-query -c xsettings -p /Gtk/FontName -s "Sans {{ base_font_size }}" || true
+        xfconf-query -c xfwm4 -p /general/title_font -s "Sans Bold {{ base_font_size }}" || true
         xfconf-query -c xfwm4 -p /general/button_layout -s "O|HMC" || true
 
-    - name: Panel restart (non-destructive)
+    - name: Restart XFCE panel safely
       become_user: "{{ user_name }}"
       shell: xfce4-panel -r || true
+
+    # =========================
+    # PANEL (LESS DESTRUCTIVE)
+    # =========================
+    - name: Configure panel size only (safe)
+      become_user: "{{ user_name }}"
+      shell: |
+        xfconf-query -c xfce4-panel -p /panels/panel-1/size -s {{ panel_size }} || true
 
     # =========================
     # TERMINATOR
@@ -108,14 +119,14 @@
               use_system_font = False
 
     # =========================
-    # FIREFOX (IDEMPOTENT)
+    # FIREFOX (IDEMPOTENT FIX)
     # =========================
-    - name: Set Firefox scaling safely
+    - name: Firefox DPI setting (safe)
       become_user: "{{ user_name }}"
       shell: |
         for d in ~/.mozilla/firefox/*.default*; do
           if [ -d "$d" ]; then
-            grep -q devPixelsPerPx "$d/user.js" 2>/dev/null && continue
+            grep -q devPixelsPerPx "$d/user.js" 2>/dev/null || \
             echo 'user_pref("layout.css.devPixelsPerPx", "{{ firefox_zoom }}");' >> "$d/user.js"
           fi
         done
