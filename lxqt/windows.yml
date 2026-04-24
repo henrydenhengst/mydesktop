@@ -1,411 +1,253 @@
 ---
-- name: Volledige Debian 13 LXQt configuratie voor oudere computers
+- name: Debian 13 LXQt light desktop voor oudere computers
   hosts: all
   become: yes
+
   vars:
-    # Gebruikersnaam die het systeem gaat gebruiken
     target_user: "{{ ansible_user }}"
     user_home: "/home/{{ target_user }}"
-    
-    # Te installeren pakketten
+
     required_packages:
-      # Basissysteem en desktop
+      # LXQt desktop
       - lxqt
+      - lxqt-core
       - lxqt-config
-      - lxqt-appswitcher
       - lxqt-panel
-      - lxqt-qtplugin
       - lxqt-session
-      - lxqt-notificationd
-      - lxqt-openssh-askpass
-      - lxqt-powermanagement
       - lxqt-runner
       - pcmanfm-qt
       - qterminal
       - openbox
-      
-      # Applicaties
+      - obconf-qt
+
+      # Apps
       - firefox-esr
       - libreoffice
       - libreoffice-l10n-nl
       - libreoffice-help-nl
       - terminator
-      
-      # Hardware-ondersteuning
-      - bluetooth
+
+      # Audio / Bluetooth
       - bluez
-      - bluez-utils
-      - pulseaudio-module-bluetooth
       - blueman
-      - wireless-tools
-      - wpasupplicant
+      - pulseaudio
+      - pulseaudio-module-bluetooth
+      - pavucontrol
+
+      # Network
       - network-manager
       - network-manager-gnome
-      
-      # Lettertypen (basis)
+      - wpasupplicant
+      - wireless-tools
+
+      # Fonts & tools
       - fonts-dejavu
       - fonts-liberation
-      - fonts-liberation2
       - fonts-noto
-      - fonts-noto-core
-      
-      # Hulpprogramma's
+      - fontconfig
+      - git
       - curl
       - wget
-      - git
       - unzip
       - zip
-      - fontconfig
-      - alsa-utils
-      - pulseaudio
-      - pavucontrol
-      - dbus-user-session
+
+      # Performance
+      - zram-tools
+      - cpupower
 
   tasks:
-    # ==========================================
-    # 1. SYSTEEMUPDATE EN BASISPAKKETTEN
-    # ==========================================
-    - name: Update apt cache
-      apt:
-        update_cache: yes
-        cache_valid_time: 3600
 
-    - name: Installeer alle benodigde pakketten
-      apt:
-        name: "{{ required_packages }}"
-        state: present
-        install_recommends: yes
+  # =========================
+  # 1. SYSTEM UPDATE
+  # =========================
+  - name: Update apt cache
+    apt:
+      update_cache: yes
 
-    # ==========================================
-    # 2. NERD-FONTS INSTALLATIE
-    # ==========================================
-    - name: Kloon nerd-fonts repository
-      git:
-        repo: "https://github.com/ryanoasis/nerd-fonts"
-        dest: "/tmp/nerd-fonts"
-        depth: 1
-        version: master
+  - name: Install required packages
+    apt:
+      name: "{{ required_packages }}"
+      state: present
 
-    - name: Installeer Nerd-Fonts (Hack, FiraCode, JetBrainsMono)
-      shell: |
-        cd /tmp/nerd-fonts
-        ./install.sh Hack
-        ./install.sh FiraCode
-        ./install.sh JetBrainsMono
-      args:
-        creates: "{{ user_home }}/.local/share/fonts/Hack"
+  # =========================
+  # 2. DIRECTORIES
+  # =========================
+  - name: Create user config directories
+    file:
+      path: "{{ item }}"
+      state: directory
+      owner: "{{ target_user }}"
+      group: "{{ target_user }}"
+      mode: "0755"
+    loop:
+      - "{{ user_home }}/.config/terminator"
+      - "{{ user_home }}/.config/lxqt"
+      - "{{ user_home }}/.config/lxqt/autostart"
+      - "{{ user_home }}/.config/openbox"
+      - "{{ user_home }}/.local/share/lxqt/themes"
+      - "{{ user_home }}/.local/share/icons"
 
-    - name: Update font cache
-      command: fc-cache -fv
-      become: yes
+  # =========================
+  # 3. NERD FONTS (SAFE)
+  # =========================
+  - name: Check Nerd Fonts installed
+    stat:
+      path: /usr/local/share/fonts/.nerd-fonts-installed
+    register: nerd_fonts
 
-    - name: Configureer Terminator met Nerd-Font
-      copy:
-        dest: "{{ user_home }}/.config/terminator/config"
-        content: |
-          [global_config]
-            title_transmit_bg_color = #2e3436
-            focus = system
-            suppress_multiple_term_dialog = True
-          [profiles]
-            [[default]]
-              use_system_font = False
-              font = Hack Nerd Font 14
-              cursor_shape = ibeam
-              scrollback_infinite = True
-              show_titlebar = True
-              background_type = transparent
-              background_darkness = 0.95
-              foreground_color = #ffffff
-              background_color = #1a1a2e
-              palette = #282a36:#ff5555:#50fa7b:#f1fa8c:#8be9fd:#ff79c6:#8be9fd:#f8f8f2
-              copy_on_selection = True
-          [layouts]
-            [[default]]
-              [[[child1]]]
-                type = Terminal
-                parent = window0
-                profile = default
-              [[[window0]]]
-                type = Window
-                parent = ""
-        owner: "{{ target_user }}"
-        group: "{{ target_user }}"
-        mode: "0644"
+  - name: Clone Nerd Fonts repo
+    git:
+      repo: https://github.com/ryanoasis/nerd-fonts
+      dest: /tmp/nerd-fonts
+      depth: 1
+    when: not nerd_fonts.stat.exists
 
-    # ==========================================
-    # 3. WINDOWS 10 LOOK & FEEL
-    # ==========================================
-    - name: Maak thema mappen aan
-    - name: Creëer thema directories
-      file:
-        path: "{{ item }}"
-        state: directory
-        mode: "0755"
-        owner: "{{ target_user }}"
-        group: "{{ target_user }}"
-      loop:
-        - "{{ user_home }}/.local/share/lxqt/themes"
-        - "{{ user_home }}/.local/share/icons"
-        - "{{ user_home }}/.config/lxqt"
-        - "{{ user_home }}/.config/openbox"
+  - name: Install Nerd Fonts
+    shell: ./install.sh {{ item }}
+    args:
+      chdir: /tmp/nerd-fonts
+    loop:
+      - Hack
+      - FiraCode
+      - JetBrainsMono
+    when: not nerd_fonts.stat.exists
 
-    - name: Download Win10 LXQt thema
-      get_url:
-        url: "https://store.kde.org/p/1319223/start/download?file_id=164855"
-        dest: "/tmp/Win10-theme.zip"
-        mode: "0644"
+  - name: Update font cache
+    command: fc-cache -fv
+    when: not nerd_fonts.stat.exists
 
-    - name: Download Win10 icons
-      get_url:
-        url: "https://www.pling.com/p/1319212/start/download?file_id=164853"
-        dest: "/tmp/Win10-icons.zip"
-        mode: "0644"
+  - name: Mark Nerd Fonts installed
+    file:
+      path: /usr/local/share/fonts/.nerd-fonts-installed
+      state: touch
+    when: not nerd_fonts.stat.exists
 
-    - name: Download Bismillah Openbox thema
-      get_url:
-        url: "https://www.pling.com/p/1319225/start/download?file_id=164854"
-        dest: "/tmp/Bismillah-openbox.zip"
-        mode: "0644"
-
-    - name: Pak Win10 thema uit
-      unarchive:
-        src: "/tmp/Win10-theme.zip"
-        dest: "{{ user_home }}/.local/share/lxqt/themes/"
-        owner: "{{ target_user }}"
-        group: "{{ target_user }}"
-        creates: "{{ user_home }}/.local/share/lxqt/themes/Win10"
-
-    - name: Pak Win10 icons uit
-      unarchive:
-        src: "/tmp/Win10-icons.zip"
-        dest: "{{ user_home }}/.local/share/icons/"
-        owner: "{{ target_user }}"
-        group: "{{ target_user }}"
-        creates: "{{ user_home }}/.local/share/icons/Win10"
-
-    - name: Pak Openbox thema uit
-      unarchive:
-        src: "/tmp/Bismillah-openbox.zip"
-        dest: "{{ user_home }}/.config/openbox/themes/"
-        owner: "{{ target_user }}"
-        group: "{{ target_user }}"
-        creates: "{{ user_home }}/.config/openbox/themes/Bismillah"
-
-    - name: Configureer LXQt sessie met Windows 10 look
-      copy:
-        dest: "{{ user_home }}/.config/lxqt/lxqt.conf"
-        content: |
-          [General]
-          theme=Win10
-          icon_theme=Win10
-          font="Noto Sans,10,-1,5,50,0,0,0,0,0"
-          monospace_font="Hack Nerd Font,12,-1,5,50,0,0,0,0,0"
-          
-          [Openbox]
-          theme=Bismillah
-          
-          [Qt]
-          style=fusion
-          
-          [Shortcuts]
-          show_application_launcher=Alt+F1
-          open_configuration_center=Alt+F2
+  # =========================
+  # 4. TERMINATOR
+  # =========================
+  - name: Configure Terminator
+    copy:
+      dest: "{{ user_home }}/.config/terminator/config"
       owner: "{{ target_user }}"
       group: "{{ target_user }}"
       mode: "0644"
+      content: |
+        [global_config]
+        focus = system
 
-    - name: Configureer Openbox
-      copy:
-        dest: "{{ user_home }}/.config/openbox/lxqt-rc.xml"
-        content: |
-          <?xml version="1.0" encoding="UTF-8"?>
-          <openbox_config xmlns="http://openbox.org/3.4/rc">
-            <theme>
-              <name>Bismillah</name>
-              <titleLayout>NLIMC</titleLayout>
-            </theme>
-            <margins>
-              <top>0</top>
-              <bottom>0</bottom>
-              <left>0</left>
-              <right>0</right>
-            </margins>
-            <applications>
-              <application name="*">
-                <decor>yes</decor>
-              </application>
-            </applications>
-          </openbox_config>
+        [profiles]
+        [[default]]
+        use_system_font = False
+        font = Hack Nerd Font 14
+        background_color = #1a1a2e
+        foreground_color = #ffffff
+
+  # =========================
+  # 5. LXQT CONFIG
+  # =========================
+  - name: LXQt config
+    copy:
+      dest: "{{ user_home }}/.config/lxqt/lxqt.conf"
       owner: "{{ target_user }}"
       group: "{{ target_user }}"
       mode: "0644"
+      content: |
+        [General]
+        theme=Clearlooks
+        icon_theme=Papirus
+        font=Noto Sans,12
 
-    # ==========================================
-    # 4. GROTE LETTERS INSTELLEN (LEESBRIL)
-    # ==========================================
-    - name: Stel grotere fonts in voor LXQt
-    - name: LXQt grote lettertype configuratie
-      blockinfile:
-        path: "{{ user_home }}/.config/lxqt/lxqt.conf"
-        block: |
-          [Qt]
-          style=fusion
-          force_font_antialias=1
-          
-          [General]
-          __userfile__=true
+  # =========================
+  # 6. OPENBOX BASIC CONFIG
+  # =========================
+  - name: Openbox config
+    copy:
+      dest: "{{ user_home }}/.config/openbox/rc.xml"
       owner: "{{ target_user }}"
       group: "{{ target_user }}"
+      mode: "0644"
+      content: |
+        <?xml version="1.0" encoding="UTF-8"?>
+        <openbox_config>
+          <theme>
+            <name>Clearlooks</name>
+          </theme>
+        </openbox_config>
 
-    - name: Configureer Firefox met grotere lettertypes
-      copy:
-        dest: "{{ user_home }}/.mozilla/firefox/user.js"
-        content: |
-          // Grote lettertypes voor leesbaarheid
-          user_pref("layout.css.devPixelsPerPx", "1.25");
-          user_pref("font.minimum-size.x-western", 14);
-          user_pref("font.size.variable.x-western", 16);
-          user_pref("font.size.fixed.x-western", 14);
-      owner: "{{ target_user }}"
-      group: "{{ target_user }}"
+  # =========================
+  # 7. PERFORMANCE
+  # =========================
+  - name: Enable ZRAM
+    systemd:
+      name: zramswap
+      enabled: yes
+      state: started
+    ignore_errors: yes
 
-    # ==========================================
-    # 5. BLUETOOTH & WIFI CONFIGURATIE
-    # ==========================================
-    - name: Zet bluetooth service aan
-      systemd:
-        name: bluetooth
-        enabled: yes
-        state: started
+  - name: Set CPU governor
+    command: cpupower frequency-set -g powersave
+    ignore_errors: yes
 
-    - name: Zet NetworkManager aan
-      systemd:
-        name: NetworkManager
-        enabled: yes
-        state: started
+  # =========================
+  # 8. NETWORK
+  # =========================
+  - name: Enable NetworkManager
+    systemd:
+      name: NetworkManager
+      enabled: yes
+      state: started
 
-    - name: Voeg gebruiker toe aan bluetooth groep
-      user:
-        name: "{{ target_user }}"
-        groups: bluetooth
-        append: yes
+  # =========================
+  # 9. BLUETOOTH
+  # =========================
+  - name: Enable Bluetooth
+    systemd:
+      name: bluetooth
+      enabled: yes
+      state: started
 
-    - name: Configureer bluetooth voor automatische verbinding
-      copy:
-        dest: /etc/bluetooth/main.conf
-        content: |
-          [General]
-          Name = %h
-          Class = 0x000100
-          DiscoverableTimeout = 0
-          PairableTimeout = 0
-          AutoConnectTimeout = 60
-          InitialAutoConnectPeriod = 60
-          JustWorksRepairing = always
-        mode: "0644"
+  - name: Add user to bluetooth group
+    user:
+      name: "{{ target_user }}"
+      groups: bluetooth
+      append: yes
 
-    - name: Start bluetooth service opnieuw
+  # =========================
+  # 10. FIREFOX UI SCALING
+  # =========================
+  - name: Firefox config dir
+    file:
+      path: /usr/lib/firefox/distribution
+      state: directory
+
+  - name: Firefox policies
+    copy:
+      dest: /usr/lib/firefox/distribution/policies.json
+      mode: "0644"
+      content: |
+        {
+          "policies": {
+            "Preferences": {
+              "layout.css.devPixelsPerPx": 1.25
+            }
+          }
+        }
+
+  # =========================
+  # CLEANUP
+  # =========================
+  - name: Cleanup temp files
+    file:
+      path: /tmp/nerd-fonts
+      state: absent
+
+  handlers:
+    - name: restart bluetooth
       systemd:
         name: bluetooth
         state: restarted
 
-    - name: Configureer NetworkManager voor WiFi (NL regio)
-      copy:
-        dest: /etc/NetworkManager/conf.d/99-wifi-regulatory.conf
-        content: |
-          [device]
-          wifi.scan-rand-mac-address=no
-          
-          [wifi]
-          regulatory-domain=NL
-        mode: "0644"
-
-    - name: Herstart NetworkManager
+    - name: restart NetworkManager
       systemd:
         name: NetworkManager
         state: restarted
-
-    # ==========================================
-    # 6. LIBREOFFICE OPTIMALISATIE
-    # ==========================================
-    - name: Upgrade LibreOffice configuratie voor sneller starten
-      copy:
-        dest: "{{ user_home }}/.config/libreoffice/4/user/config/javasettings_Linux_X86_64.xml"
-        content: |
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE javasettings SYSTEM "javasettings.dtd">
-          <javasettings>
-            <enabled xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
-          </javasettings>
-        mode: "0644"
-      owner: "{{ target_user }}"
-      group: "{{ target_user }}"
-
-    - name: Stel groter lettertype in LibreOffice
-      copy:
-        dest: "{{ user_home }}/.config/libreoffice/4/user/registrymodifications.xcu"
-        content: |
-          <?xml version="1.0" encoding="UTF-8"?>
-          <oor:items xmlns:oor="http://openoffice.org/2001/registry" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-            <item oor:path="/org.openoffice.Office.Common/View"><prop oor:name="SymbolSet" oor:op="fuse"><value>one</value></prop></item>
-            <item oor:path="/org.openoffice.Office.UI/UserInterface"><prop oor:name="DialogScale" oor:op="fuse"><value xsi:nil="true"/></prop></item>
-          </oor:items>
-        mode: "0644"
-      owner: "{{ target_user }}"
-      group: "{{ target_user }}"
-
-    - name: Creëer LibreOffice gebruikersprofiel directory
-      file:
-        path: "{{ user_home }}/.config/libreoffice/4/user"
-        state: directory
-        owner: "{{ target_user }}"
-        group: "{{ target_user }}"
-        mode: "0755"
-
-    # ==========================================
-    # 7. OPSTART & SESSIE CONFIGURATIE
-    # ==========================================
-    - name: Voeg autostart entries toe voor LXQt
-      copy:
-        dest: "{{ user_home }}/.config/lxqt/autostart/network-manager.desktop"
-        content: |
-          [Desktop Entry]
-          Type=Application
-          Name=Network Manager
-          Exec=nm-applet
-          OnlyShowIn=LXQt
-      owner: "{{ target_user }}"
-      group: "{{ target_user }}"
-      mode: "0755"
-
-    - name: Voeg bluetooth audio support toe
-      copy:
-        dest: "{{ user_home }}/.config/lxqt/autostart/blueman.desktop"
-        content: |
-          [Desktop Entry]
-          Type=Application
-          Name=Blueman Applet
-          Exec=blueman-applet
-          OnlyShowIn=LXQt
-      owner: "{{ target_user }}"
-      group: "{{ target_user }}"
-      mode: "0755"
-
-    # ==========================================
-    # 8. OPMAKEN
-    # ==========================================
-    - name: Verwijder tijdelijke bestanden
-      file:
-        path: "{{ item }}"
-        state: absent
-      loop:
-        - "/tmp/nerd-fonts"
-        - "/tmp/Win10-theme.zip"
-        - "/tmp/Win10-icons.zip"
-        - "/tmp/Bismillah-openbox.zip"
-
-    - name: Herstart het systeem om alle veranderingen toe te passen
-      reboot:
-        reboot_timeout: 300
-        msg: "Herstart nodig voor voltooien Debian 13 LXQt configuratie - Ansible playbook"
