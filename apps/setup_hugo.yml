@@ -51,7 +51,7 @@
       command: "hugo new posts/{{ first_post_filename }}"
       args:
         chdir: "{{ project_dir }}"
-      creates: "{{ project_dir }}/content/posts/{{ first_post_filename }}"
+        creates: "{{ project_dir }}/content/posts/{{ first_post_filename }}"
 
     - name: Statusoverzicht
       debug:
