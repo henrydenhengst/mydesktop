@@ -1,5 +1,5 @@
 ---
-- name: Debian 13 LXQt light desktop voor oudere computers
+- name: Debian 13 LXQt Windows 10 lightweight setup
   hosts: all
   become: yes
 
@@ -7,70 +7,64 @@
     target_user: "{{ ansible_user }}"
     user_home: "/home/{{ target_user }}"
 
-    required_packages:
-      # LXQt desktop
+    packages:
+      # Core desktop (light)
       - lxqt
-      - lxqt-core
-      - lxqt-config
       - lxqt-panel
       - lxqt-session
-      - lxqt-runner
+      - lxqt-config
       - pcmanfm-qt
       - qterminal
       - openbox
-      - obconf-qt
 
-      # Apps
+      # Windows-like UX layer (light tools only)
+      - rofi
+      - picom
+      - dunst
+      - xdotool
+
+      # Network / audio
+      - network-manager
+      - network-manager-gnome
+      - pulseaudio
+      - pavucontrol
+      - pulseaudio-module-bluetooth
+      - blueman
+      - bluez
+
+      # Fonts (no heavy font stacks)
+      - fonts-noto
+      - fonts-liberation
+      - fontconfig
+
+      # Utilities
+      - curl
+      - wget
+      - git
+
+      # Apps (keep minimal)
       - firefox-esr
       - libreoffice
       - libreoffice-l10n-nl
-      - libreoffice-help-nl
       - terminator
-
-      # Audio / Bluetooth
-      - bluez
-      - blueman
-      - pulseaudio
-      - pulseaudio-module-bluetooth
-      - pavucontrol
-
-      # Network
-      - network-manager
-      - network-manager-gnome
-      - wpasupplicant
-      - wireless-tools
-
-      # Fonts & tools
-      - fonts-dejavu
-      - fonts-liberation
-      - fonts-noto
-      - fontconfig
-      - git
-      - curl
-      - wget
-      - unzip
-      - zip
-
-      # Performance
-      - zram-tools
-      - cpupower
 
   tasks:
 
   # =========================
-  # 1. SYSTEM UPDATE
+  # SYSTEM BASE
   # =========================
   - name: Update apt cache
     apt:
       update_cache: yes
 
-  - name: Install required packages
+  - name: Install packages
     apt:
-      name: "{{ required_packages }}"
+      name: "{{ packages }}"
       state: present
+      install_recommends: no   # 🔥 belangrijk: minder bloat
 
   # =========================
-  # 2. DIRECTORIES
+  # DIRECTORIES
   # =========================
   - name: Create user config directories
     file:
@@ -80,87 +74,71 @@
       group: "{{ target_user }}"
       mode: "0755"
     loop:
-      - "{{ user_home }}/.config/terminator"
       - "{{ user_home }}/.config/lxqt"
-      - "{{ user_home }}/.config/lxqt/autostart"
       - "{{ user_home }}/.config/openbox"
-      - "{{ user_home }}/.local/share/lxqt/themes"
-      - "{{ user_home }}/.local/share/icons"
+      - "{{ user_home }}/.config/rofi"
+      - "{{ user_home }}/.config/picom"
+      - "{{ user_home }}/.config/dunst"
+      - "{{ user_home }}/.config/lxqt/autostart"
+      - "{{ user_home }}/.local/bin"
 
   # =========================
-  # 3. NERD FONTS (SAFE)
+  # LXQT PANEL (Windows style taskbar)
   # =========================
-  - name: Check Nerd Fonts installed
-    stat:
-      path: /usr/local/share/fonts/.nerd-fonts-installed
-    register: nerd_fonts
-
-  - name: Clone Nerd Fonts repo
-    git:
-      repo: https://github.com/ryanoasis/nerd-fonts
-      dest: /tmp/nerd-fonts
-      depth: 1
-    when: not nerd_fonts.stat.exists
-
-  - name: Install Nerd Fonts
-    shell: ./install.sh {{ item }}
-    args:
-      chdir: /tmp/nerd-fonts
-    loop:
-      - Hack
-      - FiraCode
-      - JetBrainsMono
-    when: not nerd_fonts.stat.exists
-
-  - name: Update font cache
-    command: fc-cache -fv
-    when: not nerd_fonts.stat.exists
-
-  - name: Mark Nerd Fonts installed
-    file:
-      path: /usr/local/share/fonts/.nerd-fonts-installed
-      state: touch
-    when: not nerd_fonts.stat.exists
-
-  # =========================
-  # 4. TERMINATOR
-  # =========================
-  - name: Configure Terminator
+  - name: LXQt panel config (Windows-like)
     copy:
-      dest: "{{ user_home }}/.config/terminator/config"
-      owner: "{{ target_user }}"
-      group: "{{ target_user }}"
-      mode: "0644"
-      content: |
-        [global_config]
-        focus = system
-
-        [profiles]
-        [[default]]
-        use_system_font = False
-        font = Hack Nerd Font 14
-        background_color = #1a1a2e
-        foreground_color = #ffffff
-
-  # =========================
-  # 5. LXQT CONFIG
-  # =========================
-  - name: LXQt config
-    copy:
-      dest: "{{ user_home }}/.config/lxqt/lxqt.conf"
+      dest: "{{ user_home }}/.config/lxqt/panel.conf"
       owner: "{{ target_user }}"
       group: "{{ target_user }}"
       mode: "0644"
       content: |
         [General]
-        theme=Clearlooks
-        icon_theme=Papirus
-        font=Noto Sans,12
+        theme=
+
+        [panel]
+        position=Bottom
+        size=36
+        alignment=Left
+
+        plugins=mainmenu, taskbar, tray, clock
+
+        [taskbar]
+        grouping=true
+        show_only_current_desktop=false
 
   # =========================
-  # 6. OPENBOX BASIC CONFIG
+  # ROFI (Windows Start Menu)
   # =========================
-  - name: Openbox config
+  - name: Rofi start menu config
+    copy:
+      dest: "{{ user_home }}/.config/rofi/config.rasi"
+      owner: "{{ target_user }}"
+      group: "{{ target_user }}"
+      mode: "0644"
+      content: |
+        configuration {
+          show-icons: true;
+          drun-display-format: "{name}";
+        }
+
+        window {
+          width: 38%;
+        }
+
+  - name: Start menu script (Super key)
+    copy:
+      dest: "{{ user_home }}/.local/bin/startmenu.sh"
+      owner: "{{ target_user }}"
+      group: "{{ target_user }}"
+      mode: "0755"
+      content: |
+        #!/bin/bash
+        rofi -show drun
+
+  # =========================
+  # OPENBOX (stable + no duplicates)
+  # =========================
+  - name: Openbox config (single source of truth)
     copy:
       dest: "{{ user_home }}/.config/openbox/rc.xml"
       owner: "{{ target_user }}"
@@ -168,28 +146,109 @@
       mode: "0644"
       content: |
         <?xml version="1.0" encoding="UTF-8"?>
-        <openbox_config>
-          <theme>
-            <name>Clearlooks</name>
-          </theme>
+        <openbox_config xmlns="http://openbox.org/3.4/rc">
+
+          <keyboard>
+            <keybind key="W">
+              <action name="Execute">
+                <command>{{ user_home }}/.local/bin/startmenu.sh</command>
+              </action>
+            </keybind>
+          </keyboard>
+
+          <focus>
+            <followMouse>no</followMouse>
+          </focus>
+
+          <mouse>
+            <dragThreshold>3</dragThreshold>
+          </mouse>
+
+          <applications>
+            <application class="*">
+              <decor>yes</decor>
+            </application>
+          </applications>
+
         </openbox_config>
 
   # =========================
-  # 7. PERFORMANCE
+  # PICOM (minimal Windows feel)
   # =========================
-  - name: Enable ZRAM
-    systemd:
-      name: zramswap
-      enabled: yes
-      state: started
-    ignore_errors: yes
-
-  - name: Set CPU governor
-    command: cpupower frequency-set -g powersave
-    ignore_errors: yes
+  - name: Picom config (light shadows only)
+    copy:
+      dest: "{{ user_home }}/.config/picom/picom.conf"
+      owner: "{{ target_user }}"
+      group: "{{ target_user }}"
+      mode: "0644"
+      content: |
+        backend = "xrender";
+        shadow = true;
+        shadow-radius = 6;
+        shadow-opacity = 0.25;
+        fading = true;
+        inactive-opacity = 0.95;
+        blur-method = "none";   # 🔥 no blur = faster
 
   # =========================
-  # 8. NETWORK
+  # DUNST (Windows-like notifications)
+  # =========================
+  - name: Dunst notification style
+    copy:
+      dest: "{{ user_home }}/.config/dunst/dunstrc"
+      owner: "{{ target_user }}"
+      group: "{{ target_user }}"
+      mode: "0644"
+      content: |
+        [global]
+        font = Noto Sans 10
+        frame_color = "#0078D7"
+        separator_height = 2
+
+  # =========================
+  # AUTOSTART (clean, minimal)
+  # =========================
+  - name: Autostart picom
+    copy:
+      dest: "{{ user_home }}/.config/lxqt/autostart/picom.desktop"
+      content: |
+        [Desktop Entry]
+        Type=Application
+        Name=Picom
+        Exec=picom
+        OnlyShowIn=LXQt
+      owner: "{{ target_user }}"
+      group: "{{ target_user }}"
+      mode: "0755"
+
+  - name: Autostart network
+    copy:
+      dest: "{{ user_home }}/.config/lxqt/autostart/nm-applet.desktop"
+      content: |
+        [Desktop Entry]
+        Type=Application
+        Name=Network
+        Exec=nm-applet
+        OnlyShowIn=LXQt
+      owner: "{{ target_user }}"
+      group: "{{ target_user }}"
+      mode: "0755"
+
+  - name: Autostart bluetooth
+    copy:
+      dest: "{{ user_home }}/.config/lxqt/autostart/blueman.desktop"
+      content: |
+        [Desktop Entry]
+        Type=Application
+        Name=Bluetooth
+        Exec=blueman-applet
+        OnlyShowIn=LXQt
+      owner: "{{ target_user }}"
+      group: "{{ target_user }}"
+      mode: "0755"
+
+  # =========================
+  # SERVICES (minimal overhead)
   # =========================
   - name: Enable NetworkManager
     systemd:
@@ -197,33 +256,29 @@
       enabled: yes
       state: started
 
-  # =========================
-  # 9. BLUETOOTH
-  # =========================
   - name: Enable Bluetooth
     systemd:
       name: bluetooth
       enabled: yes
       state: started
 
-  - name: Add user to bluetooth group
+  - name: Add bluetooth permissions
     user:
       name: "{{ target_user }}"
       groups: bluetooth
       append: yes
 
   # =========================
-  # 10. FIREFOX UI SCALING
+  # FIREFOX (UI scaling only)
   # =========================
-  - name: Firefox config dir
+  - name: Firefox UI scaling
     file:
       path: /usr/lib/firefox/distribution
       state: directory
 
-  - name: Firefox policies
+  - name: Firefox DPI config
     copy:
       dest: /usr/lib/firefox/distribution/policies.json
-      mode: "0644"
       content: |
         {
           "policies": {
@@ -232,22 +287,3 @@
             }
           }
         }
-
-  # =========================
-  # CLEANUP
-  # =========================
-  - name: Cleanup temp files
-    file:
-      path: /tmp/nerd-fonts
-      state: absent
-
-  handlers:
-    - name: restart bluetooth
-      systemd:
-        name: bluetooth
-        state: restarted
-
-    - name: restart NetworkManager
-      systemd:
-        name: NetworkManager
-        state: restarted
