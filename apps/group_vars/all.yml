@@ -1,6 +1,6 @@
 ---
 # ==============================================================================
-# CENTRALE CONFIGURATIE (Ansible > Hugo > PHP)
+# CENTRALE CONFIGURATIE: Universal Theme Edition
 # ==============================================================================
 
 # Systeem & Installatie
@@ -8,28 +8,43 @@ hugo_version: "0.124.1"
 hugo_binary_url: "https://github.com/gohugoio/hugo/releases/download/v{{ hugo_version }}/hugo_extended_{{ hugo_version }}_linux-amd64.tar.gz"
 project_dir: "~/mijn_hugo_site"
 
-# Rollen & Identiteit (Maker vs. Eigenaar)
-site_owner: "Naam van de Eigenaar"       # Persoon/bedrijf van wie de site is
-site_owner_email: "eigenaar@domein.nl"   # Ontvanger van de contactformulieren
-site_maker: "Henry den Hengst"           # De technisch bouwer (Jij)
+# Rollen & Identiteit
+site_owner: "Naam van de Eigenaar"
+site_owner_email: "eigenaar@domein.nl"
+site_maker: "Henry den Hengst"
 
 # Site Metadata
-site_title: "Mijn Ansible Hugo Site"
+site_title: "Mijn Universele Business Site"
 base_url: "https://www.jouwdomein.nl"
 language_code: "nl-nl"
 
-# Licentie & Copyleft
+# Licentie & Rechten (De Henry-verdeling)
+content_copyright: "© {{ site_owner }}. Alle teksten en afbeeldingen zijn auteursrechtelijk beschermd."
+tech_license_text: "De website-structuur en code zijn vrij te gebruiken onder de Copyleft-voorwaarden."
 license_type: "Copyleft"
-license_text: "Vrij om te delen en aan te passen onder dezelfde voorwaarden."
-license_url: "https://creativecommons.org/licenses/by-sa/4.0/"
 
-# Thema & Design
-current_theme_name: "papermod"
-current_theme_repo: "https://github.com/adityatelange/hugo-PaperMod.git"
-theme_params:
-  description: "Website ontwikkeld door Henry den Hengst via Ansible"
-  show_share_buttons: true
-  show_reading_time: true
+# Thema & Design (Nu Universal!)
+current_theme_name: "hugo-universal-theme"
+current_theme_repo: "https://github.com/devcows/hugo-universal-theme.git"
+
+# Specifieke Universal Parameters
+# Deze variabelen worden in de nieuwe hugo.toml.j2 gebruikt
+universal_settings:
+  style: "default"                  # Keuze uit: default, blue, green, pink, purple, red, sea, violet
+  address: |
+    Straatnaam 123
+    2011 AA Haarlem
+    Nederland
+  phone: "+31 23 123 4567"
+  latitude: "52.3874"               # Voor Google Maps (optioneel)
+  longitude: "4.6462"
+  enable_google_maps: false
+
+# Homepage Sectie Schakelaars (Zwart-wit: true of false)
+features_enabled: true
+testimonials_enabled: true
+clients_enabled: true
+recent_posts_enabled: true
 
 # Formulier & Privacy
 contact_endpoint: "/mail.php"
@@ -38,17 +53,15 @@ privacy_vermelding: "Uw gegevens worden verwerkt volgens het privacybeleid van d
 # Navigatie Menu
 main_menu:
   - { name: "Home", url: "/", weight: 1 }
-  - { name: "Archief", url: "/archives", weight: 2 }
-  - { name: "Tags", url: "/tags", weight: 3 }
-  - { name: "Over mij", url: "/about", weight: 4 }
-  - { name: "Contact", url: "/contact", weight: 5 }
+  - { name: "Blog", url: "/blog", weight: 2 }
+  - { name: "Contact", url: "/contact", weight: 3 }
 
-# Social Media & Footer (Jouw kanalen als maker)
+# Social Media & Footer
 social_links:
   - { platform: "github", url: "https://github.com/henrydenhengst" }
   - { platform: "facebook", url: "https://www.facebook.com/share/g/1CRuMqw1Wn/" }
 
-footer_text: "Technisch gerealiseerd door {{ site_maker }} met Ansible"
+footer_text: "{{ content_copyright }} | {{ tech_license_text }} | Gerealiseerd door {{ site_maker }}"
 
 # Content Instellingen
-first_post_filename: "eerste-bericht.md"
+first_post_filename: "welkom.md"
