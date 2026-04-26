@@ -1,0 +1,50 @@
+baseURL = '{{ base_url }}'
+languageCode = '{{ language_code }}'
+title = '{{ site_title }}'
+theme = '{{ current_theme_name }}'
+
+# De eigenaar bezit de inhoud, de techniek is vrij
+copyright = '{{ content_copyright }}'
+
+[params]
+    # Identiteit & Rollen
+    description = '{{ universal_settings.description | default(site_title) }}'
+    author = '{{ site_owner }}'
+    siteMaker = '{{ site_maker }}'
+    
+    # Universal Specifieke Instellingen
+    style = "{{ universal_settings.style }}"
+    address = """{{ universal_settings.address }}"""
+    phone = "{{ universal_settings.phone }}"
+    email = "{{ site_owner_email }}"
+    
+    # Footer Tekst (De Henry-verdeling: Copyright + Copyleft)
+    footer_copyright = "{{ footer_text }}"
+
+    # Navigatie instellingen
+    logo = "img/logo.png"
+    
+    # Schakelaars voor de Homepage (Data-gestuurd)
+    enableFeatures = {{ features_enabled | lower }}
+    enableTestimonials = {{ testimonials_enabled | lower }}
+    enableClients = {{ clients_enabled | lower }}
+    enableRecentPosts = {{ recent_posts_enabled | lower }}
+
+    # Formulier koppeling
+    contactEndpoint = "{{ contact_endpoint }}"
+    privacyText = "{{ privacy_vermelding }}"
+
+    # Social Icons (GitHub/Facebook van de Maker)
+    {% for link in social_links %}
+    [[params.socialIcons]]
+        name = "{{ link.platform }}"
+        url = "{{ link.url }}"
+    {% endfor %}
+
+# Hoofdmenu
+{% for item in main_menu %}
+[[menu.main]]
+    name = "{{ item.name }}"
+    url = "{{ item.url }}"
+    weight = {{ item.weight }}
+{% endfor %}
