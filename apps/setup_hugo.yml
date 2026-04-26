@@ -1,5 +1,5 @@
 ---
-- name: Setup Hugo site via Centralized Config (Henry Edition)
+- name: Setup Hugo site via Centralized Config (Universal Edition)
   hosts: localhost
   connection: local
 
@@ -24,9 +24,10 @@
         path: "{{ item }}"
         state: directory
       loop:
-        - "templates"
+        - "templates/themes"
         - "{{ project_dir }}/static"
         - "{{ project_dir }}/content/posts"
+        - "{{ project_dir }}/data"
 
     - name: Installeer het gekozen thema via Git
       git:
@@ -35,9 +36,15 @@
         version: master
         depth: 1
 
-    - name: Genereer de hugo.toml vanuit de Jinja2 template
+    - name: Kopieer de standaard data van Universal naar het project
+      command: "cp -rn {{ project_dir }}/themes/{{ current_theme_name }}/exampleSite/data/ {{ project_dir }}/data/"
+      args:
+        creates: "{{ project_dir }}/data/features"
+      when: current_theme_name == "hugo-universal-theme"
+
+    - name: Genereer de hugo.toml vanuit de thema-specifieke template
       template:
-        src: templates/hugo.toml.j2
+        src: "templates/themes/{{ current_theme_name }}.toml.j2"
         dest: "{{ project_dir }}/hugo.toml"
         mode: '0644'
 
@@ -51,14 +58,15 @@
       command: "hugo new posts/{{ first_post_filename }}"
       args:
         chdir: "{{ project_dir }}"
-        creates: "{{ project_dir }}/content/posts/{{ first_post_filename }}"
+      creates: "{{ project_dir }}/content/posts/{{ first_post_filename }}"
 
     - name: Statusoverzicht
       debug:
         msg: 
           - "--- INSTALLATIE VOLTOOID ---"
+          - "Thema: {{ current_theme_name }}"
           - "Maker: {{ site_maker }}"
           - "Eigenaar: {{ site_owner }}"
           - "Project locatie: {{ project_dir }}"
-          - "PHP Mailer geconfigureerd voor: {{ site_owner_email }}"
-          - "Commando om te starten: cd {{ project_dir }} && hugo server -D"
+          - "PHP Mailer: {{ project_dir }}/static/mail.php"
+          - "Zet de server aan: cd {{ project_dir }} && hugo server -D"
