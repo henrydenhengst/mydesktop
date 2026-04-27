@@ -16,18 +16,17 @@
       set_fact:
         is_nvidia: "{{ nvidia_check.rc == 0 }}"
         is_intel: "{{ 'Intel' in ansible_facts['processor'][0] }}"
-        # Verhoogde precisie voor zram calculatie
         zram_size_mb: "{{ (ansible_facts['memtotal_mb'] * 0.6) | round | int if ansible_facts['memtotal_mb'] < 8192 else 4096 }}"
 
     # --- 2. XBPS BOOTSTRAP (Cruciaal voor ISO 2025) ---
-    - name: Update XBPS en certificaten (voorkomt SSL/versie fouten)
+    - name: Update XBPS en certificaten
       shell: |
         xbps-install -Sy ca-certificates
         xbps-install -uy xbps
       changed_when: false
 
     # --- 3. DE "SILENT BOOT" & KERNEL TWEAKS ---
-    - name: GRUB configureren voor stilte en performance
+    - name: GRUB configureren
       lineinfile:
         path: /etc/default/grub
         regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
@@ -38,7 +37,7 @@
       command: update-grub
       when: grub_config.changed
 
-    # --- 4. DE INSTALLATIE (Gebruik van de officiële module) ---
+    # --- 4. DE INSTALLATIE (Nu 100% non-interactief) ---
     - name: Voeg non-free repository toe
       community.general.xbps:
         name: void-repo-nonfree
@@ -47,6 +46,8 @@
     - name: Installatie van de volledige stack
       community.general.xbps:
         upgrade: yes
+        # De vlaggen hieronder zorgen dat xbps niet stopt voor configuratie-vragen
+        extra_args: -y -f 
         name:
           - lxqt
           - lightdm
@@ -65,6 +66,7 @@
           - firefox
           - libreoffice
           - git
+          - ansible
           - openssh
           - ufw
           - htop
@@ -81,7 +83,7 @@
           - "{{ 'intel-ucode' if is_intel else 'linux-firmware-amd' }}"
         state: present
 
-    # --- 5. DE DYNAMISCHE ZRAM MOTOR (Runit correctie) ---
+    # --- 5. DE DYNAMISCHE ZRAM MOTOR ---
     - name: Create zRam Setup Script
       copy:
         dest: /usr/local/bin/void-zram-setup
@@ -89,26 +91,27 @@
         content: |
           #!/bin/sh
           modprobe zram
-          # Controleer of zram0 al bestaat om fouten te voorkomen
           if ! zramctl /dev/zram0 >/dev/null 2>&1; then
             zramctl --find --size {{ zram_size_mb }}M --algorithm zstd
             mkswap /dev/zram0
             swapon /dev/zram0 -p 100
           fi
     
-    - name: Create zRam Runit Service (met exec pause)
-      copy:
-        dest: /etc/sv/zram/run
-        mode: '0755'
-        content: |
-          #!/bin/sh
-          /usr/local/bin/void-zram-setup
-          exec pause  # Houdt de service 'omhoog' in Runit zonder loop
-      before:
-        - file: { path: /etc/sv/zram, state: directory }
+    - name: Create zRam Runit Service
+      block:
+        - name: Zram sv directory
+          file: { path: /etc/sv/zram, state: directory }
+        - name: Zram run script
+          copy:
+            dest: /etc/sv/zram/run
+            mode: '0755'
+            content: |
+              #!/bin/sh
+              /usr/local/bin/void-zram-setup
+              exec pause
 
     # --- 6. RUNIT SERVICES ACTIVATIE ---
-    - name: Activeer services (D-Bus eerst!)
+    - name: Activeer services
       file:
         src: "/etc/sv/{{ item }}"
         dest: "/var/service/{{ item }}"
@@ -126,7 +129,7 @@
 
     - name: Gebruiker toevoegen aan hardware groepen
       user:
-        name: "{{ ansible_env.USER if ansible_env.USER != 'root' else 'jouw_gebruikersnaam' }}"
+        name: "{{ ansible_env.USER if ansible_env.USER != 'root' else 'henry' }}"
         groups: video,lp,scanner,bluetooth,audio,input,wheel
         append: yes
 
@@ -136,6 +139,6 @@
       become: no
 
     # --- 8. MICROCODE & KERNEL REFRESH ---
-    - name: Reconfigureer kernel voor microcode/drivers
+    - name: Reconfigureer kernel
       command: xbps-reconfigure -f linux{{ ansible_facts['kernel'] | regex_replace('\\..*', '') }}
       changed_when: false
