@@ -1,57 +1,98 @@
 ---
-- name: post install void (Repair Café Edition)
+- name: post install void (Repair Café Final Architect)
   hosts: localhost
   become: yes
   gather_facts: yes
   
   vars:
     real_user: "{{ ansible_env.SUDO_USER | default(ansible_user_id) }}"
+    wanted_grub_flags:
+      - zswap.enabled=0
+      - quiet
+      - splash
+      - loglevel=3
+      - rd.udev.log_priority=3
+      - vt.global_cursor_default=0
+
+  handlers:
+    - name: update grub
+      command: update-grub
 
   tasks:
-    # --- 1. ROBUUSTE HARDWARE SCAN ---
-    - name: Ensure pciutils aanwezig (voor betrouwbare GPU detectie)
+    # --- 1. OMGEVINGS SCAN ---
+    - name: Get user home directory via getent
+      getent:
+        database: passwd
+        key: "{{ real_user }}"
+
+    - name: Set user facts
+      set_fact:
+        user_home: "{{ getent_passwd[real_user][5] }}" # Correcte index voor home
+        zram_size_mb: "{{ (ansible_facts['memtotal_mb'] * 0.6) | round | int if ansible_facts['memtotal_mb'] < 8192 else 4096 }}"
+
+    - name: Ensure pciutils aanwezig (vóór detectie)
       community.general.xbps:
         name: pciutils
         state: present
 
-    - name: Detect NVIDIA GPU
+    - name: Detect GPU
       command: lspci
       register: lspci_output
       changed_when: false
 
-    - name: Stel hardware facts in
+    - name: Stel GPU fact in
       set_fact:
-        is_nvidia: "{{ 'NVIDIA' in lspci_output.stdout }}"
-        is_intel: "{{ ansible_facts['processor_vendor'] == 'GenuineIntel' }}"
-        zram_size_mb: "{{ (ansible_facts['memtotal_mb'] * 0.6) | round | int if ansible_facts['memtotal_mb'] < 8192 else 4096 }}"
+        is_nvidia: "{{ lspci_output.stdout is search('VGA.*NVIDIA') }}"
 
-    # --- 2. XBPS BOOTSTRAP (Idempotent & veilig) ---
-    - name: Update XBPS en certificaten
-      command: xbps-install -Syu -y
-      register: xbps_update
-      changed_when: "'updating' in xbps_update.stdout"
-
-    # --- 3. GRUB TWEAKS (Zonder overschrijven bestaande flags) ---
-    - name: Voeg kernel flags toe aan GRUB
-      replace:
+    # --- 2. GRUB: IDEMPOTENT & VEILIG ---
+    - name: Check of GRUB config bestaat
+      stat:
         path: /etc/default/grub
-        regexp: 'GRUB_CMDLINE_LINUX_DEFAULT="(.*)"'
-        replace: 'GRUB_CMDLINE_LINUX_DEFAULT="\1 zswap.enabled=0 quiet splash loglevel=3 rd.udev.log_priority=3 vt.global_cursor_default=0"'
+      register: grub_stat
+
+    - name: Lees huidige GRUB config
+      slurp:
+        path: /etc/default/grub
+      register: grub_file
+      when: grub_stat.stat.exists
+
+    - name: Extraheer huidige GRUB flags (zonder character-grab bug)
+      set_fact:
+        current_flags: >-
+          {{
+            (
+              (grub_file.content | b64decode)
+              | regex_search('GRUB_CMDLINE_LINUX_DEFAULT="(.*)"', '\1')
+              | default('')
+            ).split()
+          }}
+      when: grub_stat.stat.exists
+
+    - name: Schrijf GRUB config (merge flags)
+      lineinfile:
+        path: /etc/default/grub
+        regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
+        line: 'GRUB_CMDLINE_LINUX_DEFAULT="{{ (current_flags + wanted_grub_flags) | unique | join(" ") }}"'
       register: grub_config
+      when: grub_stat.stat.exists
+      notify: update grub
 
-    - name: Update GRUB
-      command: update-grub
-      when: grub_config.changed
+    # --- 3. SYSTEM UPGRADE ---
+    - name: Systeem synchroniseren en upgraden
+      community.general.xbps:
+        update_cache: yes
+        upgrade: yes
+      register: xbps_upgrade
 
-    # --- 4. INSTALLATIE (Non-interactief) ---
+    # --- 4. SOFTWARE INSTALLATIE ---
     - name: Voeg non-free repository toe
       community.general.xbps:
         name: void-repo-nonfree
         update_cache: yes
 
-    - name: Installatie van de volledige stack
+    - name: Installatie software stack (zonder dubbele upgrade)
       community.general.xbps:
-        upgrade: yes
+        upgrade: no
         extra_args: -y -f 
         name:
           - lxqt
@@ -70,24 +111,17 @@
           - thermald
           - firefox
           - libreoffice
-          - git
-          - ansible
-          - openssh
-          - ufw
           - htop
           - btop
           - bat
-          - jq
-          - ripgrep
-          - fd
           - usbutils
           - curl
           - wget
           - "{{ 'nvidia' if is_nvidia else 'mesa-dri' }}"
-          - "{{ 'intel-ucode' if is_intel else 'linux-firmware-amd' }}"
+          - "{{ 'intel-ucode' if ansible_facts['processor_vendor'] == 'GenuineIntel' else 'linux-firmware-amd' }}"
         state: present
 
-    # --- 5. DYNAMISCHE ZRAM (Robuuste Bash-check) ---
+    # --- 5. ZRAM: ROBUUSTE MULTI-DEVICE CLEANUP ---
     - name: Create zRam Setup Script
       copy:
         dest: /usr/local/bin/void-zram-setup
@@ -95,13 +129,20 @@
         content: |
           #!/bin/sh
           modprobe zram
-          if ! swapon --show | grep -q zram0; then
-            # Check of we hot_add nodig hebben
-            [ -e /sys/class/zram-control/hot_add ] && echo 1 > /sys/class/zram-control/hot_add
-            zramctl /dev/zram0 --size {{ zram_size_mb }}M --algorithm zstd
-            mkswap /dev/zram0
-            swapon /dev/zram0 -p 100
-          fi
+          
+          # Reset ALLE bestaande zram devices om vervuiling te voorkomen
+          for dev in /dev/zram*; do
+            [ -b "$dev" ] || continue
+            swapoff "$dev" 2>/dev/null || true
+            zramctl --reset "$dev" 2>/dev/null || true
+          done
+          
+          # Forceer aanmaak van device 0
+          echo 1 > /sys/class/zram-control/hot_add 2>/dev/null || true
+          
+          zramctl /dev/zram0 --size {{ zram_size_mb }}M --algorithm zstd
+          mkswap /dev/zram0
+          swapon /dev/zram0 -p 100
     
     - name: Create zRam Runit Service
       block:
@@ -116,33 +157,36 @@
               /usr/local/bin/void-zram-setup
               exec pause
 
-    # --- 6. RUNIT SERVICES ACTIVATIE (Met stat check) ---
-    - name: Activeer services (indien aanwezig)
-      block:
-        - name: Check of service bestaat
-          stat:
-            path: "/etc/sv/{{ item }}"
-          register: svc
-          loop: [dbus, lightdm, sshd, ufw, zram, tlp, thermald]
+    # --- 6. RUNIT SERVICES ---
+    - name: Check of services bestaan
+      stat:
+        path: "/etc/sv/{{ item }}"
+      register: svc_results
+      loop: [dbus, lightdm, sshd, ufw, zram, tlp, thermald]
 
-        - name: Activeer service via symlink
-          file:
-            src: "/etc/sv/{{ item.item }}"
-            dest: "/var/service/{{ item.item }}"
-            state: link
-          when: item.stat.exists
-          loop: "{{ svc.results }}"
+    - name: Activeer services
+      file:
+        src: "/etc/sv/{{ item.item }}"
+        dest: "/var/service/{{ item.item }}"
+        state: link
+        force: no
+      when: item.stat.exists
+      loop: "{{ svc_results.results }}"
 
-    # --- 7. HARDENING & USER CONFIG (Met .ssh fix) ---
-    - name: UFW Basis Configuratie
-      command: "{{ item }}"
-      loop:
-        - "ufw default deny incoming"
-        - "ufw allow 22/tcp"
-        - "ufw --force enable"
-      changed_when: false
+    # --- 7. UFW & USER CONFIG ---
+    - name: UFW setup (native)
+      community.general.ufw:
+        state: enabled
+        policy: deny
+        direction: incoming
 
-    - name: Gebruiker toevoegen aan hardware groepen
+    - name: UFW allow SSH
+      community.general.ufw:
+        rule: allow
+        port: '22'
+        proto: tcp
+
+    - name: Gebruiker groepen
       user:
         name: "{{ real_user }}"
         groups: video,lp,scanner,bluetooth,audio,input,wheel
@@ -151,21 +195,20 @@
 
     - name: Zorg dat .ssh bestaat
       file:
-        path: "/home/{{ real_user }}/.ssh"
+        path: "{{ user_home }}/.ssh"
         state: directory
         owner: "{{ real_user }}"
-        group: "{{ real_user }}"
         mode: '0700'
       when: real_user != 'root'
 
-    - name: Genereer SSH Key voor gebruiker
+    - name: Genereer SSH Key
       become: yes
       become_user: "{{ real_user }}"
       command: "ssh-keygen -t ed25519 -N '' -f ~/.ssh/id_ed25519"
-      args: { creates: "~/.ssh/id_ed25519" }
+      args: { creates: "{{ user_home }}/.ssh/id_ed25519" }
       when: real_user != 'root'
 
-    # --- 8. KERNEL REFRESH (De veilige 'all' methode) ---
-    - name: Reconfigureer alle pakketten en kernels
-      command: xbps-reconfigure -fa
-      changed_when: false
+    # --- 8. KERNEL REFRESH ---
+    - name: Reconfigureer kernels
+      command: xbps-reconfigure -f linux
+      when: (grub_config is defined and grub_config.changed) or (xbps_upgrade is defined and xbps_upgrade.changed)
