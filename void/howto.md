@@ -1,8 +1,9 @@
+```bash
 sudo xbps-install -Sy xbps ca-certificates
 sudo xbps-install -uy xbps
 sudo xbps-install -y git ansible
-git clone https://github.com/henrydenhengst/.git
-cd jouw-repo
-
+git clone https://github.com/henrydenhengst/mydesktop.git
+cd mydesktop
 chmod +x run1st.sh
+```
 
