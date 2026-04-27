@@ -129,7 +129,7 @@
 
     - name: Gebruiker toevoegen aan hardware groepen
       user:
-        name: "{{ ansible_env.USER if ansible_env.USER != 'root' else 'henry' }}"
+        name: "{{ ansible_env.USER if ansible_env.USER != 'root' else '$USER' }}"
         groups: video,lp,scanner,bluetooth,audio,input,wheel
         append: yes
 
