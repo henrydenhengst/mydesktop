@@ -1,13 +1,13 @@
 ---
-- name: post-install void
+- name: post install void
   hosts: localhost
   become: yes
   vars:
-    # REPO UNLOCK
+    # 1. Unlock non-free for drivers/microcode
     repo_packages:
       - void-repo-nonfree
 
-    # DESKTOP & DRIVERS
+    # 2. Desktop Environment & Modern Audio Stack
     core_packages:
       - lxqt
       - lightdm
@@ -17,15 +17,17 @@
       - xorg-minimal
       - dbus
       - elogind
-      - nvidia           # Swap to 'intel-ucode' if on Intel
+      - nvidia           # Change to 'intel-ucode' for Intel CPUs
       - pipewire
       - wireplumber
+      - alsa-pipewire
+      - libjack-pipewire
 
-    # YOUR SPECIFIED TOOLKIT (Verified for XBPS 2026)
+    # 3. Your Specified 2026 Technician Toolkit
     tech_toolkit:
       - ansible
       - git
-      - openssh          # Provides sshd
+      - openssh
       - ufw
       - htop
       - btop
@@ -36,7 +38,7 @@
       - powertop
       - lsof
       - strace
-      - lm_sensors       # Name used in XBPS
+      - lm_sensors
       - ranger
       - nnn
       - mc
@@ -46,12 +48,12 @@
       - duf
       - nmap
       - iperf3
-      - mtr              # Standard TUI package
+      - mtr
       - tcpdump
-      - wireshark-cli    # Provides 'tshark'
+      - wireshark-cli
       - bmon
       - speedtest-cli
-      - bind-utils       # Provides dig, nslookup (dnsutils equivalent)
+      - bind-utils
       - socat
       - netcat-openbsd
       - ethtool
@@ -61,7 +63,7 @@
       - bat
       - jq
       - ripgrep
-      - fd               # Note: just 'fd' in Void, not 'fd-find'
+      - fd
       - diffutils
       - smartmontools
       - inxi
@@ -71,20 +73,49 @@
       - rsync
       - curl
       - wget
+      - util-linux       # Required for zramctl
+      - zstd             # Fast, high-ratio compression for zRam
 
   tasks:
-    - name: Step 1 - Unlock Non-Free Repository
+    - name: Step 1 - Unlock Repositories
       command: "xbps-install -Sy {{ item }}"
       loop: "{{ repo_packages }}"
       changed_when: false
 
-    - name: Step 2 - Sync and Install Massive Toolkit
+    - name: Step 2 - Sync and Install Everything
       command: "xbps-install -Sy {{ item }}"
       loop: "{{ core_packages + tech_toolkit }}"
       register: pkg_install
       changed_when: "'installed successfully' in pkg_install.stdout"
 
-    - name: Step 3 - Enable Runit Services
+    - name: Step 3 - Dynamic zRam Optimization
+      block:
+        - name: Create Dynamic zRam Script
+          copy:
+            dest: /usr/local/bin/void-zram-setup
+            mode: '0755'
+            content: |
+              #!/bin/sh
+              # Calculate 50% of total RAM for compressed swap
+              total_mem=$(free -b | grep Mem: | awk '{print $2}')
+              zram_size=$((total_mem / 2))
+              modprobe zram
+              zramctl --find --size $zram_size --algorithm zstd
+              mkswap /dev/zram0
+              swapon /dev/zram0 -p 100
+        - name: Create zRam Runit Service
+          shell: |
+            mkdir -p /etc/sv/zram
+            echo -e "#!/bin/sh\nexec /usr/local/bin/void-zram-setup" > /etc/sv/zram/run
+            chmod +x /etc/sv/zram/run
+          changed_when: false
+        - name: Set Kernel Swappiness
+          sysctl:
+            name: vm.swappiness
+            value: '10'
+            state: present
+
+    - name: Step 4 - Enable Runit Services
       file:
         src: "/etc/sv/{{ item }}"
         dest: "/var/service/{{ item }}"
@@ -94,28 +125,28 @@
         - lightdm
         - sshd
         - ufw
+        - zram
 
-    - name: Step 4 - Firewall "Port 22 Only" Enforcement
-      shell: |
-        ufw default deny incoming
-        ufw default allow outgoing
-        ufw allow 22/tcp
-        ufw --force enable
-      changed_when: false
-
-    - name: Step 5 - PipeWire & LightDM Privacy Config
+    - name: Step 5 - Security & Privacy Configuration
       block:
-        - name: Set PipeWire to Autostart in LXQt
+        - name: Firewall Port 22 Only
+          shell: |
+            ufw default deny incoming
+            ufw default allow outgoing
+            ufw allow 22/tcp
+            ufw --force enable
+          changed_when: false
+        - name: PipeWire LXQt Autostart
           file:
             src: "/usr/share/applications/pipewire.desktop"
             dest: "/etc/xdg/autostart/pipewire.desktop"
             state: link
-        - name: Bypass LightDM Identity Hooks
+        - name: LightDM Stealth Mode
           lineinfile:
             path: /etc/lightdm/lightdm.conf
             regexp: '^#?greeter-hide-users='
             line: 'greeter-hide-users=false'
 
-    - name: Step 6 - The Final "Push Back" Purge
+    - name: Step 6 - The Final Purge
       command: "xbps-remove -Fy systemd-userdb"
       ignore_errors: yes
