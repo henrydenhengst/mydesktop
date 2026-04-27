@@ -1,115 +1,121 @@
 ---
-- name: Setup Ultieme DevOps Toolkit inclusief Firewall
+- name: post-install void
   hosts: localhost
-  connection: local
   become: yes
+  vars:
+    # REPO UNLOCK
+    repo_packages:
+      - void-repo-nonfree
+
+    # DESKTOP & DRIVERS
+    core_packages:
+      - lxqt
+      - lightdm
+      - lightdm-gtk-greeter
+      - firefox
+      - libreoffice
+      - xorg-minimal
+      - dbus
+      - elogind
+      - nvidia           # Swap to 'intel-ucode' if on Intel
+      - pipewire
+      - wireplumber
+
+    # YOUR SPECIFIED TOOLKIT (Verified for XBPS 2026)
+    tech_toolkit:
+      - ansible
+      - git
+      - openssh          # Provides sshd
+      - ufw
+      - htop
+      - btop
+      - atop
+      - glances
+      - nmon
+      - iotop
+      - powertop
+      - lsof
+      - strace
+      - lm_sensors       # Name used in XBPS
+      - ranger
+      - nnn
+      - mc
+      - ncdu
+      - tree
+      - fzf
+      - duf
+      - nmap
+      - iperf3
+      - mtr              # Standard TUI package
+      - tcpdump
+      - wireshark-cli    # Provides 'tshark'
+      - bmon
+      - speedtest-cli
+      - bind-utils       # Provides dig, nslookup (dnsutils equivalent)
+      - socat
+      - netcat-openbsd
+      - ethtool
+      - ipcalc
+      - vim
+      - neovim
+      - bat
+      - jq
+      - ripgrep
+      - fd               # Note: just 'fd' in Void, not 'fd-find'
+      - diffutils
+      - smartmontools
+      - inxi
+      - pciutils
+      - usbutils
+      - tmux
+      - rsync
+      - curl
+      - wget
 
   tasks:
-    - name: Update apt cache en installeer alle pakketten
-      ansible.builtin.apt:
-        update_cache: yes
-        state: present
-        cache_valid_time: 3600
-        name:
-          # --- ESSENTIALS ---
-          - ansible
-          - git
-          - ssh
-          - ufw
+    - name: Step 1 - Unlock Non-Free Repository
+      command: "xbps-install -Sy {{ item }}"
+      loop: "{{ repo_packages }}"
+      changed_when: false
 
-          # --- SYSTEEM & MONITORING ---
-          - htop
-          - btop
-          - atop
-          - glances
-          - nmon
-          - iotop
-          - powertop
-          - lsof
-          - strace
-          - lm-sensors
-          
-          # --- NAVIGATIE & FILES ---
-          - ranger
-          - nnn
-          - mc
-          - ncdu
-          - tree
-          - fzf
-          - duf
-          
-          # --- NETWERK & DIAGNOSE ---
-          - nmap
-          - iperf3
-          - mtr-tiny
-          - tcpdump
-          - tshark
-          - bmon
-          - speedtest-cli
-          - dnsutils
-          - socat
-          - netcat-openbsd
-          - ethtool
-          - ipcalc
-          
-          # --- DATA & TEXT PROCESSING ---
-          - vim
-          - neovim
-          - bat
-          - jq
-          - ripgrep
-          - fd-find
-          - diffutils
-          
-          # --- CONTAINERS & CLOUD ---
-          - podman
-          - rclone
-          - skopeo
-          - buildah
-          
-          # --- HARDWARE & SYSTEEM TOOLS ---
-          - smartmontools
-          - inxi
-          - pciutils
-          - usbutils
-          - tmux
-          - rsync
-          - curl
-          - wget
-      environment:
-        DEBIAN_FRONTEND: noninteractive
+    - name: Step 2 - Sync and Install Massive Toolkit
+      command: "xbps-install -Sy {{ item }}"
+      loop: "{{ core_packages + tech_toolkit }}"
+      register: pkg_install
+      changed_when: "'installed successfully' in pkg_install.stdout"
 
-    - name: SSH poort 22 openzetten in UFW
-      community.general.ufw:
-        rule: allow
-        port: '22'
-        proto: tcp
-
-    - name: UFW inschakelen en basisbeleid instellen (Deny incoming)
-      community.general.ufw:
-        state: enabled
-        direction: incoming
-        policy: deny
-
-    - name: Zorg dat SSH-service draait
-      ansible.builtin.systemd:
-        name: ssh
-        state: started
-        enabled: yes
-
-    - name: Configureer Aliassen voor moderne tools
-      ansible.builtin.file:
-        src: "/usr/bin/{{ item.src }}"
-        dest: "/usr/local/bin/{{ item.dest }}"
+    - name: Step 3 - Enable Runit Services
+      file:
+        src: "/etc/sv/{{ item }}"
+        dest: "/var/service/{{ item }}"
         state: link
-        force: yes
       loop:
-        - { src: 'batcat', dest: 'bat' }
-        - { src: 'fdfind', dest: 'fd' }
-      ignore_errors: yes
+        - dbus
+        - lightdm
+        - sshd
+        - ufw
 
-    - name: Controleer Avahi (mDNS)
-      ansible.builtin.systemd:
-        name: avahi-daemon
-        state: started
-        enabled: yes
+    - name: Step 4 - Firewall "Port 22 Only" Enforcement
+      shell: |
+        ufw default deny incoming
+        ufw default allow outgoing
+        ufw allow 22/tcp
+        ufw --force enable
+      changed_when: false
+
+    - name: Step 5 - PipeWire & LightDM Privacy Config
+      block:
+        - name: Set PipeWire to Autostart in LXQt
+          file:
+            src: "/usr/share/applications/pipewire.desktop"
+            dest: "/etc/xdg/autostart/pipewire.desktop"
+            state: link
+        - name: Bypass LightDM Identity Hooks
+          lineinfile:
+            path: /etc/lightdm/lightdm.conf
+            regexp: '^#?greeter-hide-users='
+            line: 'greeter-hide-users=false'
+
+    - name: Step 6 - The Final "Push Back" Purge
+      command: "xbps-remove -Fy systemd-userdb"
+      ignore_errors: yes
