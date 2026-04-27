@@ -1,57 +1,46 @@
 ---
-- name: Build My Systemd-Free Fortress (Silent & Auto-Update)
+- name: post install void
   hosts: localhost
   become: yes
   gather_facts: yes
   
   tasks:
-    - name: DETECT HARDWARE
+    # --- 1. HARDWARE SCAN ---
+    - name: Detectie van CPU en GPU types
       set_fact:
         is_nvidia: "{{ 'nvidia' in (ansible_facts['proc_cmdline'] | string | lower) or 'NVIDIA' in (ansible_facts['devices'] | string) }}"
         is_intel: "{{ 'Intel' in ansible_facts['processor'][0] }}"
         zram_size_mb: "{{ (ansible_facts['memtotal_mb'] * 0.6) | round | int if ansible_facts['memtotal_mb'] < 4096 else 4096 }}"
 
-    - name: Step 1 - Silent Boot Configuration (GRUB)
+    # --- 2. DE "SILENT BOOT" & KERNEL TWEAKS ---
+    - name: GRUB configureren voor stilte en performance
       lineinfile:
         path: /etc/default/grub
         regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
-        # quiet: silences kernel; splash: for theme; loglevel=3: errors only; rd.udev.log_priority=3: hide udev BS
         line: 'GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=3 rd.udev.log_priority=3 vt.global_cursor_default=0 zswap.enabled=0"'
       register: grub_config
 
-    - name: Update GRUB to apply silence
+    - name: Update GRUB
       command: update-grub
       when: grub_config.changed
 
-    - name: Step 2 - Install Core, Drivers & Toolkit
-      command: "xbps-install -Sy void-repo-nonfree && xbps-install -Sy lxqt lightdm lightdm-gtk-greeter firefox libreoffice xorg-minimal dbus elogind pipewire wireplumber {{ 'nvidia' if is_nvidia else 'mesa-dri' }} {{ 'intel-ucode' if is_intel else 'linux-firmware-amd' }} ansible git openssh ufw htop btop atop glances nmon iotop powertop lsof strace lm_sensors ranger nnn mc ncdu tree fzf duf nmap iperf3 mtr tcpdump wireshark-cli bmon speedtest-cli bind-utils socat netcat-openbsd ethtool ipcalc vim neovim bat jq ripgrep fd diffutils smartmontools inxi pciutils usbutils tmux rsync curl wget util-linux zstd"
+    # --- 3. DE PURE INSTALLATIE (XBPS) ---
+    - name: Installatie van de volledige stack (Firmware, Desktop, Tools)
+      shell: |
+        xbps-install -Sy void-repo-nonfree
+        xbps-install -Sy \
+        lxqt lightdm lightdm-gtk-greeter xorg-minimal dbus elogind \
+        pipewire wireplumber alsa-pipewire libjack-pipewire \
+        linux-firmware sof-firmware tlp thermald \
+        {{ 'nvidia' if is_nvidia else 'mesa-dri' }} {{ 'intel-ucode' if is_intel else 'linux-firmware-amd' }} \
+        firefox libreoffice ansible git openssh ufw htop btop atop glances nmon iotop powertop lsof strace lm_sensors \
+        ranger nnn mc ncdu tree fzf duf nmap iperf3 mtr tcpdump wireshark-cli bmon speedtest-cli \
+        bind-utils socat netcat-openbsd ethtool ipcalc vim neovim bat jq ripgrep fd diffutils \
+        smartmontools inxi pciutils usbutils tmux rsync curl wget util-linux zstd ntfs-3g exfat pcsc-lite
       changed_when: false
 
-    - name: Step 3 - Setup Automatic Security Updates
-      block:
-        - name: Create Update Script
-          copy:
-            dest: /usr/local/bin/void-auto-update
-            mode: '0755'
-            content: |
-              #!/bin/sh
-              # Wait for network to be ready (up to 30s)
-              for i in $(seq 1 30); do
-                ping -c 1 1.1.1.1 >/dev/null 2>&1 && break
-                sleep 1
-              done
-              # Perform non-interactive update
-              xbps-install -Syu -y
-        - name: Create Update Runit Service
-          shell: |
-            mkdir -p /etc/sv/auto-update
-            echo -e "#!/bin/sh\nexec /usr/local/bin/void-auto-update" > /etc/sv/auto-update/run
-            chmod +x /etc/sv/auto-update/run
-            # Touch 'down' file so runit doesn't loop the update service forever
-            touch /etc/sv/auto-update/down
-          changed_when: false
-
-    - name: Step 4 - Dynamic zRam Setup
+    # --- 4. DE DYNAMISCHE ZRAM MOTOR ---
+    - name: Configureer zRam script en service
       block:
         - name: Create zRam Setup Script
           copy:
@@ -63,26 +52,40 @@
               zramctl --find --size {{ zram_size_mb }}M --algorithm zstd
               mkswap /dev/zram0
               swapon /dev/zram0 -p 100
-        - name: Create zRam Service
+        - name: Create zRam Runit Service
           shell: |
             mkdir -p /etc/sv/zram
             echo -e "#!/bin/sh\nexec /usr/local/bin/void-zram-setup" > /etc/sv/zram/run
             chmod +x /etc/sv/zram/run
           changed_when: false
 
-    - name: Step 5 - Enable Services & Final Security
+    # --- 5. RUNIT SERVICES ACTIVATIE ---
+    - name: Activeer essentiële hardware & systeem services
       file:
         src: "/etc/sv/{{ item }}"
         dest: "/var/service/{{ item }}"
         state: link
-      loop: [dbus, lightdm, sshd, ufw, zram]
+      loop: [dbus, lightdm, sshd, ufw, zram, tlp, thermald]
+      ignore_errors: yes
 
-    - name: Fire Initial Security Enforcement
-      shell: |
-        ufw default deny incoming
-        ufw allow 22/tcp
-        ufw --force enable
-        xbps-remove -Fy systemd-userdb
-        # Manually trigger the first update service
-        sv start auto-update
+    # --- 6. HARDENING & USER CONFIG ---
+    - name: Systeem beveiliging en SSH hardening
+      block:
+        - name: UFW op Port 22
+          shell: "ufw default deny incoming && ufw allow 22/tcp && ufw --force enable"
+        - name: SSH ForwardAgent voor cssh
+          lineinfile: { path: /etc/ssh/ssh_config, regexp: '^#?ForwardAgent', line: '    ForwardAgent yes' }
+        - name: Gebruiker rechten voor hardware
+          user:
+            name: "{{ ansible_user_id }}"
+            groups: video,lp,scanner,bluetooth,audio,input
+            append: yes
+        - name: Genereer SSH Key
+          command: "ssh-keygen -t ed25519 -N '' -f /home/{{ ansible_user_id }}/.ssh/id_ed25519"
+          args: { creates: "/home/{{ ansible_user_id }}/.ssh/id_ed25519" }
+          become: no
+
+    # --- 7. DE FINALE SCHOONMAAK ---
+    - name: Verwijder systemd overblijfselen
+      shell: "xbps-remove -Fy systemd-userdb && touch /tmp/fortress_ready"
       ignore_errors: yes
