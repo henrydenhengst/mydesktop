@@ -1,0 +1,48 @@
+---
+- name: Build My Systemd-Free Home
+  hosts: localhost
+  become: yes
+  vars:
+    # Defining your preferred environment
+    packages:
+      - lxqt
+      - lightdm
+      - lightdm-gtk-greeter
+      - firefox
+      - libreoffice
+      - ansible
+      - xorg-minimal  # Keeping it lean
+      - dbus
+      - elogind       # For session management without the chains
+
+  tasks:
+    - name: Ensure XBPS is up to date
+      command: xbps-install -Suy
+      register: update_result
+      changed_when: "'Package indexes updated' in update_result.stdout"
+
+    - name: Install Preferred Desktop and Tools
+      command: "xbps-install -Sy {{ item }}"
+      loop: "{{ packages }}"
+      register: pkg_install
+      changed_when: "'installed successfully' in pkg_install.stdout"
+
+    - name: Enable Core Services (D-Bus & LightDM)
+      file:
+        src: "/etc/sv/{{ item }}"
+        dest: "/var/service/{{ item }}"
+        state: link
+      loop:
+        - dbus
+        - lightdm
+
+    - name: Configure LightDM to skip 'Accountsservice' delay
+      lineinfile:
+        path: /etc/lightdm/lightdm.conf
+        regexp: '^#?greeter-hide-users='
+        line: 'greeter-hide-users=false'
+        state: present
+
+    - name: Ensure Anonymity - Purge potential identity trackers
+      command: "xbps-remove -Fy systemd-userdb"
+      ignore_errors: yes  # It likely isn't there, but this is the technician's double-check
