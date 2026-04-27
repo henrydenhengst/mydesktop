@@ -1,3 +1,11 @@
+Manual
+
+```bash
+wget -O howto.md https://bit.ly/3QQj2Ml
+```
+
+Than run
+
 ```bash
 sudo xbps-install -Sy xbps ca-certificates
 sudo xbps-install -uy xbps
