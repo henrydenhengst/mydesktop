@@ -1,9 +1,13 @@
 ---
-- name: Build My Systemd-Free Home
+- name: Build My Systemd-Free Home (Pure 64-bit)
   hosts: localhost
   become: yes
   vars:
-    # Defining your preferred environment
+    # 1. Unlock the non-free gate only
+    repo_packages:
+      - void-repo-nonfree
+
+    # 2. Your core toolkit + Hardware drivers
     packages:
       - lxqt
       - lightdm
@@ -11,23 +15,31 @@
       - firefox
       - libreoffice
       - ansible
-      - xorg-minimal  # Keeping it lean
+      - xorg-minimal
       - dbus
-      - elogind       # For session management without the chains
+      - elogind
+      # Driver Selection (Swap based on your hardware)
+      - nvidia           # Proprietary Nvidia
+      - intel-ucode      # CPU stability for Intel
+      - mesa-dri         # Open source graphics acceleration
 
   tasks:
-    - name: Ensure XBPS is up to date
-      command: xbps-install -Suy
-      register: update_result
-      changed_when: "'Package indexes updated' in update_result.stdout"
+    - name: Unlock the Non-Free Repository
+      command: "xbps-install -Sy {{ item }}"
+      loop: "{{ repo_packages }}"
+      register: repo_result
+      changed_when: "'installed successfully' in repo_result.stdout"
 
-    - name: Install Preferred Desktop and Tools
+    - name: Full System Sync
+      command: xbps-install -S
+
+    - name: Install Tools and Drivers
       command: "xbps-install -Sy {{ item }}"
       loop: "{{ packages }}"
       register: pkg_install
       changed_when: "'installed successfully' in pkg_install.stdout"
 
-    - name: Enable Core Services (D-Bus & LightDM)
+    - name: Enable Runit Services (The Symlink Method)
       file:
         src: "/etc/sv/{{ item }}"
         dest: "/var/service/{{ item }}"
@@ -36,13 +48,13 @@
         - dbus
         - lightdm
 
-    - name: Configure LightDM to skip 'Accountsservice' delay
+    - name: Configure LightDM (Bypass identity-tracking timeout)
       lineinfile:
         path: /etc/lightdm/lightdm.conf
         regexp: '^#?greeter-hide-users='
         line: 'greeter-hide-users=false'
         state: present
 
-    - name: Ensure Anonymity - Purge potential identity trackers
+    - name: Ensure Anonymity - Purge potential systemd hooks
       command: "xbps-remove -Fy systemd-userdb"
-      ignore_errors: yes  # It likely isn't there, but this is the technician's double-check
+      ignore_errors: yes
