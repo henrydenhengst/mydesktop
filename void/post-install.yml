@@ -4,6 +4,10 @@
   become: yes
   gather_facts: yes
   
+  vars:
+    # Slimme manier om de echte gebruiker te vinden, zelfs als we 'become' gebruiken
+    real_user: "{{ ansible_env.SUDO_USER | default(ansible_user_id) }}"
+
   tasks:
     # --- 1. VERBETERDE HARDWARE SCAN ---
     - name: Detectie van GPU (via lspci)
@@ -16,17 +20,18 @@
       set_fact:
         is_nvidia: "{{ nvidia_check.rc == 0 }}"
         is_intel: "{{ 'Intel' in ansible_facts['processor'][0] }}"
+        # Dynamische zRam: 60% van RAM, maar max 4GB om verspilling op grote systemen te voorkomen
         zram_size_mb: "{{ (ansible_facts['memtotal_mb'] * 0.6) | round | int if ansible_facts['memtotal_mb'] < 8192 else 4096 }}"
 
-    # --- 2. XBPS BOOTSTRAP (Cruciaal voor ISO 2025) ---
-    - name: Update XBPS en certificaten
+    # --- 2. XBPS BOOTSTRAP ---
+    - name: Update XBPS en certificaten (essentieel voor oude ISOs)
       shell: |
         xbps-install -Sy ca-certificates
         xbps-install -uy xbps
       changed_when: false
 
     # --- 3. DE "SILENT BOOT" & KERNEL TWEAKS ---
-    - name: GRUB configureren
+    - name: GRUB configureren (zswap uit omdat we zram gebruiken)
       lineinfile:
         path: /etc/default/grub
         regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
@@ -37,7 +42,7 @@
       command: update-grub
       when: grub_config.changed
 
-    # --- 4. DE INSTALLATIE (Nu 100% non-interactief) ---
+    # --- 4. DE INSTALLATIE (Non-interactief) ---
     - name: Voeg non-free repository toe
       community.general.xbps:
         name: void-repo-nonfree
@@ -46,7 +51,6 @@
     - name: Installatie van de volledige stack
       community.general.xbps:
         upgrade: yes
-        # De vlaggen hieronder zorgen dat xbps niet stopt voor configuratie-vragen
         extra_args: -y -f 
         name:
           - lxqt
@@ -129,14 +133,17 @@
 
     - name: Gebruiker toevoegen aan hardware groepen
       user:
-        name: "{{ ansible_env.USER if ansible_env.USER != 'root' else '$USER' }}"
+        name: "{{ real_user }}"
         groups: video,lp,scanner,bluetooth,audio,input,wheel
         append: yes
+      when: real_user != 'root'
 
-    - name: Genereer SSH Key
+    - name: Genereer SSH Key voor gebruiker
+      become: yes
+      become_user: "{{ real_user }}"
       command: "ssh-keygen -t ed25519 -N '' -f ~/.ssh/id_ed25519"
       args: { creates: "~/.ssh/id_ed25519" }
-      become: no
+      when: real_user != 'root'
 
     # --- 8. MICROCODE & KERNEL REFRESH ---
     - name: Reconfigureer kernel
