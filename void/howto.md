@@ -13,6 +13,7 @@ sudo xbps-install -y git ansible
 git clone https://github.com/henrydenhengst/mydesktop.git
 cd mydesktop/void
 chmod +x run1st.sh
-sudo ./
+chmod +x post-reboot.sh
+sudo ./run1st.sh
 ```
 
