@@ -1,152 +1,78 @@
 ---
-- name: post install void
+- name: Build My Systemd-Free Fortress (Autonomic Version)
   hosts: localhost
   become: yes
-  vars:
-    # 1. Unlock non-free for drivers/microcode
-    repo_packages:
-      - void-repo-nonfree
-
-    # 2. Desktop Environment & Modern Audio Stack
-    core_packages:
-      - lxqt
-      - lightdm
-      - lightdm-gtk-greeter
-      - firefox
-      - libreoffice
-      - xorg-minimal
-      - dbus
-      - elogind
-      - nvidia           # Change to 'intel-ucode' for Intel CPUs
-      - pipewire
-      - wireplumber
-      - alsa-pipewire
-      - libjack-pipewire
-
-    # 3. Your Specified 2026 Technician Toolkit
-    tech_toolkit:
-      - ansible
-      - git
-      - openssh
-      - ufw
-      - htop
-      - btop
-      - atop
-      - glances
-      - nmon
-      - iotop
-      - powertop
-      - lsof
-      - strace
-      - lm_sensors
-      - ranger
-      - nnn
-      - mc
-      - ncdu
-      - tree
-      - fzf
-      - duf
-      - nmap
-      - iperf3
-      - mtr
-      - tcpdump
-      - wireshark-cli
-      - bmon
-      - speedtest-cli
-      - bind-utils
-      - socat
-      - netcat-openbsd
-      - ethtool
-      - ipcalc
-      - vim
-      - neovim
-      - bat
-      - jq
-      - ripgrep
-      - fd
-      - diffutils
-      - smartmontools
-      - inxi
-      - pciutils
-      - usbutils
-      - tmux
-      - rsync
-      - curl
-      - wget
-      - util-linux       # Required for zramctl
-      - zstd             # Fast, high-ratio compression for zRam
-
+  gather_facts: yes
+  
   tasks:
+    - name: DETECT HARDWARE - GPU & CPU
+      set_fact:
+        is_nvidia: "{{ 'nvidia' in (ansible_facts['proc_cmdline'] | string | lower) or 'NVIDIA' in (ansible_facts['devices'] | string) }}"
+        is_intel: "{{ 'Intel' in ansible_facts['processor'][0] }}"
+        zram_size_mb: "{{ (ansible_facts['memtotal_mb'] * 0.6) | round | int if ansible_facts['memtotal_mb'] < 4096 else 4096 }}"
+
     - name: Step 1 - Unlock Repositories
-      command: "xbps-install -Sy {{ item }}"
-      loop: "{{ repo_packages }}"
+      command: "xbps-install -Sy void-repo-nonfree"
       changed_when: false
 
-    - name: Step 2 - Sync and Install Everything
+    - name: Step 2 - Install Core & Hardware Drivers
       command: "xbps-install -Sy {{ item }}"
-      loop: "{{ core_packages + tech_toolkit }}"
-      register: pkg_install
-      changed_when: "'installed successfully' in pkg_install.stdout"
+      loop:
+        - lxqt
+        - lightdm
+        - lightdm-gtk-greeter
+        - firefox
+        - libreoffice
+        - xorg-minimal
+        - dbus
+        - elogind
+        - pipewire
+        - wireplumber
+        - "{{ 'nvidia' if is_nvidia else 'mesa-dri' }}"
+        - "{{ 'intel-ucode' if is_intel else 'linux-firmware-amd' }}"
 
-    - name: Step 3 - Dynamic zRam Optimization
+    - name: Step 3 - Install Technician Toolkit
+      command: "xbps-install -Sy ansible git openssh ufw htop btop atop glances nmon iotop powertop lsof strace lm_sensors ranger nnn mc ncdu tree fzf duf nmap iperf3 mtr tcpdump wireshark-cli bmon speedtest-cli bind-utils socat netcat-openbsd ethtool ipcalc vim neovim bat jq ripgrep fd diffutils smartmontools inxi pciutils usbutils tmux rsync curl wget util-linux zstd"
+      changed_when: false
+
+    - name: Step 4 - Dynamic zRam Configuration
       block:
-        - name: Create Dynamic zRam Script
+        - name: Disable conflicting zSwap
+          lineinfile:
+            path: /etc/default/grub
+            regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=".*)"'
+            line: '\1 zswap.enabled=0"'
+          register: grub_change
+        
+        - name: Create zRam Setup Script
           copy:
             dest: /usr/local/bin/void-zram-setup
             mode: '0755'
             content: |
               #!/bin/sh
-              # Calculate 50% of total RAM for compressed swap
-              total_mem=$(free -b | grep Mem: | awk '{print $2}')
-              zram_size=$((total_mem / 2))
               modprobe zram
-              zramctl --find --size $zram_size --algorithm zstd
+              zramctl --find --size {{ zram_size_mb }}M --algorithm zstd
               mkswap /dev/zram0
               swapon /dev/zram0 -p 100
+
         - name: Create zRam Runit Service
           shell: |
             mkdir -p /etc/sv/zram
             echo -e "#!/bin/sh\nexec /usr/local/bin/void-zram-setup" > /etc/sv/zram/run
             chmod +x /etc/sv/zram/run
           changed_when: false
-        - name: Set Kernel Swappiness
-          sysctl:
-            name: vm.swappiness
-            value: '10'
-            state: present
 
-    - name: Step 4 - Enable Runit Services
+    - name: Step 5 - Enable All Runit Services
       file:
         src: "/etc/sv/{{ item }}"
         dest: "/var/service/{{ item }}"
         state: link
-      loop:
-        - dbus
-        - lightdm
-        - sshd
-        - ufw
-        - zram
+      loop: [dbus, lightdm, sshd, ufw, zram]
 
-    - name: Step 5 - Security & Privacy Configuration
-      block:
-        - name: Firewall Port 22 Only
-          shell: |
-            ufw default deny incoming
-            ufw default allow outgoing
-            ufw allow 22/tcp
-            ufw --force enable
-          changed_when: false
-        - name: PipeWire LXQt Autostart
-          file:
-            src: "/usr/share/applications/pipewire.desktop"
-            dest: "/etc/xdg/autostart/pipewire.desktop"
-            state: link
-        - name: LightDM Stealth Mode
-          lineinfile:
-            path: /etc/lightdm/lightdm.conf
-            regexp: '^#?greeter-hide-users='
-            line: 'greeter-hide-users=false'
-
-    - name: Step 6 - The Final Purge
-      command: "xbps-remove -Fy systemd-userdb"
+    - name: Step 6 - Security Enforcement
+      shell: |
+        ufw default deny incoming
+        ufw allow 22/tcp
+        ufw --force enable
+        xbps-remove -Fy systemd-userdb
       ignore_errors: yes
