@@ -1,13 +1,11 @@
 ---
-- name: Build My Systemd-Free Home (Pure 64-bit)
+- name: Build My Systemd-Free Hardened Home
   hosts: localhost
   become: yes
   vars:
-    # 1. Unlock the non-free gate only
     repo_packages:
       - void-repo-nonfree
 
-    # 2. Your core toolkit + Hardware drivers
     packages:
       - lxqt
       - lightdm
@@ -18,28 +16,32 @@
       - xorg-minimal
       - dbus
       - elogind
-      # Driver Selection (Swap based on your hardware)
-      - nvidia           # Proprietary Nvidia
-      - intel-ucode      # CPU stability for Intel
-      - mesa-dri         # Open source graphics acceleration
+      # Drivers
+      - nvidia
+      - intel-ucode
+      # Networking & Security
+      - openssh
+      - ufw
+      # Audio (The 2026 standard)
+      - pipewire
+      - wireplumber
+      - alsa-pipewire
+      - libjack-pipewire
 
   tasks:
-    - name: Unlock the Non-Free Repository
+    - name: Unlock Non-Free Repo
       command: "xbps-install -Sy {{ item }}"
       loop: "{{ repo_packages }}"
       register: repo_result
       changed_when: "'installed successfully' in repo_result.stdout"
 
-    - name: Full System Sync
-      command: xbps-install -S
-
-    - name: Install Tools and Drivers
+    - name: Install All Tools, Drivers, and Services
       command: "xbps-install -Sy {{ item }}"
       loop: "{{ packages }}"
       register: pkg_install
       changed_when: "'installed successfully' in pkg_install.stdout"
 
-    - name: Enable Runit Services (The Symlink Method)
+    - name: Enable Core Runit Services
       file:
         src: "/etc/sv/{{ item }}"
         dest: "/var/service/{{ item }}"
@@ -47,14 +49,29 @@
       loop:
         - dbus
         - lightdm
+        - sshd
+        - ufw
 
-    - name: Configure LightDM (Bypass identity-tracking timeout)
+    - name: Configure UFW (Allow SSH 22/tcp Only)
+      shell: |
+        ufw default deny incoming
+        ufw default allow outgoing
+        ufw allow 22/tcp
+        ufw --force enable
+      changed_when: false
+
+    - name: Enable PipeWire for all Users (LXQt Autostart)
+      file:
+        src: "/usr/share/applications/pipewire.desktop"
+        dest: "/etc/xdg/autostart/pipewire.desktop"
+        state: link
+
+    - name: Configure LightDM Privacy Patch
       lineinfile:
         path: /etc/lightdm/lightdm.conf
         regexp: '^#?greeter-hide-users='
         line: 'greeter-hide-users=false'
-        state: present
 
-    - name: Ensure Anonymity - Purge potential systemd hooks
+    - name: Purge identity-tracking hooks
       command: "xbps-remove -Fy systemd-userdb"
       ignore_errors: yes
