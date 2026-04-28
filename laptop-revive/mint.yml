@@ -1,0 +1,173 @@
+#!/bin/bash
+
+OUTPUT="hardware-info.txt"
+exec > "$OUTPUT" 2>&1
+
+# Controleer of het script met sudo wordt uitgevoerd
+if [ "$EUID" -ne 0 ]; then 
+  echo "Fout: Voer dit script uit met sudo (bijv. sudo ./hardware_info.sh)"
+  exit 1
+fi
+
+# Check en installeer dmidecode indien nodig
+if ! command -v dmidecode &> /dev/null; then
+  echo "dmidecode niet gevonden. Installeren..."
+  apt update
+  apt install -y dmidecode
+
+  if ! command -v dmidecode &> /dev/null; then
+    echo "Installatie van dmidecode is mislukt."
+    exit 1
+  fi
+fi
+
+# Hostname en datum/tijd
+HOSTNAME=$(hostname)
+DATUM=$(date "+%Y-%m-%d %H:%M:%S")
+
+echo "------------------------------------------"
+
+
+Show outline
+
+
+
+#!/bin/bash
+# versie: 20260428-1
+# Auteur: Albert van Alphen (albert.rotterdam@laptoprevive.nl)
+# Post-installatiescript voor Laptop Revive
+
+if [ -z "$BASH_VERSION" ]; then
+    echo "Dit script vereist Bash. Herstarten in Bash..."
+    # Herstart het script met Bash
+    # exec vervangt het huidige proces door het nieuwe Bash-proces
+    exec bash "$0"
+fi
+
+[[ "$UID" -eq 0 ]] && echo "run deze script als gewone gebruiker, niet als root" && exit 1
+
+set -uo pipefail
+
+SCRIPT_DIR=$(dirname "$(realpath "$0")")
+PROG_NAME="$(basename "$0")"
+LOGFILE="$SCRIPT_DIR"/"$(basename "$0" '.sh')"-$(hostname).log
+[[ -s "$LOGFILE" ]] && mv "$LOGFILE" "$LOGFILE"."$RANDOM"
+exec > >(tee -a "$LOGFILE")
+exec 2>&1
+echo "$(date "+%Y-%m-%d %H:%M:%S") Start $PROG_NAME"
+echo "================================="
+
+# vraag om later wifi verbindingen te verwijderen
+echo -en "\nWiFi verbinding(en) aan het einde verwijderen? (j/n) "
+read -r ANSWER
+
+# 1. Systeem updaten en upgraden
+echo -e "\nSysteem wordt bijgewerkt"
+sudo apt-get -q update && sudo apt-get -q upgrade -y
+
+# 2. Standaard software installeren
+echo -e "\nStandaard software installeren..."
+sudo apt-get -q install -y vlc gimp libreoffice imagemagick
+
+# 3. Achtergrond instellen
+echo -e "\nAchtergrond instellen"
+WALLPAPER="$SCRIPT_DIR/wallpaper.png"
+OUTPUT_IMAGE="/usr/share/backgrounds/custom_background.png"
+
+# Controleer of wallpaper.png aanwezig is
+if [[ -e "$WALLPAPER" ]]; then
+    sudo cp -v "$WALLPAPER" "$OUTPUT_IMAGE"
+    sudo chmod 644 "$OUTPUT_IMAGE"
+    gsettings set org.cinnamon.desktop.background picture-uri "file://$OUTPUT_IMAGE"
+else
+    echo -e "\nWallpaper niet gevonden: $WALLPAPER" 
+fi
+
+DCONF_FILE="$SCRIPT_DIR/laptoprevive-config.dconf"
+if [[ -f "$DCONF_FILE" ]]; then
+    dconf load /org/cinnamon/ < "$DCONF_FILE"
+    echo "Cinnamon-instellingen toegepast."
+else
+    echo "Cinnamon-configuratiebestand niet gevonden: $DCONF_FILE"
+fi
+
+# 4. firewall aanzetten
+echo -e "\nFirewall wordt nu aangezet"
+sudo ufw enable
+
+# 5. profielfoto plaatsen 
+echo -e "\nProfielfoto wordt geplaatst"
+[[ -e "$SCRIPT_DIR"/logo.webp ]] && cp -v "$SCRIPT_DIR"/logo.webp ~/.face && chmod 664 ~/.face
+ 
+# 6. standaard zoekmachine van firefox aanpassen naar DDG
+echo -en "\nStandaard zoekmachine van Firefox aanpassen naar DuckDuckGo ... "
+POLICY_DIR="/usr/lib/firefox/distribution"
+if [[ ! -d "$POLICY_DIR" ]]; then
+    sudo mkdir -p "$POLICY_DIR"
+fi
+sudo tee "$POLICY_DIR/policies.json" > /dev/null <<'EOF'
+{
+  "policies": {
+    "SearchEngines": {
+      "Default": "DuckDuckGo"
+    }
+  }
+}
+EOF
+[[ -e "$POLICY_DIR/policies.json" ]] && sudo chmod 644 "$POLICY_DIR/policies.json" &&  echo "succesvol aangepast"
+
+# 7. documenten op bureaublad plaatsen
+echo -e "\nPDF documenten op bureaublad plaatsen ... "
+cp -v "$SCRIPT_DIR"/*.pdf ~/Bureaublad/
+
+# 8. installatie en activatie van de extensie transparent-panels
+echo -e "\nInstallatie en activatie van transparent-panels"
+EXT="$SCRIPT_DIR"/transparent-panels@germanfr.zip
+if [[ -s "$EXT" ]]; then
+    unzip -q "$EXT" -d ~/.local/share/cinnamon/extensions/
+    dconf write /org/cinnamon/enabled-extensions "['transparent-panels@germanfr']"
+else
+    echo -e "$EXT niet gevonden, installatie overgeslagen"
+fi
+
+# 9. eventuele wifi verbinding van thuisnetwerk verwijderen
+case "$ANSWER" in
+    j|J) [[ -s "$SCRIPT_DIR"/rmwifi.sh ]] && source "$SCRIPT_DIR"/rmwifi.sh || echo "script rmwifi.sh niet gevonden" ;;
+    *) echo "Wifi verbinding ongewijzigd" ;;
+esac
+
+# 10. eerste timeshift backup maken
+echo -e "\nMaken van eerste Timeshift backup, moment geduld ..."
+TARGET=$(lsblk -l|awk '$7~/^\/$/ {print "/dev/"$1}')
+if [[ -b "$TARGET" ]] ; then
+    sudo timeshift --quiet --scripted --target "$TARGET" --snapshot-device "$TARGET" --create --comments "initial backup made by Laptop Revive" --tags O
+    while pgrep -x "timeshift" > /dev/null; do
+        sleep 5
+    done
+    sleep 3
+else
+    echo "Timeshift overgeslagen, kon de disk ($TARGET) niet vinden"
+fi
+
+echo -e "\nPost-installatie voltooid!"
+
+hostname = LR#####
+user = laptoprevive
+password = LaptopRevive
+echo "HOSTNAME:     $HOSTNAME"
+echo "DATUM/TIJD:   $DATUM"
+echo "------------------------------------------"
+echo "      SYSTEEMINFORMATIE OVERZICHT"
+echo "------------------------------------------"
+
+MERK=$(dmidecode -s system-manufacturer)
+MODEL=$(dmidecode -s system-product-name)
+SERIE=$(dmidecode -s system-serial-number)
+
+echo -e "MERK:         $MERK"
+echo -e "MODEL:        $MODEL"
+echo -e "SERIENUMMER:  $SERIE"
+
+echo "------------------------------------------"
+
+
