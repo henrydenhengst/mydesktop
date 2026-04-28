@@ -1,12 +1,12 @@
 Manual
 
 ```bash
-sudo bash wifi.sh
+sudo mkdir -p /mnt/scripts
+sudo mount /dev/sdb1 /mnt/scripts  # Vervang sdb1 als jouw stick anders heet
 ```
 
 ```bash
-sudo mkdir -p /mnt/scripts
-sudo mount /dev/sdb1 /mnt/scripts  # Vervang sdb1 als jouw stick anders heet
+sudo bash wifi.sh
 ```
 
 ```
