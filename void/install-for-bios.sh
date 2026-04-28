@@ -57,4 +57,4 @@ umount -R /mnt
 echo "--- Basisinstallatie voltooid! ---"
 echo "1. Reboot"
 echo "2. Log in als $USERNAME"
-echo "3. Run je post-install.sh"
+echo "3. Run de post install
