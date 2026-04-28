@@ -1,0 +1,82 @@
+---
+- name: Fase 3 - Provisioning studentenlaptop
+  hosts: all
+  become: yes
+
+  vars:
+    user: "laptoprevive"
+
+  tasks:
+
+    # 1. Systeem final update
+    - name: Systeem updaten
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    # 2. Standaard software
+    - name: Software installeren
+      apt:
+        name:
+          - vlc
+          - gimp
+          - libreoffice
+          - imagemagick
+        state: present
+
+    # 3. Firewall zeker activeren
+    - name: UFW inschakelen
+      ufw:
+        state: enabled
+
+    # 4. Firefox policy toepassen
+    - name: Firefox DuckDuckGo policy
+      copy:
+        dest: /usr/lib/firefox/distribution/policies.json
+        content: |
+          {
+            "policies": {
+              "SearchEngines": {
+                "Default": "DuckDuckGo"
+              }
+            }
+          }
+        mode: '0644'
+
+    # 5. Desktop wallpaper (Cinnamon)
+    - name: Wallpaper instellen
+      become: no
+      shell: >
+        gsettings set org.cinnamon.desktop.background picture-uri "file:///usr/share/backgrounds/custom_background.png"
+      ignore_errors: yes
+
+    # 6. Cleanup (optioneel maar sterk aanbevolen)
+    - name: Temp cleanup
+      shell: |
+        apt autoremove -y
+        apt clean
+
+    # 7. Final hardware report genereren
+    - name: Eindrapport maken
+      shell: |
+        echo "===== LAPTOP REVIVE FINAL REPORT ====="
+        echo "HOSTNAME: $(hostname)"
+        echo "MERK: $(dmidecode -s system-manufacturer)"
+        echo "MODEL: $(dmidecode -s system-product-name)"
+        echo "SERIAL: $(dmidecode -s system-serial-number)"
+        echo "DATE: $(date)"
+      register: final_report
+
+    # 8. Rapport opslaan op device
+    - name: Rapport opslaan
+      copy:
+        dest: "/home/{{ user }}/final-report.txt"
+        content: "{{ final_report.stdout }}"
+      become: no
+
+    # 9. Rapport ook naar beheer-pc
+    - name: Rapport exporteren naar beheer
+      delegate_to: localhost
+      copy:
+        dest: "./final-report-{{ inventory_hostname }}.txt"
+        content: "{{ final_report.stdout }}"
