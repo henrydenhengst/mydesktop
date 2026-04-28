@@ -10,8 +10,12 @@ sudo bash wifi.sh
 ```
 
 ```
-vim install-uefi.sh  # of install-bios.sh
+vim install-for-uefi.sh  # of install-for-bios.sh
 ```
+
+```bash
+sudo bash install
+
 
 Than run
 
