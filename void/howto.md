@@ -1,6 +1,15 @@
 Manual
 
 ```bash
+sudo mkdir -p /mnt/scripts
+sudo mount /dev/sdb1 /mnt/scripts  # Vervang sdb1 als jouw stick anders heet
+```
+
+```
+vim install-uefi.sh  # of install-bios.sh
+```
+
+```bash
 wget -O howto.md https://bit.ly/3QQj2Ml
 ```
 
