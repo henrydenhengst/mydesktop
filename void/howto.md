@@ -14,8 +14,8 @@ vim install-for-uefi.sh  # of install-for-bios.sh
 ```
 
 ```bash
-sudo bash install
-
+sudo bash start-install.sh
+```
 
 Than run
 
