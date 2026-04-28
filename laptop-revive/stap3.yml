@@ -1,21 +1,23 @@
 ---
-- name: Fase 3 - Provisioning studentenlaptop
+- name: Stap 3 - Laptop provisioning (Cinnamon Linux Mint)
   hosts: all
   become: yes
 
   vars:
     user: "laptoprevive"
+    dconf_file: "laptoprevive-config.dconf"
+    extension_zip: "transparent-panels@germanfr.zip"
 
   tasks:
 
     # 1. Systeem final update
-    - name: Systeem updaten
+    - name: Systeem updaten en upgraden
       apt:
         update_cache: yes
         upgrade: dist
 
     # 2. Standaard software
-    - name: Software installeren
+    - name: Standaard software installeren
       apt:
         name:
           - vlc
@@ -24,59 +26,70 @@
           - imagemagick
         state: present
 
-    # 3. Firewall zeker activeren
+    # 3. Firewall activeren
     - name: UFW inschakelen
       ufw:
         state: enabled
 
-    # 4. Firefox policy toepassen
-    - name: Firefox DuckDuckGo policy
-      copy:
-        dest: /usr/lib/firefox/distribution/policies.json
-        content: |
-          {
-            "policies": {
-              "SearchEngines": {
-                "Default": "DuckDuckGo"
-              }
-            }
-          }
-        mode: '0644'
-
-    # 5. Desktop wallpaper (Cinnamon)
-    - name: Wallpaper instellen
+    # 4. Cinnamon configuratie (BELANGRIJK: geen gsettings)
+    - name: Cinnamon instellingen laden via dconf
       become: no
-      shell: >
-        gsettings set org.cinnamon.desktop.background picture-uri "file:///usr/share/backgrounds/custom_background.png"
-      ignore_errors: yes
+      shell: |
+        dconf load /org/cinnamon/ < "{{ playbook_dir }}/{{ dconf_file }}"
+      args:
+        executable: /bin/bash
 
-    # 6. Cleanup (optioneel maar sterk aanbevolen)
-    - name: Temp cleanup
+    # 5. Profielfoto instellen
+    - name: Profielfoto (.face) plaatsen
+      copy:
+        src: logo.webp
+        dest: "/home/{{ user }}/.face"
+        mode: '0644'
+      become: no
+
+    # 6. Cinnamon extensie installeren
+    - name: Transparent panels extensie uitpakken
+      unarchive:
+        src: "{{ playbook_dir }}/{{ extension_zip }}"
+        dest: "/home/{{ user }}/.local/share/cinnamon/extensions/"
+        remote_src: no
+      become: no
+
+    # 7. Extensie activeren via dconf (geen gsettings)
+    - name: Extensie activeren
+      become: no
+      shell: |
+        dconf write /org/cinnamon/enabled-extensions "['transparent-panels@germanfr']"
+      args:
+        executable: /bin/bash
+
+    # 8. Cleanup
+    - name: Systeem opruimen
       shell: |
         apt autoremove -y
         apt clean
 
-    # 7. Final hardware report genereren
-    - name: Eindrapport maken
+    # 9. Eindrapport genereren
+    - name: Final hardware + system report
       shell: |
-        echo "===== LAPTOP REVIVE FINAL REPORT ====="
+        echo "===== LAPTOP REVIVE STAP 3 REPORT ====="
         echo "HOSTNAME: $(hostname)"
         echo "MERK: $(dmidecode -s system-manufacturer)"
         echo "MODEL: $(dmidecode -s system-product-name)"
         echo "SERIAL: $(dmidecode -s system-serial-number)"
-        echo "DATE: $(date)"
-      register: final_report
+        echo "DATE: $(date '+%Y-%m-%d %H:%M:%S')"
+      register: report
 
-    # 8. Rapport opslaan op device
-    - name: Rapport opslaan
+    # 10. Rapport opslaan op device
+    - name: Rapport opslaan lokaal
       copy:
         dest: "/home/{{ user }}/final-report.txt"
-        content: "{{ final_report.stdout }}"
+        content: "{{ report.stdout }}"
       become: no
 
-    # 9. Rapport ook naar beheer-pc
+    # 11. Rapport exporteren naar beheer-pc
     - name: Rapport exporteren naar beheer
       delegate_to: localhost
       copy:
         dest: "./final-report-{{ inventory_hostname }}.txt"
-        content: "{{ final_report.stdout }}"
+        content: "{{ report.stdout }}"
