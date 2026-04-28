@@ -9,10 +9,10 @@ echo "--- Repair Café Boot Mode Detector ---"
 # 2. De Check
 if [ -d /sys/firmware/efi ]; then
     MODE="UEFI"
-    SCRIPT="install-uefi.sh"
+    SCRIPT="install-for-uefi.sh"
 else
     MODE="BIOS"
-    SCRIPT="install-bios.sh"
+    SCRIPT="install-for-bios.sh"
 fi
 
 echo "Gedetecteerde modus: $MODE"
