@@ -1,6 +1,10 @@
 Manual
 
 ```bash
+sudo bash wifi.sh
+```
+
+```bash
 sudo mkdir -p /mnt/scripts
 sudo mount /dev/sdb1 /mnt/scripts  # Vervang sdb1 als jouw stick anders heet
 ```
