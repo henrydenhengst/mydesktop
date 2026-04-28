@@ -13,10 +13,6 @@ sudo bash wifi.sh
 vim install-uefi.sh  # of install-bios.sh
 ```
 
-```bash
-wget -O howto.md https://bit.ly/3QQj2Ml
-```
-
 Than run
 
 ```bash
