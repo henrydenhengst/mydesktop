@@ -1,0 +1,33 @@
+---
+- name: Hardware inventarisatie
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: dmidecode installeren
+      apt:
+        name: dmidecode
+        state: present
+        update_cache: yes
+
+    - name: Hardware info ophalen
+      shell: |
+        echo "HOSTNAME: $(hostname)"
+        echo "DATUM/TIJD: $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "MERK: $(dmidecode -s system-manufacturer)"
+        echo "MODEL: $(dmidecode -s system-product-name)"
+        echo "SERIENUMMER: $(dmidecode -s system-serial-number)"
+      register: hwinfo
+
+    - name: Opslaan op laptop
+      copy:
+        dest: "/home/{{ ansible_user }}/hardware-info.txt"
+        content: "{{ hwinfo.stdout }}"
+        mode: '0644'
+      become: no
+
+    - name: Ook lokaal opslaan (op jouw beheer-pc)
+      delegate_to: localhost
+      copy:
+        dest: "./hardware-info-{{ inventory_hostname }}.txt"
+        content: "{{ hwinfo.stdout }}"
