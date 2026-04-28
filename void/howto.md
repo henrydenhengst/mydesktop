@@ -9,10 +9,6 @@ sudo mount /dev/sdb1 /mnt/scripts  # Vervang sdb1 als jouw stick anders heet
 sudo bash wifi.sh
 ```
 
-```
-vim install-for-uefi.sh  # of install-for-bios.sh
-```
-
 ```bash
 sudo bash start-install.sh
 ```
