@@ -1,12 +1,16 @@
 #!/bin/bash
 set -e
 
-# --- CONFIGURATIE ---
-DISK="/dev/sda"  
+# --- AUTOMATISCHE CONFIGURATIE ---
+# Pakt de grootste schijf die geen USB of loop is
+DISK=$(lsblk -dpno NAME,TYPE,SIZE | grep 'disk' | sort -rnk3 | head -n1 | awk '{print $1}')
 HOSTNAME="void-bios"
 USERNAME="voiduser"
 
-echo "--- START BIOS INSTALLATIE ---"
+echo "--- START BIOS INSTALLATIE OP $DISK ---"
+
+# Check of DISK gevonden is
+if [ -z "$DISK" ]; then echo "Geen schijf gevonden!"; exit 1; fi
 
 # 1. Partitioneren
 echo "Partitioneren..."
@@ -22,7 +26,7 @@ EOF
 mkfs.ext4 -F "${DISK}1"
 mount "${DISK}1" /mnt
 
-# 3. Base system + ALLE verzochte tools installeren
+# 3. Base system + ALLE tools
 echo "Installeren van base-system en beheer-tools..."
 mkdir -p /mnt/var/db/xbps/keys
 cp /var/db/xbps/keys/* /mnt/var/db/xbps/keys/
@@ -38,7 +42,6 @@ useradd -m -G wheel,users -s /bin/bash $USERNAME
 echo "root:voidlinux" | chpasswd
 echo "$USERNAME:voidlinux" | chpasswd
 
-# Sudo & Dbus voorbereiding voor Ansible
 echo "%wheel ALL=(ALL:ALL) ALL" > /etc/sudoers.d/wheel
 ln -s /etc/sv/dbus /etc/runit/runsvdir/default/
 
