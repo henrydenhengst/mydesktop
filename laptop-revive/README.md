@@ -1,6 +1,31 @@
 # Laptop Revival 
 
-## directories en files 
+## stap 0 Prerequisites
+
+Gebruik een USB stick van 4 Gb+.
+Installeer hier Ventoy op.
+
+Kopieer vervolgens de iso files van Shredos en Linux Mint naartoe.
+
+- https://github.com/ventoy/Ventoy
+- https://github.com/PartialVolume/shredos.x86_64
+- https://linuxmint.com/download.php
+
+Boot van USB stick en kies voor Shredos.
+Clean the disk!
+
+Boot van USB stick en kies voor Linux Mint 
+Installeer Linux Mint
+
+### Installeer git en ansible
+```bash
+sudo apt install git ansible
+mkdir -p repo
+cd repo
+git clone https://github.com/henrydenhengst/laptoprevive.git
+cd laptoprevive
+```
+### directories en files 
 
 ```
 laptop-revive/
@@ -12,15 +37,6 @@ laptop-revive/
 │   ├── laptoprevive-config.dconf
 │   ├── logo.webp
 │   └── transparent-panels.zip
-```
-
-## Installeer git en ansible
-```bash
-sudo apt install git ansible
-mkdir -p repo
-cd repo
-git clone https://github.com/henrydenhengst/laptoprevive.git
-cd laptoprevive
 ```
 
 ## Stap 1 → hardware inventarisatie
