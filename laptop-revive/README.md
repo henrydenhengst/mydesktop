@@ -35,7 +35,7 @@ Run het playbook en de hardware info staat in `/home/laptoprevive`
 ansible-playbook -K stap1.yml
 ```
 
-Stuur `/home/laptoprevive/     hardware-info-{{ inventory_hostname }}.txt` naar de administratie.
+Stuur `/home/laptoprevive/     hardware-info-{{ inventory_hostname }}.txt` naar de administratie `info@laptoprevive.nl`
 
 ## Stap 2 → identiteit (hostname toekennen)
 
