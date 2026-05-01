@@ -26,7 +26,7 @@ git clone https://github.com/henrydenhengst/laptoprevive.git
 
 Tijdens installatie is de juiste user al aangemaakt:
 - user: laptoprevive
-- pwd: zie instructie 
+- pwd: zie instructie op NextCloud
 
 Run het playbook en de hardware info staat in /home/$USER
 
