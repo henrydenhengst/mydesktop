@@ -28,13 +28,13 @@ Tijdens installatie is de juiste user al aangemaakt:
 - user: laptoprevive
 - pwd: zie instructie op NextCloud
 
-Run het playbook en de hardware info staat in /home/$USER
+Run het playbook en de hardware info staat in `/home/laptoprevive`
 
 ```bash
 ansible-playbook -K stap1.yml
 ```
 
-Stuur /home/laptoprevive/hardwareinfo.txt naar de administratie.
+Stuur `/home/laptoprevive/     hardware-info-{{ inventory_hostname }}.txt` naar de administratie.
 
 ## Stap 2 → identiteit (hostname toekennen)
 
