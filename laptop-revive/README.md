@@ -24,6 +24,8 @@ git clone https://github.com/henrydenhengst/laptoprevive.git
 
 ## Stap 1 → hardware inventarisatie
 
+Tijdens installatie is de juiste user al aangemaakt: 
+
 Run het playbook en de hardware info staat in /home/$USER
 
 ```bash
@@ -31,7 +33,7 @@ ansible-playbook -K stap1.yml
 ```
 - Stap 2 → identiteit (hostname toekennen)
 
-Edit de variabelen (user en hostname) in stap2.yml
+Edit de variabelen (hostname) in stap2.yml
 
 ```bash
 nano stap2.yml
