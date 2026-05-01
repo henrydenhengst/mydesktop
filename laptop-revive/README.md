@@ -35,9 +35,10 @@ ansible-playbook -K stap1.yml
 ```
 
 Stuur /home/laptoprevive/hardwareinfo.txt naar de administratie.
-- Stap 2 → identiteit (hostname toekennen)
 
-Wachte
+## Stap 2 → identiteit (hostname toekennen)
+
+Wachten
 
 Edit de variabelen (hostname) in stap2.yml
 
@@ -46,7 +47,7 @@ nano stap2.yml
 ansible-playbook -i inventory.ini stap2.yml
 ```
 
-- Stap 3 → volledige provisioning via declaratieve config
+## Stap 3 → volledige provisioning via declaratieve config
 
 ```bash
 ansible-playbook -i inventory.ini stap3.yml
