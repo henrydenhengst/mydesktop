@@ -19,7 +19,7 @@ laptop-revive/
 sudo apt install git ansible
 mkdir -p repo
 cd repo
-git clone 
+git clone https://github.com/henrydenhengst/laptoprevive.git
 ```
 
 ## Stap 1 → hardware inventarisatie
