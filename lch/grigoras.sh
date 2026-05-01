@@ -1,27 +1,26 @@
 #!/bin/bash
 
-# Script om Flatpak taal naar Roemeens (ro) te zetten
-echo "Bezig met het configureren van Flatpak talen..."
+# Script pentru configurarea limbii Flatpak în Română (ro)
+echo "Se configurează limba pentru Flatpak..."
 
-# 1. Stel de talen in voor Flatpak (Roemeens en Engels als backup)
-# Dit zorgt ervoor dat Flatpak de juiste runtime-vertalingen downloadt.
+# 1. Setarea limbilor pentru Flatpak (Română și Engleză ca rezervă)
+# Această comandă forțează Flatpak să descarce traducerile necesare (locales).
 flatpak config --set languages "ro;en"
 
 if [ $? -eq 0 ]; then
-    echo "✅ Flatpak taalinstelling gewijzigd naar Roemeens."
+    echo "✅ Configurația Flatpak a fost modificată cu succes în limba Română."
 else
-    echo "❌ Er ging iets mis bij het instellen van de taal."
+    echo "❌ A apărut o eroare la configurarea limbii."
     exit 1
 fi
 
-# 2. Update Flatpak om de nieuwe taalpakketten binnen te halen
-echo "Bezig met het downloaden van de Roemeense taalbestanden (indien nodig)..."
+# 2. Actualizarea Flatpak pentru a descărca pachetele de limbă
+echo "Se descarcă fișierele de limbă română (dacă este necesar)..."
 flatpak update -y
 
-# 3. Informatie voor de gebruiker
+# 3. Informații finale pentru utilizator
 echo "----------------------------------------------------"
-echo "Klaar! Herstart Chrome om de wijzigingen te zien."
-echo "Mocht Chrome nog steeds in het Nederlands openen,"
-echo "controleer dan de instellingen binnen Chrome zelf via:"
-echo "chrome://settings/languages"
+echo "Gata! Repornește Chrome pentru a vedea modificările."
+echo "Dacă Chrome este tot în altă limbă, verifică și setările interne:"
+echo "Accesează în browser: chrome://settings/languages"
 echo "----------------------------------------------------"
