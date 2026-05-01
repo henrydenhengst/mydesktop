@@ -14,7 +14,7 @@ laptop-revive/
 │   └── transparent-panels.zip
 ```
 
-## Installeer git en Ansible
+## Installeer git en ansible
 ```bash
 sudo apt install git ansible
 mkdir -p repo
