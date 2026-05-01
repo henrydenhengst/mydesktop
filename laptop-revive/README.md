@@ -39,7 +39,7 @@ Stuur `/home/laptoprevive/     hardware-info-{{ inventory_hostname }}.txt` naar 
 
 ## Stap 2 → identiteit (hostname toekennen)
 
-Wachten
+Wachten op `hostname` van de administratie.
 
 Edit de variabelen (hostname) in stap2.yml
 
