@@ -33,7 +33,11 @@ Run het playbook en de hardware info staat in /home/$USER
 ```bash
 ansible-playbook -K stap1.yml
 ```
+
+Stuur /home/laptoprevive/hardwareinfo.txt naar de administratie.
 - Stap 2 → identiteit (hostname toekennen)
+
+Wachte
 
 Edit de variabelen (hostname) in stap2.yml
 
