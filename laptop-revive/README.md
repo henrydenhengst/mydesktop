@@ -24,7 +24,9 @@ git clone https://github.com/henrydenhengst/laptoprevive.git
 
 ## Stap 1 → hardware inventarisatie
 
-Tijdens installatie is de juiste user al aangemaakt: 
+Tijdens installatie is de juiste user al aangemaakt:
+- user: laptoprevive
+- pwd: zie instructie 
 
 Run het playbook en de hardware info staat in /home/$USER
 
