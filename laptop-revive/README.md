@@ -17,6 +17,9 @@ laptop-revive/
 ## Installeer git en Ansible
 ```bash
 sudo apt install git ansible
+mkdir -p repo
+cd repo
+git clone 
 ```
 
 ## Stap 1 → hardware inventarisatie
