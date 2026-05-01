@@ -1,0 +1,59 @@
+---
+- name: Setup automatische updates voor Linux Mint
+  hosts: localhost
+  connection: local
+  become: yes
+
+  vars:
+    script_path: "/usr/local/bin/auto_update.sh"
+
+  tasks:
+    - name: Kopieer het update script naar de systeemmap
+      copy:
+        dest: "{{ script_path }}"
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          # Wacht 500 seconden na opstarten
+          sleep 500
+          apt-get update
+          apt-get upgrade -y
+          apt-get autoremove -y
+          flatpak update -y
+
+    - name: Maak de systemd service aan
+      copy:
+        dest: "/etc/systemd/system/auto-update.service"
+        content: |
+          [Unit]
+          Description=Automatische APT en Flatpak Updates
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=oneshot
+          ExecStart={{ script_path }}
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Maak de systemd timer aan (start 500s na boot)
+      copy:
+        dest: "/etc/systemd/system/auto-update.timer"
+        content: |
+          [Unit]
+          Description=Timer voor automatische updates
+
+          [Timer]
+          OnBootSec=500
+          Unit=auto-update.service
+
+          [Install]
+          WantedBy=timers.target
+
+    - name: Activeer en start de timer
+      systemd:
+        name: auto-update.timer
+        enabled: yes
+        state: started
+        daemon_reload: yes
