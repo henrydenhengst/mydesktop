@@ -1,0 +1,15 @@
+- name: Ensure Firefox profile dir exists
+  file:
+    path: "{{ ansible_env.HOME }}/.mozilla/firefox"
+    state: directory
+
+- name: Install user.js
+  copy:
+    src: user.js
+    dest: "{{ ansible_env.HOME }}/.mozilla/firefox/user.js"
+
+- name: Install Nord UI (userChrome.css)
+  copy:
+    src: userChrome.css
+    dest: "{{ ansible_env.HOME }}/.mozilla/firefox/chrome/userChrome.css"
+  when: firefox_enable_nord
