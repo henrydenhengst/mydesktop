@@ -1,0 +1,17 @@
+- name: Create Firefox policies directory
+  file:
+    path: /etc/firefox/policies
+    state: directory
+  become: true
+
+- name: Install policies.json
+  copy:
+    src: policies.json
+    dest: /etc/firefox/policies/policies.json
+  become: true
+
+- name: Install uBlock Origin (optional)
+  get_url:
+    url: "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi"
+    dest: "/tmp/ublock.xpi"
+  when: firefox_install_ublock
