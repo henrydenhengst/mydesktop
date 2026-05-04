@@ -1,22 +1,2 @@
-- name: Create Firefox policy directory
-  file:
-    path: /etc/firefox/policies
-    state: directory
-    mode: "0755"
-  become: true
-
-- name: Install Firefox policies
-  copy:
-    src: policies.json
-    dest: /etc/firefox/policies/policies.json
-  become: true
-
-- name: Create Firefox profile directory
-  file:
-    path: "{{ ansible_env.HOME }}/.mozilla/firefox"
-    state: directory
-
-- name: Deploy user.js
-  copy:
-    src: user.js
-    dest: "{{ ansible_env.HOME }}/.mozilla/firefox/user.js"
+- include_tasks: install.yml
+- include_tasks: profile.yml
