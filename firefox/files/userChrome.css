@@ -1,0 +1,20 @@
+:root {
+  --nord0: #2e3440;
+  --nord1: #3b4252;
+  --nord2: #434c5e;
+  --nord4: #d8dee9;
+  --nord8: #88c0d0;
+}
+
+#navigator-toolbox {
+  background-color: var(--nord0) !important;
+  color: var(--nord4) !important;
+}
+
+.tabbrowser-tab {
+  background-color: var(--nord1) !important;
+}
+
+.tabbrowser-tab[selected="true"] {
+  background-color: var(--nord2) !important;
+}
