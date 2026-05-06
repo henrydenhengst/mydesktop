@@ -8,16 +8,16 @@ Bij **Linux Café Haarlem** geloven we in de kracht van de community. Samen met 
 
 - [**Buurts**](https://buurts.nl/) – Versterkt de sociale samenhang in de wijk
 
-- [**Linux Repair Café**](https://www.repaircafe.org/linux-repair-cafe/) – Hardware herstel met een open-source hart
+## Regionale & Landelijke Expertise
 
 - [**Laptop Revive**](https://www.laptoprevive.nl/) – Geeft laptops een tweede leven
 
-- [**BuurtLinux**](https://buurtlinux.nl/) – Linux hulp, direct in de buurt
+- [**Linux Repair Café**](https://www.repaircafe.org/linux-repair-cafe/) – Hardware herstel met een open-source hart
 
-## Regionale & Landelijke Expertise
+- [**BuurtLinux**](https://buurtlinux.nl/) – Linux hulp, direct in de buurt
 
 - [**Linux Kennis Computer Centrum (LKCC)**](https://st-lkcc.nl/) – Diepgaande technische kennis
 
-- [**Linux Nijmegen**](https://linuxnijmegen.nl/) – Onze bevriende community uit het oosten
+- [**Linux Nijmegen**](https://linuxnijmegen.nl/) – Onze bevriende community in Nijmegen 
 
 - [**Linux 020**](https://linux020.nl/) – De Amsterdamse Linux-hub
