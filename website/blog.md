@@ -3,7 +3,7 @@
 Bij Linux Café Haarlem zitten we niet stil. We houden niet van dubbel werk, dus onze laatste nieuwtjes, projecten en "reddingsoperaties" van oude laptops vind je direct op onze sociale kanalen.
 
 ### 📸 Onze 'Blog' op Facebook
-Wil je zien wat we afgelopen vrijdag hebben gedaan? Of ben je benieuwd naar de laatste succesverhalen van hardware die we weer tot leven hebben gewekt? Volg onze Facebook-groep. Dit is onze plek voor foto's, aankondigingen en de lopende winacties.
+Wil je zien wat we afgelopen vrijdag hebben gedaan? Of ben je benieuwd naar de laatste succesverhalen van hardware die we weer tot leven hebben gewekt? Ander Open Source Software nieuws? Volg onze Facebook-groep. Dit is onze plek voor foto's, aankondigingen en de lopende winacties.
 
 👉 [Bezoek Linux Café Haarlem op Facebook](https://www.facebook.com/groups/linuxcafehaarlem/)
 
