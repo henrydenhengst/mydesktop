@@ -17,13 +17,13 @@ Met uw hulp kunnen we:
 
 ## Een eigen ruimte in Schalkwijk
 
-Een eigen ruimte in Schalkwijk zou helemaal geweldig zijn. Als een organisatie ons daarin kan faciliteren, zouden we nog meer kunnen doen met het verzamelen, herstellen en samenstellen van werkende machines.
+Een eigen ruimte in Schalkwijk zou helemaal geweldig zijn. Als een organisatie ons daarin kan faciliteren, kunnen we nog meer doen met het verzamelen, herstellen en samenstellen van werkende machines.
 
 ## Meedoen
 
-Iedere bijdrage helpt, groot of klein. Of het nu gaat om een financiële steun, onderdelen, oude hardware of een ruimte om in te werken: samen maken we er iets moois van.
+Iedere bijdrage helpt, groot of klein. Of het nu gaat om financiële steun, onderdelen, oude hardware of een ruimte om in te werken: samen maken we er iets moois van.
 
-Heeft u interesse om ons te steunen? Vul dan het formulier in, dan nemen we graag contact op.
+Heeft u interesse om ons te steunen? Vul dan het formulier in en laat het ons weten — elke bijdrage maakt verschil.
 
 ---
 
