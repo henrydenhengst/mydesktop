@@ -10,14 +10,14 @@ Bij **Linux Café Haarlem** geloven we in de kracht van de community. Samen met 
 
 ## Regionale & Landelijke Expertise
 
-- [**Laptop Revive**](https://www.laptoprevive.nl/) – Geeft laptops een tweede leven
+- [**Laptop Revive**](https://www.laptoprevive.nl/) – Geeft laptops een tweede leven #NL
 
-- [**Linux Repair Café**](https://www.repaircafe.org/linux-repair-cafe/) – Hardware herstel met een open-source hart
+- [**Linux Repair Café**](https://www.repaircafe.org/linux-repair-cafe/) – Hardware herstel met een open-source hart #NL
 
-- [**BuurtLinux**](https://buurtlinux.nl/) – Linux hulp, direct in de buurt
+- [**BuurtLinux**](https://buurtlinux.nl/) – Linux hulp, direct in de buurt #NL
 
-- [**Linux Kennis Computer Centrum (LKCC)**](https://st-lkcc.nl/) – Open Source ondersteuning in Voorne aan Zee, Nissewaard en gebied Rijnmond.
+- [**Linux Kennis Computer Centrum (LKCC)**](https://st-lkcc.nl/) – Open Source ondersteuning in Voorne aan Zee, Nissewaard en gebied Rijnmond. #NL-WEST
 
-- [**Linux Nijmegen**](https://linuxnijmegen.nl/) – Onze bevriende community in Nijmegen 
+- [**Linux Nijmegen**](https://linuxnijmegen.nl/) – Onze bevriende community in Nijmegen #NL-OOST
 
-- [**Linux 020**](https://linux020.nl/) – De Amsterdamse Linux-hub
+- [**Linux 020**](https://linux020.nl/) – De Amsterdamse Linux-hub #NL-WEST
