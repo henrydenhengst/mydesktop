@@ -4,6 +4,8 @@ title: Privacyverklaring
 
 # Privacyverklaring Linux Café Haarlem 🐧
 
+![Privacy](images/privacy.png)
+
 Bij Linux Café Haarlem draait alles om digitale vrijheid en privacy. Wij verzamelen zo min mogelijk gegevens en gaan daar uiterst zorgvuldig mee om. In deze verklaring leggen we uit wat we met je gegevens doen.
 
 ### 1. Welke gegevens verzamelen we?
