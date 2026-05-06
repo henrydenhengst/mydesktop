@@ -2,6 +2,9 @@ metadata:
     description: "Linux Café Haarlem: De gezelligste plek om Linux te leren, hardware te redden en samen aan open-source projecten te werken."
     'og:image': 'https://linuxcafehaarlem.nl/user/pages/images/poster-social.jpg'
 
+metadata:
+    description: "Linux Café Haarlem: De gezelligste plek om Linux te leren, hardware te redden en samen aan open-source projecten te werken."
+    'og:image': 'https://linuxcafehaarlem.nl/user/pages/images/poster-social.jpg'
 
 
 # Welkom bij Linux Café Haarlem 🐧
