@@ -30,7 +30,7 @@ Er is geen addertje. De filosofie achter open-source is dat software een publiek
 Absoluut niet! De meeste mensen die bij ons komen zijn beginners. Het doel van het café is juist om elkaar te helpen. Of je nu komt met een concrete vraag of gewoon even wilt kijken wat Linux is: je bent welkom.
 
 ### 8. Moet ik me vooraf aanmelden?
-Omdat we kleinschalig willen blijven en iedereen persoonlijke aandacht willen geven (max. 4 personen per groepje), vragen we je om je aan te melden via [Telegram](https://t.me/+6RERHbiTNRk5MjQ0). Zo weten we zeker dat er een stoel en een expert voor je klaarstaan.
+Moet niet, maar het is wel handig omdat we kleinschalig willen blijven en iedereen persoonlijke aandacht willen geven (max. 4 personen per groepje), dus vragen we je om je aan te melden via [Telegram](https://t.me/+6RERHbiTNRk5MjQ0). Zo weten we zeker dat er een stoel en een expert voor je klaarstaan.
 
 ### 9. Helpen jullie ook met hardware-reparaties?
 Als je laptop traag is door software, lossen we dat op met Linux. Is je scherm kapot of je toetsenbord defect? Dan kijken we samen met onze partners van het **Linux Repair Café** of **Laptop Revive** of we onderdelen kunnen vervangen. Gooi het in ieder geval niet weg!
