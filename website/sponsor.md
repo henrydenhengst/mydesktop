@@ -2,6 +2,8 @@
 
 Soms is er maar een kleine upgrade nodig, zoals een SSD, wat extra geheugen, een wifi-dongle of een bluetooth-dongle, om een machine echt goed te laten werken.
 
+![Sponsors](images/sponsors.png)
+
 Daarvoor zijn we soms afhankelijk van een sponsor. Op andere momenten bewaren we hardware eerst even op voorraad, totdat we alles bij elkaar hebben om er samen een mooie, goed werkende machine van te maken.
 
 Daarnaast zijn we ook blij met donaties van oude hardware. Juist die onderdelen kunnen vaak nog heel waardevol zijn en een tweede leven krijgen in een nieuw geheel.
