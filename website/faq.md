@@ -21,7 +21,7 @@ Voor bijna alles is een alternatief:
 Linux staat bekend om zijn geweldige ondersteuning voor hardware. Juist oude printers, scanners en wifi-kaarten die door Windows niet meer worden ondersteund, werken vaak 'out-of-the-box' op Linux. Neem je apparatuur gerust mee naar het café, dan testen we het samen.
 
 ### 5. Moet ik mijn hele computer wissen om Linux te proberen?
-Nee hoor! We kunnen Linux op een USB-stick zetten. Je start je computer dan op vanaf die stick. Linux draait dan tijdelijk in het geheugen zonder je harde schijf aan te raken. Zo kun je alles rustig uitproberen. Bevalt het? Dan kunnen we het definitief installeren, eventueel naast je huidige Windows (Dual-boot).
+Nee hoor! We kunnen Linux op een USB-stick zetten. Je start je computer dan op vanaf die stick. Linux draait dan tijdelijk in het geheugen zonder je harde schijf aan te raken. Zo kun je alles rustig uitproberen.
 
 ### 6. Waarom is het gratis? Waar zit het addertje?
 Er is geen addertje. De filosofie achter open-source is dat software een publiek goed moet zijn, net als de bibliotheek. Veel bedrijven (zoals Google en Tesla) gebruiken Linux en investeren erin, waardoor het voor de gewone gebruiker gratis blijft.
