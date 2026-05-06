@@ -15,7 +15,7 @@ Voor bijna alles is een alternatief:
 * **Internet:** Chrome, Firefox en Edge werken perfect.
 * **Office:** Microsoft Office werkt online via de browser. Voor offline gebruik is er LibreOffice (gratis en opent al je Word- en Excel-bestanden).
 * **E-mail:** Outlook (online) werkt prima, en programma's zoals Thunderbird zijn uitstekende alternatieven.
-* **Foto/Video:** Er zijn geweldige gratis tools zoals GIMP (voor Photoshop-gebruikers) en Kdenlive.
+* **Foto/Video:** Er zijn geweldige gratis tools zoals GIMP (voor Photoshop-gebruikers) en Kdenlive en OBSstudio voor YouTubers.
 
 ### 4. Werkt mijn hardware wel met Linux?
 Linux staat bekend om zijn geweldige ondersteuning voor hardware. Juist oude printers, scanners en wifi-kaarten die door Windows niet meer worden ondersteund, werken vaak 'out-of-the-box' op Linux. Neem je apparatuur gerust mee naar het café, dan testen we het samen.
