@@ -6,6 +6,8 @@ title: "404 - Kernel Panic"
 
 Het lijkt erop dat we een **segmentation fault** hebben bereikt. De pagina die je zoekt is onvindbaar, verplaatst naar `/dev/null`, of nooit gecompileerd.
 
+![404](images/404.png)
+
 ### Wat is er aan de hand?
 * De link waar je op klikte is verouderd.
 * Er zit een typefout in de URL.
