@@ -24,6 +24,10 @@ Wat we anderen aanraden, doen we zelf ook. LinuxCaféHaarlem draait namelijk op 
 
 Dat vinden we belangrijk, want het laat zien dat je met bewuste keuzes en een beetje creativiteit nog steeds een prima en betrouwbare omgeving kunt opbouwen. Zo maken we niet alleen een verhaal over hergebruik, maar leven we het ook echt na.
 
+## the Free Software Foundation 
+
+De [FSF](https://www.fsf.org/) staat stevig achter de Right to Repair-beweging, en daar sluiten wij ons bij aan. Ook Linux Café Haarlem gelooft in het recht om apparaten te repareren, te hergebruiken en zo lang mogelijk in gebruik te houden.
+
 ## Samen verder
 
 We hopen met Linux Café Haarlem een plek te zijn waar techniek toegankelijk blijft, waar oude hardware niet wordt afgeschreven, en waar mensen elkaar vinden in kennis, hulp en gezelligheid.
