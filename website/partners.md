@@ -4,28 +4,20 @@ Bij **Linux Café Haarlem** geloven we in de kracht van de community. Samen met 
 
 ## Lokale Partners in Haarlem
 
-- **Het Open Huis Haarlem** – Onze gastvrije thuisbasis  
-  <a href="https://hetopenhuishaarlem.nl/" target="_blank" rel="noopener noreferrer">hetopenhuishaarlem.nl</a>
+- [**Het Open Huis Haarlem**](https://hetopenhuishaarlem.nl/){:target="_blank"} – Onze gastvrije thuisbasis
 
-- **Buurts** – Versterkt de sociale samenhang in de wijk  
-  <a href="https://buurts.nl/" target="_blank" rel="noopener noreferrer">buurts.nl</a>
+- [**Buurts**](https://buurts.nl/){:target="_blank"} – Versterkt de sociale samenhang in de wijk
 
-- **Linux Repair Café** – Hardware herstel met een open-source hart  
-  <a href="https://www.repaircafe.org/linux-repair-cafe/" target="_blank" rel="noopener noreferrer">repaircafe.org/linux-repair-cafe</a>
+- [**Linux Repair Café**](https://www.repaircafe.org/linux-repair-cafe/){:target="_blank"} – Hardware herstel met een open-source hart
 
-- **Laptop Revive** – Geeft laptops een tweede leven  
-  <a href="https://www.laptoprevive.nl/" target="_blank" rel="noopener noreferrer">laptoprevive.nl</a>
+- [**Laptop Revive**](https://www.laptoprevive.nl/){:target="_blank"} – Geeft laptops een tweede leven
 
-- **BuurtLinux** – Linux hulp, direct in de buurt  
-  <a href="https://buurtlinux.nl/" target="_blank" rel="noopener noreferrer">buurtlinux.nl</a>
+- [**BuurtLinux**](https://buurtlinux.nl/){:target="_blank"} – Linux hulp, direct in de buurt
 
 ## Regionale & Landelijke Expertise
 
-- **Linux Kennis Computer Centrum (LKCC)** – Diepgaande technische kennis  
-  <a href="https://st-lkcc.nl/" target="_blank" rel="noopener noreferrer">st-lkcc.nl</a>
+- [**Linux Kennis Computer Centrum (LKCC)**](https://st-lkcc.nl/){:target="_blank"} – Diepgaande technische kennis
 
-- **Linux Nijmegen** – Onze bevriende community uit het oosten  
-  <a href="https://linuxnijmegen.nl/" target="_blank" rel="noopener noreferrer">linuxnijmegen.nl</a>
+- [**Linux Nijmegen**](https://linuxnijmegen.nl/){:target="_blank"} – Onze bevriende community uit het oosten
 
-- **Linux 020** – De Amsterdamse Linux-hub  
-  <a href="https://linux020.nl/" target="_blank" rel="noopener noreferrer">linux020.nl</a>
+- [**Linux 020**](https://linux020.nl/){:target="_blank"} – De Amsterdamse Linux-hub
