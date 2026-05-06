@@ -2,6 +2,8 @@
 
 Heb je een vraag over Linux, onze bijeenkomsten of je oude hardware? Grote kans dat het antwoord hieronder staat. Staat je vraag er niet bij? Kom dan gewoon langs op vrijdag of stel hem in onze Facebook-groep!
 
+![FAQ](images/faq.png)
+
 ---
 
 ### 1. Wat is Linux eigenlijk?
