@@ -24,7 +24,7 @@ Zelf gebruik ik hardware van ruim 10 jaar oud en het draait weer als een treintj
 
 ## 🎁 Winactie: De 100ste volger wint!
 We vieren onze groei! De 100ste volger van onze Facebook-groep wint een **Acer Spin 1** laptop, volledig klaargestoomd met Linux.
-
+![Win een Laptop](images/win-een-laptop.png)
 👉 [**Sluit je aan op Facebook**](https://www.facebook.com/groups/linuxcafehaarlem/)
 
 ---
