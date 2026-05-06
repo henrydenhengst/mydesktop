@@ -25,4 +25,6 @@ Iedere bijdrage helpt, groot of klein. Of het nu gaat om een financiële steun, 
 
 Heeft u interesse om ons te steunen? Vul dan het formulier in, dan nemen we graag contact op.
 
-**Hartelijk dank voor uw steun!**
+---
+
+*Wij zijn bezig om aan te sluiten bij een stichting die ons kan helpen dit organisatorisch en financieel af te handelen.*
