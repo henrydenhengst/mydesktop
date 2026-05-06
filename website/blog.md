@@ -17,7 +17,11 @@ Voor direct contact, technische vragen tussendoor of om je plekje te reserveren 
     👉 [Join onze Telegram Groep](https://t.me/+6RERHbiTNRk5MjQ0)
 
 * **Signal:**
-    Voor de privacy-bewuste Linux-gebruiker hebben we een actieve Signal-groep. Vraag er naar tijdens een bijeenkomst of stuur ons een berichtje via Facebook voor de link.
+    Voor de privacy-bewuste Linux-gebruiker hebben we een actieve Signal-groep. 
+https://signal.group/#CjQKIIjfzVd0i9mlIPP8iJJqj39TXuB4sGXy-Mg1WoP7lmq_EhB7CCEG1Te4nOlI6Eh9253w
+
+
+Vraag er naar tijdens een bijeenkomst of stuur ons een berichtje via Facebook voor de link.
 
 * **Matrix:**
     Als echte open-source fans kunnen we Matrix natuurlijk niet overslaan. Hét decentrale alternatief voor wie volledige controle wil over zijn communicatie.
