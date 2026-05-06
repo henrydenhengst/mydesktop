@@ -29,4 +29,9 @@ Voor direct contact, technische vragen tussendoor of om je plekje te reserveren 
 ### Waarom deze kanalen?
 Bij Linux Café Haarlem draait alles om **vrije keuze** en **privacy**. Of je nu de voorkeur geeft aan het gemak van Facebook en Telegram, of de volledige versleuteling en vrijheid van Signal en Matrix: we zijn er voor je.
 
-**Let op:** Wil je langskomen op vrijdag? Een kort berichtje via één van deze kanalen (of een PB op Facebook) is genoeg om je aan te melden!
+---
+
+### 👍 Steun ons ook op Facebook!
+Vind je het leuk wat we doen? Word dan lid van onze [Facebook-groep](https://www.facebook.com/groups/linuxcafehaarlem/). Hoe meer leden en interactie, hoe beter het algoritme ons vindt. Zo helpen we samen meer mensen aan duurzaam en vrij ICT-gebruik. Delen wordt zeer gewaardeerd!
+
+Klaar om het algoritme te paaien! 😉
