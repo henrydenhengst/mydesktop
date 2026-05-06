@@ -2,6 +2,8 @@
 
 Bij **Linux Café Haarlem** geloven we in de kracht van de community. Samen met deze organisaties maken we ICT toegankelijk en duurzaam.
 
+![Partners](images/partners.png)
+
 ## Lokale Partners in Haarlem
 
 - [**Het Open Huis Haarlem**](https://hetopenhuishaarlem.nl/) – Onze gastvrije thuisbasis
