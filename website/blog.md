@@ -13,7 +13,7 @@ Wil je zien wat we afgelopen vrijdag hebben gedaan? Of ben je benieuwd naar de l
 Voor direct contact, technische vragen tussendoor of om je plekje te reserveren voor de vrijdagmorgen, gebruiken we verschillende open en veilige kanalen. Kies het platform dat bij jou past:
 
 * **Telegram (Aanmelden & Updates):**
-    Dit is ons hoofdkanaal voor de wekelijkse planning. Wil je zeker zijn van een plekje? Laat het hier even weten.
+    Dit is ons mainstream kanaal.
     👉 [Join onze Telegram Groep](https://t.me/+6RERHbiTNRk5MjQ0)
 
 * **Signal:**
