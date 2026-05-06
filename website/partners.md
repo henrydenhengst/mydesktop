@@ -21,3 +21,7 @@ Bij **Linux Café Haarlem** geloven we in de kracht van de community. Samen met 
 - [**Linux Nijmegen**](https://linuxnijmegen.nl/) – Onze bevriende community in Nijmegen #NLoost
 
 - [**Linux 020**](https://linux020.nl/) – De Amsterdamse Linux-hub #NLwest
+
+---
+
+Wij zijn altijd op zoek naar andere Linux- en Open Source Software-activiteiten in het land om mee samen te werken. Ken je een initiatief of ben je er zelf bij betrokken? Neem dan gerust [contact met ons op](link-naar-contactpagina).
