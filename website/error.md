@@ -18,8 +18,6 @@ Je hoeft je systeem niet te rebooten. Je kunt eenvoudig terugkeren naar de bewoo
 
 👉 [**Terug naar de Homepage**](/)
 
-👉 [**Meld je aan voor aanstaande vrijdag**](/aanmelden)
-
 ---
 
 *Mocht je denken dat dit een fout aan onze kant is, laat het ons dan even weten via de [Facebook-groep](https://www.facebook.com/groups/linuxcafehaarlem/).*
