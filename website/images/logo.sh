@@ -41,4 +41,4 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ logo.webp gegenereerd.${NC}"
 fi
 
-echo -e "${BLUE}Klaar! De pimpelmees is klaar voor het web.${NC}"
+echo -e "${BLUE}Klaar! Het logo is klaar voor het web.${NC}"
