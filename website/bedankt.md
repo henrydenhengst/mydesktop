@@ -4,7 +4,7 @@ title: Bedankt voor je aanmelding
 
 # Bedankt! 🐧
 
-![Mail Verzonden](images/mail-verzonden.png)
+![Mail Verzonden](images/mail-verzonden.webp)
 
 Je bericht is succesvol verzonden naar het team van Linux Café Haarlem. We hebben een kopie van je aanmelding naar je e-mailadres gestuurd (check voor de zekerheid ook even je spam-map).
 

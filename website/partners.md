@@ -2,7 +2,7 @@
 
 Bij **Linux Café Haarlem** geloven we in de kracht van de community. Samen met deze organisaties maken we ICT toegankelijk en duurzaam.
 
-![Partners](images/partners.png)
+![Partners](images/partners.webp)
 
 ## Lokale Partners in Haarlem
 

@@ -2,7 +2,7 @@
 
 Linux Café Haarlem groeit hard! Steeds meer mensen ontdekken dat hun oude laptop nog jaren mee kan met de juiste software. Om onze ochtenden kleinschalig en persoonlijk te houden, zijn we altijd op zoek naar enthousiaste versterking.
 
-![Vrijwilligers](images/vrijwilligers.png)
+![Vrijwilligers](images/vrijwilligers.webp)
 ### Wie zoeken we?
 Je hoeft geen kernel-ontwikkelaar of professioneel systeembeheerder te zijn (mag natuurlijk wel!). We zoeken vooral mensen die:
 * **Geduldig zijn:** Je vindt het leuk om een beginner stap voor stap uit te leggen hoe ze Linux Mint installeren of hoe het startmenu werkt.

@@ -6,7 +6,7 @@ title: Praktische Informatie
 
 Wil je langskomen? Je bent iedere week van harte welkom voor hulp, advies of gewoon een goede kop koffie.
 
-![Info Locatie](images/info-locatie.png)
+![Info Locatie](images/info-locatie.webp)
 
 ### Locatie & Tijd
 * **📍 Adres:** Het Open Huis Haarlem (Prof. Boumanstraat 1A, 2012 SM Haarlem)

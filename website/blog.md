@@ -1,6 +1,6 @@
 # Updates & Community 📢
 
-![Updates Community](images/updates-community.png)
+![Updates Community](images/updates-community.webp)
 
 Bij Linux Café Haarlem zitten we niet stil. We houden niet van dubbel werk, dus onze laatste nieuwtjes, projecten en "reddingsoperaties" van oude laptops vind je direct op onze sociale kanalen.
 
