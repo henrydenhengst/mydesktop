@@ -1,1 +1,4 @@
-test
+# Voor de favicon (ICO met meerdere formaten erin)
+magick logo.png -define icon:auto-resize=64,48,32,16 favicon.ico
+
+cwebp -q 80 -m 6 -metadata all logo.png -o logo.webp
