@@ -1,36 +1,60 @@
 #!/bin/bash
 
-# SM-T580 (gtaxlwifi) Flash Prep Script voor Linux Mint
-# Let op: Voer dit uit met sudo
+# --- SUDO ENFORCEMENT ---
+if [[ $EUID -ne 0 ]]; then
+   echo "FOUT: Dit script MOET als root worden uitgevoerd via sudo."
+   echo "Gebruik: sudo ./SM-T580-gtaxlwifi.sh"
+   exit 1
+fi
 
-echo "--- Voorbereiden van de omgeving ---"
-apt update
-apt install -y android-tools-adb android-tools-fastboot heimdall-flash
+echo "--- [1/5] Systeem-updates en Tools installeren ---"
+apt update && apt install -y android-tools-adb android-tools-fastboot heimdall-flash wget
 
-echo "--- Controleren van verbinding ---"
-adb devices
-echo "Bevestig de USB-foutopsporing melding op je tablet indien nodig."
+# Installeer Samsung udev regels voor betere herkenning
+echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="04e8", MODE="0666", GROUP="plugdev"' > /etc/udev/rules.d/51-android.rules
+udevadm control --reload-rules
 
-# Download TWRP (Pas de link aan naar de laatste versie indien nodig)
-# Voorbeeld voor SM-T580:
-TWRP_URL="https://eu.dl.twrp.me/gtaxlwifi/twrp-3.7.0_9-0-gtaxlwifi.img"
-echo "--- Downloaden van TWRP Recovery ---"
-wget -O recovery.img $TWRP_URL
+echo "--- [2/5] Verbinding controleren ---"
+echo "Zorg dat de tablet aan staat, verbonden is en USB-foutopsporing aan staat."
+adb devices | grep -w "device" > /dev/null
+if [ $? -ne 0 ]; then
+    echo "FOUT: Geen tablet gevonden via ADB. Controleer de kabel en de melding op het scherm."
+    exit 1
+fi
 
-echo "--- Herstarten naar Download Mode ---"
-echo "Zorg dat de tablet is aangesloten!"
+echo "--- [3/5] TWRP Recovery Downloaden ---"
+# De officiële gtaxlwifi TWRP image
+TWRP_FILE="twrp-3.7.0_9-0-gtaxlwifi.img"
+if [ ! -f "$TWRP_FILE" ]; then
+    wget -O "$TWRP_FILE" "https://eu.dl.twrp.me/gtaxlwifi/twrp-3.7.0_9-0-gtaxlwifi.img"
+else
+    echo "TWRP bestand reeds aanwezig, download overgeslagen."
+fi
+
+echo "--- [4/5] Reboot naar Download Mode (Odin Mode) ---"
+echo "De tablet herstart nu naar het blauwe Samsung-scherm..."
 adb reboot download
+echo "Wacht 15 seconden tot de drivers geladen zijn..."
+sleep 15
 
-echo "Wacht 10 seconden tot de tablet in Download Mode staat..."
-sleep 10
+echo "--- [5/5] Flashen van TWRP met Heimdall ---"
+# --no-reboot is essentieel omdat Samsung de recovery overschrijft bij een normale reboot
+heimdall flash --RECOVERY "$TWRP_FILE" --no-reboot
 
-echo "--- Flashen van TWRP met Heimdall ---"
-# De SM-T580 gebruikt de RECOVERY partitie
-heimdall flash --RECOVERY recovery.img --no-reboot
-
-echo ""
-echo "--- KLAAR MET FLASHEN ---"
-echo "1. Ontkoppel de tablet."
-echo "2. Houd Vol Omlaag + Home + Power ingedrukt om te resetten."
-echo "3. ZODRA het scherm zwart wordt, wissel DIRECT naar Vol Omhoog + Home + Power."
-echo "4. Je bent nu in TWRP. Volg de handmatige stappen voor de ROM."
+if [ $? -eq 0 ]; then
+    echo "------------------------------------------------------------"
+    echo "FLASH SUCCESVOL!"
+    echo "------------------------------------------------------------"
+    echo "BELANGRIJK: De tablet staat nu nog in Download Mode."
+    echo "1. Trek de kabel eruit."
+    echo "2. Houd [Vol Omlaag] + [Home] + [Power] ingedrukt."
+    echo "3. ZODRA het scherm zwart wordt (na ~7 sec), laat direct [Vol Omlaag] los"
+    echo "   en houd direct [Vol Omhoog] + [Home] + [Power] vast."
+    echo "4. Laat de knoppen pas los als je het TWRP logo ziet."
+    echo ""
+    echo "Als de tablet normaal opstart naar Android, ben je te laat en"
+    echo "moet je het script opnieuw draaien (Samsung wist TWRP bij boot)."
+    echo "------------------------------------------------------------"
+else
+    echo "FOUT: Flashen mislukt. Controleer of de tablet in Download Mode staat."
+fi
