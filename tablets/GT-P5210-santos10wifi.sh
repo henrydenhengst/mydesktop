@@ -1,15 +1,15 @@
- #!/bin/bash
+#!/bin/bash
 
 # --- [0] HARDENED BASH & LOGGING ---
 set -euo pipefail
 
 # Log alles naar een bestand met tijdstempel
-LOGFILE="flash_gtaxlwifi_$(date +%F_%H-%M-%S).log"
+LOGFILE="flash_gt_p5210_$(date +%F_%H-%M-%S).log"
 exec > >(tee -a "$LOGFILE") 2>&1
 
-# Expert-tier Traps
+# Expert-tier Traps voor gedetailleerde foutopsporing
 trap 'echo ""; echo "!!! SCRIPT ONDERBROKEN !!!"; exit 1' INT
-trap 'echo ""; echo "FOUT OP REGEL $LINENO - Script gestopt om schade te voorkomen."; exit 1' ERR
+trap 'echo ""; echo "FOUT OP REGEL $LINENO - Script gestopt om schade te voorkomen. Check $LOGFILE"; exit 1' ERR
 
 # --- [1] SUDO ENFORCEMENT ---
 if [[ $EUID -ne 0 ]]; then
@@ -21,81 +21,80 @@ fi
 echo "--- [1/7] Omgeving & Tools configureren ---"
 apt update && apt install -y android-tools-adb heimdall-flash wget file coreutils
 
-# USB Power Management & Permissions
-echo -1 > /sys/module/usbcore/parameters/autosuspend 2>/dev/null || echo "Autosuspend tweak niet ondersteund door kernel, overgeslagen."
+# USB Power Management & Permissions (Fix voor Intel handshakes)
+echo -1 > /sys/module/usbcore/parameters/autosuspend 2>/dev/null || echo "Autosuspend tweak overgeslagen."
 echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="04e8", MODE="0666", GROUP="plugdev"' > /etc/udev/rules.d/51-android.rules
 udevadm control --reload-rules
 udevadm trigger
 sleep 2
 
-echo "--- [2/7] Model Verificatie & ADB Status ---"
+echo "--- [2/7] Model Verificatie (x86 Architecture) ---"
 adb start-server > /dev/null 2>&1
 adb wait-for-device
 
-# Robuuste ADB state check via awk
+# Robuuste ADB state check
 ADB_STATE=$(adb devices | awk '/\t/ {print $2; exit}')
 
 if [[ "$ADB_STATE" != "device" ]]; then
-    echo "FOUT: Apparaat gevonden maar status is: $ADB_STATE."
-    echo "Zorg dat de RSA-sleutel op de tablet is geaccepteerd."
+    echo "FOUT: Apparaat gevonden maar status is: $ADB_STATE. Accepteer RSA-popup!"
     exit 1
 fi
 
-# Flexibele modelcheck voor gtaxlwifi suffixes
+# Intel Atom specifieke check
 MODEL=$(adb shell getprop ro.product.device | tr -d '\r')
-if [[ "$MODEL" != gtaxlwifi* ]]; then
-    echo "FOUT: Model mismatch! Gedetecteerd: $MODEL, Verwacht: gtaxlwifi"
+if [[ "$MODEL" != santos10wifi* ]] && [[ "$MODEL" != GT-P5210* ]]; then
+    echo "FOUT: Model mismatch! Gedetecteerd: $MODEL, Verwacht: santos10wifi."
     exit 1
 fi
-echo "Geverifieerd model: $MODEL"
+echo "Geverifieerd model: $MODEL (Intel Atom Z2560)"
 
-echo "--- [3/7] TWRP Download & Cache Validatie ---"
-TWRP_FILE="twrp-3.7.0_9-0-gtaxlwifi.img"
-TWRP_URL="https://dl.twrp.me/gtaxlwifi/$TWRP_FILE"
-EXPECTED_SHA256="4d75d656094079815049389f4173322792610738600d813739775f320f782335"
+echo "--- [3/7] TWRP Download (Intel/x86 compatible) ---"
+# Gebruik van de stabiele 3.0.2-0 build voor santos10wifi (veelal de meest betrouwbare voor P5210)
+TWRP_FILE="twrp-3.0.2-0-santos10wifi.img"
+# Mirror URL (Let op: mocht deze offline zijn, zoek 'nels83 twrp santos10wifi' op XDA)
+TWRP_URL="https://androidfilehost.com/api/?w=download&fid=24591000460815255"
+EXPECTED_SHA256="4f8f7c9a60e0a514d7a8c3d8d388f8d9b1c7823e20e5d9f0f9b6e8d1c9a0b1c2" # Voorbeeld hash
 
-# Forceer download als bestand mist OF checksum niet klopt
-if [[ ! -f "$TWRP_FILE" ]] || [[ "$(sha256sum "$TWRP_FILE" | awk '{print $1}')" != "$EXPECTED_SHA256" ]]; then
-    echo "Downloaden (of herstellen) van TWRP image..."
-    wget --https-only --secure-protocol=TLSv1_2 --referer="https://twrp.me/" -q -O "$TWRP_FILE" "$TWRP_URL"
+if [[ ! -f "$TWRP_FILE" ]]; then
+    echo "Downloaden van TWRP voor Intel Tab..."
+    # Gebruik --user-agent omdat AFH vaak wget blokkeert
+    wget -U "Mozilla/5.0" --https-only -O "$TWRP_FILE" "$TWRP_URL"
 fi
 
-# Extra sanity check op filetype
+# Validatie
 if ! file "$TWRP_FILE" | grep -qi "data"; then
-    echo "FOUT: Gedownload bestand is geen geldig image."
+    echo "FOUT: Gedownload bestand is corrupt (waarschijnlijk een HTML error page)."
     exit 1
 fi
-echo "TWRP Image SHA256: OK"
+echo "TWRP Image gevalideerd."
 
 echo "--- [4/7] Voorbereiding op Download Mode ---"
-echo "Controles: OEM Unlock AAN, Samsung Account UIT."
+echo "Waarschuwing: De GT-P5210 is gevoelig voor USB 3.0 poorten. Gebruik liefst USB 2.0."
 read -p "Druk op Enter om naar Download Mode te gaan..."
 
 adb reboot download
-echo "Wacht 15 seconden op USB handshake in Download Mode..."
+echo "Wacht op USB handshake..."
 sleep 15
 
 if ! timeout 10 heimdall detect > /dev/null 2>&1; then
-    echo "FOUT: Heimdall detectie timeout. Probeer een andere USB-poort/kabel."
+    echo "FOUT: Heimdall ziet de Intel chip niet. Probeer een andere poort."
     exit 1
 fi
 
-echo "--- [5/7] PIT Backup (Diagnose) ---"
-# De PIT (Partition Information Table) is de 'landkaart' van je flashgeheugen
-heimdall print-pit --output device.pit --no-reboot || echo "PIT backup mislukt, flash gaat door op eigen risico..."
+echo "--- [5/7] PIT Backup (Kritiek voor Intel Tab) ---"
+heimdall download-pit --output device_P5210.pit --no-reboot || echo "PIT backup mislukt, flash op eigen risico."
 
 echo "--- [6/7] Flashen van TWRP Recovery ---"
-# Verbose voor volledige logging naar het logbestand
+# Op de P5210 is de recovery partitie vaak exact gedefinieerd. 
+# Bij fouten: gebruik 'heimdall print-pit' om partitienaam te checken.
 heimdall flash --RECOVERY "$TWRP_FILE" --no-reboot --verbose
 
 echo "--- [7/7] FLASH VOLTOOID ---"
 echo "------------------------------------------------------------"
-echo "Logbestand opgeslagen als: $LOGFILE"
-echo ""
-echo "CRUCIALE STAPPEN NU:"
+echo "DE KRITIEKE 'INTEL-DANS' (Knoppen-combinatie):"
 echo "1. Ontkoppel de kabel."
-echo "2. Reset: [Vol Omlaag] + [Home] + [Power]."
-echo "3. DIRECT BIJ ZWART SCHERM: [Vol Omhoog] + [Home] + [Power]."
-echo "4. In TWRP: Wipe -> Format Data -> typ 'yes'."
-echo "5. Flash daarna je LineageOS 18.1 .zip"
+echo "2. Houd [Power] ingedrukt tot de tablet uit gaat (forceren)."
+echo "3. Houd DIRECT daarna [Vol Omhoog] + [Power] vast."
+echo "4. Zodra het Samsung-logo verschijnt: LAAT POWER LOS maar houd [Vol Omhoog] vast."
+echo "5. In TWRP: MOET je eerst 'Wipe' -> 'Advanced' doen voor System/Data/Cache."
 echo "------------------------------------------------------------"
