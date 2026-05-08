@@ -48,6 +48,20 @@ echo "[5/5] Systeemlogs scannen op hardwarefouten..."
 echo -e "\n### HARDWARE FOUTMELDINGEN (DMESG) ###" >> $OUTPUT_FILE
 sudo dmesg | grep -iE 'error|critical|fail|acpi|voltage|low battery|rtc' | tail -n 25 >> $OUTPUT_FILE
 
+# 6. BIOS Informatie
+echo "[6/6] BIOS details ophalen..."
+echo -e "\n### BIOS INFORMATIE ###" >> $OUTPUT_FILE
+sudo dmidecode -t bios | grep -E "Vendor|Version|Release Date" >> $OUTPUT_FILE
+
+# Check of Secure Boot aan staat (kan invloed hebben op drivers)
+echo -e "\n### SECURE BOOT STATUS ###" >> $OUTPUT_FILE
+if command -v mokutil &> /dev/null; then
+    mokutil --sb-state >> $OUTPUT_FILE
+else
+    echo "mokutil niet geïnstalleerd." >> $OUTPUT_FILE
+fi
+
+
 # Overzicht van hardware
 echo -e "\n### SYSTEEM OVERZICHT ###" >> $OUTPUT_FILE
 inxi -Fxz >> $OUTPUT_FILE
