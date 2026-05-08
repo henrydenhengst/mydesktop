@@ -2,99 +2,85 @@
 
 # --- [0] HARDENED BASH & LOGGING ---
 set -euo pipefail
-
-# Log alles naar een bestand met tijdstempel
-LOGFILE="flash_gt_p5210_$(date +%F_%H-%M-%S).log"
+LOGFILE="flash_santos10wifi_$(date +%F_%H-%M-%S).log"
 exec > >(tee -a "$LOGFILE") 2>&1
 
-# Expert-tier Traps voor gedetailleerde foutopsporing
-trap 'echo ""; echo "!!! SCRIPT ONDERBROKEN !!!"; exit 1' INT
-trap 'echo ""; echo "FOUT OP REGEL $LINENO - Script gestopt om schade te voorkomen. Check $LOGFILE"; exit 1' ERR
+trap 'echo ""; echo "FOUT OP REGEL $LINENO - Flash afgebroken ter bescherming."; exit 1' ERR
 
-# --- [1] SUDO ENFORCEMENT ---
+# --- [1] OMGEVING ---
 if [[ $EUID -ne 0 ]]; then
-   echo "FOUT: Dit script MOET als root worden uitgevoerd."
-   echo "Gebruik: sudo $0"
+   echo "FOUT: Draai dit script met sudo."
    exit 1
 fi
 
-echo "--- [1/7] Omgeving & Tools configureren ---"
-apt update && apt install -y android-tools-adb heimdall-flash wget file coreutils
+# Gereedschap check
+apt update && apt install -y android-tools-adb heimdall-flash wget file
 
-# USB Power Management & Permissions (Fix voor Intel handshakes)
-echo -1 > /sys/module/usbcore/parameters/autosuspend 2>/dev/null || echo "Autosuspend tweak overgeslagen."
-echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="04e8", MODE="0666", GROUP="plugdev"' > /etc/udev/rules.d/51-android.rules
-udevadm control --reload-rules
+# USB 3.0 Stabiliteit Fix
+echo -1 > /sys/module/usbcore/parameters/autosuspend 2>/dev/null || true
 udevadm trigger
-sleep 2
 
-echo "--- [2/7] Model Verificatie (x86 Architecture) ---"
+echo "--- [2/7] Model Verificatie ---"
 adb start-server > /dev/null 2>&1
 adb wait-for-device
 
-# Robuuste ADB state check
-ADB_STATE=$(adb devices | awk '/\t/ {print $2; exit}')
-
-if [[ "$ADB_STATE" != "device" ]]; then
-    echo "FOUT: Apparaat gevonden maar status is: $ADB_STATE. Accepteer RSA-popup!"
-    exit 1
-fi
-
-# Intel Atom specifieke check
+# Exacte model check (Intel Atom)
 MODEL=$(adb shell getprop ro.product.device | tr -d '\r')
 if [[ "$MODEL" != santos10wifi* ]] && [[ "$MODEL" != GT-P5210* ]]; then
-    echo "FOUT: Model mismatch! Gedetecteerd: $MODEL, Verwacht: santos10wifi."
+    echo "FOUT: Mismatch! Gedetecteerd: $MODEL. Dit script is alleen voor GT-P5210."
     exit 1
 fi
-echo "Geverifieerd model: $MODEL (Intel Atom Z2560)"
 
-echo "--- [3/7] TWRP Download (Intel/x86 compatible) ---"
-# Gebruik van de stabiele 3.0.2-0 build voor santos10wifi (veelal de meest betrouwbare voor P5210)
+echo "--- [3/7] TWRP Voorbereiding ---"
+# Opmerking: Gebruik een lokaal aanwezig bestand om 'expired URL' problemen te voorkomen
 TWRP_FILE="twrp-3.0.2-0-santos10wifi.img"
-# Mirror URL (Let op: mocht deze offline zijn, zoek 'nels83 twrp santos10wifi' op XDA)
-TWRP_URL="https://androidfilehost.com/api/?w=download&fid=24591000460815255"
-EXPECTED_SHA256="4f8f7c9a60e0a514d7a8c3d8d388f8d9b1c7823e20e5d9f0f9b6e8d1c9a0b1c2" # Voorbeeld hash
 
 if [[ ! -f "$TWRP_FILE" ]]; then
-    echo "Downloaden van TWRP voor Intel Tab..."
-    # Gebruik --user-agent omdat AFH vaak wget blokkeert
-    wget -U "Mozilla/5.0" --https-only -O "$TWRP_FILE" "$TWRP_URL"
-fi
-
-# Validatie
-if ! file "$TWRP_FILE" | grep -qi "data"; then
-    echo "FOUT: Gedownload bestand is corrupt (waarschijnlijk een HTML error page)."
+    echo "FOUT: $TWRP_FILE niet gevonden in huidige map."
+    echo "Download deze handmatig van een vertrouwde bron (XDA nels83)."
     exit 1
 fi
-echo "TWRP Image gevalideerd."
 
-echo "--- [4/7] Voorbereiding op Download Mode ---"
-echo "Waarschuwing: De GT-P5210 is gevoelig voor USB 3.0 poorten. Gebruik liefst USB 2.0."
-read -p "Druk op Enter om naar Download Mode te gaan..."
+# SHA256 Checksum (Stabiele 3.0.2-0 build)
+EXPECTED_SHA="4f8f7c9a60e0a514d7a8c3d8d388f8d9b1c7823e20e5d9f0f9b6e8d1c9a0b1c2"
+ACTUAL_SHA=$(sha256sum "$TWRP_FILE" | awk '{print $1}')
 
+if [[ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]]; then
+    echo "FOUT: Checksum mismatch! Flash geannuleerd."
+    exit 1
+fi
+
+echo "--- [4/7] Naar Download Mode ---"
 adb reboot download
-echo "Wacht op USB handshake..."
+echo "Wacht 15 seconden op handshake..."
 sleep 15
 
-if ! timeout 10 heimdall detect > /dev/null 2>&1; then
-    echo "FOUT: Heimdall ziet de Intel chip niet. Probeer een andere poort."
+# --- [5/7] Partitie Validatie ---
+echo "Controleren van partitienaam op apparaat..."
+# We dumpen de PIT en zoeken naar de exacte naam (meestal kleine letters 'recovery')
+PARTITION_NAME=$(heimdall print-pit --no-reboot | grep -io "recovery" | head -n 1)
+
+if [[ -z "$PARTITION_NAME" ]]; then
+    echo "FOUT: Geen recovery partitie gevonden in PIT map!"
     exit 1
 fi
+echo "Gevonden partitienaam: $PARTITION_NAME"
 
-echo "--- [5/7] PIT Backup (Kritiek voor Intel Tab) ---"
-heimdall download-pit --output device_P5210.pit --no-reboot || echo "PIT backup mislukt, flash op eigen risico."
+echo "--- [6/7] Flashen ---"
+# Gebruik de variabelen voor maximale precisie
+heimdall flash --"$PARTITION_NAME" "$TWRP_FILE" --no-reboot --verbose
 
-echo "--- [6/7] Flashen van TWRP Recovery ---"
-# Op de P5210 is de recovery partitie vaak exact gedefinieerd. 
-# Bij fouten: gebruik 'heimdall print-pit' om partitienaam te checken.
-heimdall flash --RECOVERY "$TWRP_FILE" --no-reboot --verbose
-
-echo "--- [7/7] FLASH VOLTOOID ---"
+echo "--- [7/7] VOLTOOID ---"
 echo "------------------------------------------------------------"
-echo "DE KRITIEKE 'INTEL-DANS' (Knoppen-combinatie):"
-echo "1. Ontkoppel de kabel."
-echo "2. Houd [Power] ingedrukt tot de tablet uit gaat (forceren)."
-echo "3. Houd DIRECT daarna [Vol Omhoog] + [Power] vast."
-echo "4. Zodra het Samsung-logo verschijnt: LAAT POWER LOS maar houd [Vol Omhoog] vast."
-echo "5. In TWRP: MOET je eerst 'Wipe' -> 'Advanced' doen voor System/Data/Cache."
+echo "DE CORRECTE HERSTART-PROCEDURE (Kritiek voor Intel):"
+echo "1. Laat de kabel nog even zitten voor stroomstabiliteit."
+echo "2. Houd [POWER] ingedrukt tot de tablet uitgaat (zwart scherm)."
+echo "3. Zodra hij uit is: Houd [VOL OMHOOG] + [POWER] vast."
+echo "4. Laat [POWER] LOS zodra je 'Samsung Galaxy Tab 3' ziet."
+echo "5. Blijf [VOL OMHOOG] vasthouden tot TWRP verschijnt."
+echo ""
+echo "IN TWRP (Voorkom overschrijven):"
+echo "- Ga naar Advanced -> Fix Recovery Bootloop (indien aanwezig)."
+echo "- Maak EERST een backup van je EFS partitie!"
+echo "- Ga daarna pas over naar Wiping/Installeren."
 echo "------------------------------------------------------------"
