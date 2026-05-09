@@ -37,3 +37,5 @@ Bij Linux Café Haarlem draait alles om **vrije keuze** en **privacy**. Of je nu
 Vind je het leuk wat we doen? Word dan lid van onze [Facebook-groep](https://www.facebook.com/groups/linuxcafehaarlem/). Hoe meer leden en interactie, hoe beter het algoritme ons vindt. Zo helpen we samen meer mensen aan duurzaam en vrij ICT-gebruik. Delen wordt zeer gewaardeerd!
 
 Klaar om het algoritme te paaien! 😉
+
+> © 2024 **Stichting [Naam]** | KvK: 12345678 | RSIN: 987654321 | [Privacyverklaring] | [ANBI-status]
