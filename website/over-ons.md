@@ -35,3 +35,5 @@ De [FSF](https://www.fsf.org/) staat stevig achter de Right to Repair-beweging, 
 We hopen met Linux Café Haarlem een plek te zijn waar techniek toegankelijk blijft, waar oude hardware niet wordt afgeschreven, en waar mensen elkaar vinden in kennis, hulp en gezelligheid.
 
 Samen leren, samen bouwen en samen laten zien dat oud nog lang niet af is.
+
+> © 2024 **Stichting [Naam]** | KvK: 12345678 | RSIN: 987654321 | [Privacyverklaring] | [ANBI-status]
