@@ -24,11 +24,6 @@ Wanneer je aankomt bij de **Prof. Boumanstraat 1A**, loop je naar de hoofdingang
 ### Bereikbaarheid & Parkeren 🚗
 * **Lopend/Fiets:** We zitten op loopafstand van het centrum. Je kunt je fiets veilig voor de deur parkeren.
 * **Auto:** In de directe omgeving is het gratis parkeren. 
-* **OV:** Vanaf Station Haarlem uitstappen bij halte Tempeliersstraat of Raaks.
+* **OV:** Vanaf Station Haarlem lijn 3 en uitstappen bij halte Robert Kochlaan.
 
 ---
-
-### Aanmelden
-Omdat we kleinschalig werken, vragen we je om je vooraf even aan te melden.
-
-👉 [**Ga naar het aanmeldformulier**](/aanmelden) of join de [Telegram-groep](https://t.me/+6RERHbiTNRk5MjQ0).
