@@ -31,5 +31,10 @@ We vieren onze groei! De 100ste volger van onze Facebook-groep wint een **Acer S
 
 ### Volgende bijeenkomst:
 📍 **Locatie:** Het Open Huis Haarlem  
-🕙 **Tijd:** Elke vrijdag van 10:00 tot 12:00 uur  
+🕙 **Tijd:** vrijdag van 10:00 tot 12:00 uur  
 👥 **Toegang:** Gratis voor iedereen!
+
+
+> © 2024 **Stichting [Naam]** | KvK: 12345678 | RSIN: 987654321 | [Privacyverklaring] | [ANBI-status]
+
+
