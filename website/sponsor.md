@@ -29,4 +29,4 @@ Heeft u interesse om ons te steunen? Vul dan het formulier in en laat het ons we
 
 ---
 
-*Wij zijn bezig om aan te sluiten bij een stichting die ons kan helpen dit organisatorisch en financieel af te handelen.*
+> © 2024 **Stichting [Naam]** | KvK: 12345678 | RSIN: 987654321 | [Privacyverklaring] | [ANBI-status]
