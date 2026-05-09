@@ -25,3 +25,5 @@ Het belangrijkste van de ochtend! Linux Café Haarlem is een plek van ontdekken.
 
 ---
 **Tip:** Heb je helemaal geen eigen hardware maar wil je wel eens zien hoe het werkt? Je bent ook zonder laptop welkom om mee te kijken met de groepjes!
+
+> © 2024 **Stichting [Naam]** | KvK: 12345678 | RSIN: 987654321 | [Privacyverklaring] | [ANBI-status]
