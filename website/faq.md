@@ -39,3 +39,5 @@ Als je laptop traag is door software, lossen we dat op met Linux. Is je scherm k
 
 ### 10. Kost deelname echt helemaal niets?
 De hulp en de software zijn 100% gratis. We zijn te gast bij Het Open Huis Haarlem, dus we waarderen het wel enorm als je een kop koffie of thee bestelt aan de bar om de locatie te steunen.
+
+> © 2024 **Stichting [Naam]** | KvK: 12345678 | RSIN: 987654321 | [Privacyverklaring] | [ANBI-status]
