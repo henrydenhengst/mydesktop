@@ -28,3 +28,6 @@ Lijkt het je wat om een paar uur per maand (of elke week, wat jij wilt!) mee te 
 
 **Interesse?**
 Stuur ons een berichtje via de [Facebook-groep](https://www.facebook.com/groups/linuxcafehaarlem/) of kom gewoon even langs bij Het Open Huis Haarlem tussen 10:00 en 12:00. We kijken uit naar je komst!
+
+
+> © 2024 **Stichting [Naam]** | KvK: 12345678 | RSIN: 987654321 | [Privacyverklaring] | [ANBI-status]
