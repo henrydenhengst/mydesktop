@@ -23,3 +23,5 @@ Je hoeft je systeem niet te rebooten. Je kunt eenvoudig terugkeren naar de bewoo
 ---
 
 *Mocht je denken dat dit een fout aan onze kant is, laat het ons dan even weten via de [Facebook-groep](https://www.facebook.com/groups/linuxcafehaarlem/).*
+
+> © 2024 **Stichting [Naam]** | KvK: 12345678 | RSIN: 987654321 | [Privacyverklaring] | [ANBI-status]
