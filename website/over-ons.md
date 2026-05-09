@@ -30,6 +30,58 @@ Dat vinden we belangrijk, want het laat zien dat je met bewuste keuzes en een be
 
 De [FSF](https://www.fsf.org/) staat stevig achter de Right to Repair-beweging, en daar sluiten wij ons bij aan. Ook Linux Café Haarlem gelooft in het recht om apparaten te repareren, te hergebruiken en zo lang mogelijk in gebruik te houden.
 
+# Over Stichting [Naam van de Stichting]
+
+De website [Naam van de website] is een officieel initiatief van **Stichting [Naam]**. Op deze pagina leggen we uit wie we zijn, wat ons drijft en hoe onze organisatie is ingericht.
+
+---
+
+## Onze Missie & Visie
+*Wat willen we bereiken en waarom?*
+
+**Missie:**
+[Beschrijf hier in 2-3 zinnen het hoofddoel van de stichting. Bijvoorbeeld: "Het verbeteren van de lokale biodiversiteit door middel van educatie en burgerinitiatieven."]
+
+**Visie:**
+[Beschrijf hoe de wereld eruitziet als jullie succesvol zijn. Bijvoorbeeld: "Een samenleving waarin elke inwoner bijdraagt aan een groene en gezonde leefomgeving."]
+
+---
+
+## De Stichting
+Stichting [Naam] is opgericht op [Datum] en is gevestigd te [Stad]. Wij zijn een non-profit organisatie, wat betekent dat wij geen winstoogmerk hebben. Alle inkomsten en donaties worden direct ingezet om onze statutaire doelstellingen te verwezenlijken.
+
+### Bestuurssamenstelling
+Conform onze statuten en de normen voor goed bestuur, wordt de stichting geleid door een onbezoldigd bestuur:
+
+* **Voorzitter:** [Naam]
+* **Secretaris:** [Naam]
+* **Penningmeester:** [Naam]
+* **Algemeen bestuurslid:** [Naam (optioneel)]
+
+*Het bestuur is verantwoordelijk voor het strategisch beleid en de financiële gezondheid van de stichting.*
+
+---
+
+## Beloningsbeleid
+Stichting [Naam] vindt transparantie essentieel. De bestuursleden ontvangen geen beloning voor hun werkzaamheden. Zij hebben uitsluitend recht op vergoeding van de door hen in de uitoefening van hun functie gemaakte kosten (onkosstenvergoeding). 
+
+[Indien van toepassing: "Eventueel personeel wordt gecompenseerd volgens de CAO [Naam sector]."]
+
+---
+
+## Documenten & Transparantie
+Als stichting hechten wij veel waarde aan openheid. Onze meest recente jaarverslagen en beleidsplannen zijn hieronder in te zien:
+
+* [Beleidsplan 2024-2026 (PDF)](#)
+* [Jaarverslag [Jaartal] (PDF)](#)
+* [Statuten van de Stichting (PDF)](#)
+
+---
+
+> **Vragen over onze organisatie?**
+> Neem gerust contact op met ons secretariaat via [e-mailadres].
+
+
 ## Samen verder
 
 We hopen met Linux Café Haarlem een plek te zijn waar techniek toegankelijk blijft, waar oude hardware niet wordt afgeschreven, en waar mensen elkaar vinden in kennis, hulp en gezelligheid.
