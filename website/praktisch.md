@@ -27,3 +27,5 @@ Wanneer je aankomt bij de **Prof. Boumanstraat 1A**, loop je naar de hoofdingang
 * **OV:** Vanaf Station Haarlem lijn 3 en uitstappen bij halte Robert Kochlaan.
 
 ---
+
+> © 2024 **Stichting [Naam]** | KvK: 12345678 | RSIN: 987654321 | [Privacyverklaring] | [ANBI-status]
