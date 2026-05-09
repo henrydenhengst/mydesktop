@@ -42,3 +42,6 @@ Hoewel onze vrijwilligers zeer ervaren zijn en met grote zorgvuldigheid te werk 
 * **Aansprakelijkheid:** Linux Café Haarlem, de vrijwilligers en de locatie (Het Open Huis) zijn niet aansprakelijk voor eventueel dataverlies of schade aan hardware die ontstaat tijdens of na onze hulp.
 
 **Door gebruik te maken van onze diensten, ga je akkoord met deze voorwaarden.**
+
+
+> © 2024 **Stichting [Naam]** | KvK: 12345678 | RSIN: 987654321 | [Privacyverklaring] | [ANBI-status]
