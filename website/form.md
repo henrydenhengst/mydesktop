@@ -66,3 +66,5 @@ Omdat we in kleine groepjes van **maximaal 4 personen** werken, is het handig al
 Vul het onderstaande formulier in, dan nemen we zo snel mogelijk contact met je op. Liever direct contact? Gebruik dan onze Telegram-groep.
 
 ---
+
+> © 2024 **Stichting [Naam]** | KvK: 12345678 | RSIN: 987654321 | [Privacyverklaring] | [ANBI-status]
