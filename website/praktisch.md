@@ -12,7 +12,7 @@ Wil je langskomen? Je bent iedere week van harte welkom voor hulp, advies of gew
 * **📍 Adres:** Het Open Huis Haarlem (Prof. Boumanstraat 1A, 2012 SM Haarlem)
 [Bekijk onze locatie op OpenStreetMap](https://www.openstreetmap.org/?mlat=52.36165&mlon=4.66616#map=17/52.36165/4.66616)
 * **🕙 Tijd:** Elke vrijdag van 10:00 tot 12:00
-* **💰 Kosten:** Gratis (een vrijwillige bijdrage voor de koffie/thee aan de bar wordt gewaardeerd).
+* **💰 Kosten:** GRATIS 
 
 ---
 
