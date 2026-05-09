@@ -14,7 +14,7 @@ Voor iedereen! Ook mensen zonder technische achtergrond kunnen prima met Linux w
 
 Of je nu een doorgewinterde sysadmin bent, graag sleutelt aan hardware of gewoon nieuwsgierig bent naar een alternatief voor Windows of macOS: je bent van harte welkom.
 
-## Onze missie
+## Onze doelen
 
 Wij willen voorkomen dat goede hardware onnodig op de schroothoop belandt. Door Linux te installeren, geven we oude computers een tweede leven: sneller, veiliger en vaak nog jarenlang bruikbaar.
 
