@@ -22,7 +22,7 @@ Wanneer je aankomt bij de **Prof. Boumanstraat 1A**, loop je naar de hoofdingang
 ---
 
 ### Bereikbaarheid & Parkeren 🚗
-* **Lopend/Fiets:** We zitten op loopafstand van het centrum. Je kunt je fiets veilig voor de deur parkeren.
+* **Lopend/Fiets:** Je kunt je fiets veilig voor de deur parkeren.
 * **Auto:** In de directe omgeving is het gratis parkeren. 
 * **OV:** Vanaf Station Haarlem lijn 3 en uitstappen bij halte Robert Kochlaan.
 
