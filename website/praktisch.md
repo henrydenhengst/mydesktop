@@ -9,7 +9,7 @@ title: Praktische Informatie
 Wil je langskomen? Je bent iedere week van harte welkom voor hulp, advies of gewoon een goede kop koffie.
 
 ### Locatie & Tijd
-[Open de interactieve kaart op OpenStreetMap](https://www.openstreetmap.org/?#map=17/52.359101/4.666094)
+[Bekijk onze locatie Professor Boumanstraat 1A op OpenStreetMap](https://www.openstreetmap.org/?mlat=52.36165&mlon=4.66616#map=17/52.36165/4.66616)
 * **📍 Adres:** Het Open Huis Haarlem (Prof. Boumanstraat 1A, 2012 SM Haarlem)
 * **🕙 Tijd:** Elke vrijdag van 10:00 tot 12:00
 * **💰 Kosten:** Gratis (een vrijwillige bijdrage voor de koffie/thee aan de bar wordt gewaardeerd).
