@@ -23,3 +23,5 @@ Terwijl je wacht op ons antwoord, kun je alvast een kijkje nemen op onze sociale
 👉 [Join de gesprekken op Telegram](https://t.me/+6RERHbiTNRk5MjQ0)
 
 [⬅️ Terug naar de Homepage](/)
+
+> © 2024 **Stichting [Naam]** | KvK: 12345678 | RSIN: 987654321 | [Privacyverklaring] | [ANBI-status]
