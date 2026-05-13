@@ -1,9 +1,7 @@
 # To-Do: Laatste stappen voor linuxcafehaarlem.nl
 
 ## 🛠 Techniek & Grav
-- [ ] **Email Plugin:** Stel de SMTP-gegevens van Vimexx in (mail.vimexx.nl).
 - [ ] **Form Plugin:** Activeer de honeypot-optie tegen spam.
-- [ ] **Favicon:** Plaats `favicon.png` in `user/themes/[theme]/images/`.
 - [ ] **Sitemap:** Installeer de sitemap-plugin voor Google-vindbaarheid.
 
 ## 📝 Pagina's & Content
