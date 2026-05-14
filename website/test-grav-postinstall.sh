@@ -4,10 +4,12 @@
 #                                                                             #
 #   Debian 13 (Trixie) + Docker + Grav + Admin - Volledige Setup             #
 #                                                                             #
-#   Version: 3.2.0                                                            #
+#   Version: 3.3.0                                                            #
 #   Datum: 2025-01-27                                                         #
 #   Doel: Debian 13 Trixie ONLY                                               #
 #   Getest op: Debian 13 Trixie (testing)                                     #
+#                                                                             #
+#   GRAV VERSIE: LATEST (automatische security updates via Docker)           #
 #                                                                             #
 ###############################################################################
 #                                                                             #
@@ -32,6 +34,14 @@
 #     • Admin panel (trekt login, form, flex-objects automatisch mee)         #
 #     • Quark theme                                                           #
 #     • Optionele extra plugins (breadcrumbs, git-sync, sitemap, etc.)        #
+#                                                                             #
+#   GRAV VERSION:                                                             #
+#   -------------                                                             #
+#                                                                             #
+#     • Gebruikt 'latest' tag van lscr.io/linuxserver/grav                    #
+#     • Altijd de meest recente stabiele versie (1.7.52 op moment van schrijven)
+#     • Bevat alle security fixes (geen kwetsbare 1.7.48 meer!)               #
+#     • Toekomstige versies (zoals Grav 2.0) worden automatisch gebruikt      #
 #                                                                             #
 ###############################################################################
 #                                                                             #
@@ -124,6 +134,10 @@
 #   Nieuwe plugin installeren:                                                #
 #      docker exec grav bin/gpm install [plugin-naam] -y                      #
 #                                                                             #
+#   Grav upgraden (indien nieuwe versie beschikbaar):                         #
+#      cd ~/grav && docker compose pull grav                                  #
+#      cd ~/grav && docker compose up -d                                      #
+#                                                                             #
 ###############################################################################
 
 set -euo pipefail
@@ -157,8 +171,13 @@ header() { echo -e "${BLUE}▶${NC} $1"; }
 
 REQUIRED_SPACE_KB=1048576          # 1GB in KB
 GRAV_PORT=8080                     # Wijzig indien nodig
-GRAV_VERSION="1.7.48"              # Vaste versie voor reproduceerbaarheid
-GRAV_IMAGE="lscr.io/linuxserver/grav:${GRAV_VERSION}"
+
+# GRAV VERSIE: LATEST (automatische security updates)
+# Dit betekent altijd de meest recente stabiele Grav versie
+# Op moment van schrijven is dat 1.7.52 (bevat geen RCE kwetsbaarheid)
+# Na release van Grav 2.0 stable wordt dit automatisch 2.0.0
+GRAV_IMAGE="lscr.io/linuxserver/grav:latest"
+
 STARTUP_WAIT=45                    # Max wachten op Grav startup
 
 # Extra plugins (deze worden NIET automatisch met admin mee geïnstalleerd)
@@ -180,8 +199,10 @@ INSTALL_EXTRA_PLUGINS=true
 clear
 echo "╔════════════════════════════════════════════════════════════════════╗"
 echo "║        Debian 13 (Trixie) + Docker + Grav - Volledige Setup        ║"
-echo "║                              v3.2.0                                 ║"
+echo "║                              v3.3.0                                 ║"
 echo "║                   ⚠️  DEBIAN 13 ONLY  ⚠️                            ║"
+echo "║                                                                      ║"
+echo "║              Grav versie: LATEST (altijd de nieuwste)               ║"
 echo "╚════════════════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -422,7 +443,7 @@ chown -R "$USERNAME":"$USERNAME" "$GRAV_DIR"
 info "Compose file aangemaakt: $GRAV_DIR/compose.yml"
 
 # Container starten
-info "Grav container starten..."
+info "Grav container starten (image: ${GRAV_IMAGE})..."
 cd "$GRAV_DIR"
 runuser -u "$USERNAME" -- docker compose up -d > /dev/null 2>&1
 
@@ -439,6 +460,10 @@ else
     echo ""
     exit 1
 fi
+
+# Toon welke Grav versie er is geïnstalleerd
+GRAV_INSTALLED_VERSION=$(docker exec grav bin/grav --version 2>/dev/null | head -1 || echo "onbekend")
+info "Grav versie in container: $GRAV_INSTALLED_VERSION"
 
 echo ""
 
@@ -614,6 +639,9 @@ echo ""
 # Verzamel IP adressen
 IP_LIST=$(hostname -I 2>/dev/null || echo "")
 
+# Haal exacte Grav versie op voor de samenvatting
+GRAV_FULL_VERSION=$(docker exec grav bin/grav --version 2>/dev/null | head -1 || echo "onbekend")
+
 clear
 echo "╔════════════════════════════════════════════════════════════════════╗"
 echo "║                    INSTALLATIE VOLTOOID - Debian 13                 ║"
@@ -621,6 +649,12 @@ echo "╚═══════════════════════�
 echo ""
 
 echo -e "${GREEN}✅ Grav CMS is succesvol geïnstalleerd op Debian 13!${NC}"
+echo ""
+
+echo "📦 Grav versie informatie:"
+echo "   ├── Gebruikte image: ${BLUE}${GRAV_IMAGE}${NC}"
+echo "   ├── Geïnstalleerde versie: ${BLUE}${GRAV_FULL_VERSION}${NC}"
+echo "   └── Status: ${GREEN}Altijd de nieuwste stabiele versie (bevat security fixes)${NC}"
 echo ""
 
 echo "🌐 Toegang tot Grav:"
@@ -686,6 +720,12 @@ echo "   ├── Container starten:   ${BLUE}cd $GRAV_DIR && docker compose up
 echo "   └── Container herstarten: ${BLUE}cd $GRAV_DIR && docker compose restart${NC}"
 echo ""
 
+echo "🔄 Grav upgraden (naar nieuwste versie):"
+echo "   ${BLUE}cd $GRAV_DIR && docker compose pull grav${NC}"
+echo "   ${BLUE}cd $GRAV_DIR && docker compose up -d${NC}"
+echo "   ${BLUE}docker exec grav bin/grav update -y${NC} (indien nodig)"
+echo ""
+
 echo "🔧 Nieuwe plugin installeren:"
 echo "   ${BLUE}docker exec grav bin/gpm install [plugin-naam] -y${NC}"
 echo ""
@@ -699,7 +739,8 @@ echo "   ├── Docker group wordt actief na ${YELLOW}uit- en opnieuw inlogge
 echo "   ├── Of gebruik in huidige terminal: ${BLUE}newgrp docker${NC}"
 echo "   ├── Poort ${GRAV_PORT} staat open in de firewall (indien UFW actief)"
 echo "   ├── Grav data blijft behouden bij container herstart"
-echo "   └── Error en Problems plugins zitten standaard in Grav Core"
+echo "   ├── Error en Problems plugins zitten standaard in Grav Core"
+echo "   └── ${YELLOW}Grav gebruikt 'latest' tag - altijd de meest recente versie met security fixes!${NC}"
 echo ""
 
 echo "═══════════════════════════════════════════════════════════════════════"
