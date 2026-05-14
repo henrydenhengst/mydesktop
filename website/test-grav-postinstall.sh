@@ -63,8 +63,7 @@
 # -------------
 #
 # Ondersteund:
-# - Debian 12
-# - Debian 11
+# - Debian 12+
 #
 # Vereist:
 # - sudo/root rechten
@@ -75,8 +74,8 @@
 # INSTALLATIE
 # -----------
 #
-# chmod +x test-grav-post-install.sh
-# sudo ./test-grav-post-install.sh
+# chmod +x test-grav-postinstall.sh
+# sudo ./test-grav-postinstall.sh
 #
 ###############################################################################
 
