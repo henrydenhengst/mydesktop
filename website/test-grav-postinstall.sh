@@ -1,129 +1,82 @@
 #!/usr/bin/env bash
 
 ###############################################################################
-# Debian + Docker + Grav Post Install Script
+# Debian + Docker + Grav CMS Full Installer
 ###############################################################################
 #
 # WHY
 # ----
 #
-# Dit script automatiseert een snelle test/development omgeving voor:
+# Dit script automatiseert een complete Grav CMS test/development omgeving.
 #
-# - Debian Linux
+# Inclusief:
+#
+# - Debian validatie
 # - Docker Engine
 # - Docker Compose
 # - Grav CMS
+# - Grav Admin Panel
+# - Veelgebruikte standaard plugins
+# - Quark theme
 #
 # Doel:
 #
 # Binnen enkele minuten een volledig werkende browser-based Grav omgeving
-# beschikbaar hebben zonder handmatige configuratie van repositories,
-# packages, containers en compose files.
-#
-# Ideaal voor:
-#
-# - snelle Proof-of-Concepts
-# - development/testing
-# - homelab omgevingen
-# - tijdelijke demo setups
-# - CMS evaluaties
-# - lokale container testing
+# beschikbaar hebben zonder handmatige configuratie.
 #
 #
-# HOW
-# ----
+# WAT WORDT GEÏNSTALLEERD
+# -----------------------
 #
-# Het script doet automatisch:
+# Core:
+# - Grav CMS
+# - Grav Admin
 #
-# 1. Validatie van omgeving en gebruiker
-# 2. Controle op vrije schijfruimte
-# 3. Installatie van basis packages
-# 4. Installatie van Docker repository
-# 5. Installatie van Docker Engine + Compose
-# 6. Toevoegen gebruiker aan docker group
-# 7. Aanmaken van Grav compose omgeving
-# 8. Starten van Grav container
-# 9. Validatie van draaiende container
+# Plugins:
+# - form
+# - email
+# - login
+# - admin-addon-user-manager
+# - archives
+# - breadcrumbs
+# - feed
+# - pagination
+# - relatedpages
+# - seo
+# - sitemap
+# - taxonomylist
+# - random
+# - highlight
+# - markdown-notices
+# - shortcode-core
+# - twigfeeds
+# - external-links
+# - image-captions
+# - lightbox-gallery
+# - readingtime
+#
+# Theme:
+# - Quark
 #
 #
 # PREREQUISITES
 # -------------
 #
 # Ondersteund:
-#
-# - Debian 12+
-#
-# Aanbevolen desktop:
-#
-# - XFCE
+# - Debian 12
+# - Debian 11
 #
 # Vereist:
-#
-# - Werkende internetverbinding
-# - sudo/root toegang
-# - Minimaal 1GB vrije schijfruimte
+# - sudo/root rechten
+# - internetverbinding
+# - minimaal 1GB vrije ruimte
 #
 #
 # INSTALLATIE
 # -----------
 #
-# 1. Bestand opslaan:
-#
-#    test-grav-postinstall.sh
-#
-# 2. Execute permission geven:
-#
-#    chmod +x test-grav-postinstall.sh
-#
-# 3. Script uitvoeren:
-#
-#    sudo ./test-grav-postinstall.sh
-#
-#
-# RESULTAAT
-# ----------
-#
-# Grav wordt bereikbaar via:
-#
-#    http://localhost:8080
-#
-# Of via netwerk:
-#
-#    http://<IP-ADRES>:8080
-#
-#
-# BESTANDEN
-# ----------
-#
-# Compose directory:
-#
-#    ~/grav
-#
-# Persistente data:
-#
-#    ~/grav/config
-#
-#
-# HANDIGE COMMANDS
-# ----------------
-#
-# Containers bekijken:
-#
-#    docker ps
-#
-# Logs bekijken:
-#
-#    docker logs -f grav-grav-1
-#
-# Stoppen:
-#
-#    cd ~/grav
-#    docker compose down
-#
-# Starten:
-#
-#    cd ~/grav
-#    docker compose up -d
+# chmod +x test-grav-post-install.sh
+# sudo ./test-grav-post-install.sh
 #
 ###############################################################################
 
@@ -145,7 +98,7 @@ GRAV_IMAGE="lscr.io/linuxserver/grav:1.7.48"
 ###############################################################################
 
 echo "========================================="
-echo " Debian + Docker + Grav Installer"
+echo " Debian + Docker + Grav Full Installer"
 echo "========================================="
 echo ""
 
@@ -154,7 +107,7 @@ echo ""
 ###############################################################################
 
 if [[ $EUID -ne 0 ]]; then
-  echo "Run dit script met sudo:"
+  echo "Gebruik sudo:"
   echo ""
   echo "  sudo ./test-grav-post-install.sh"
   echo ""
@@ -166,7 +119,7 @@ fi
 ###############################################################################
 
 if [[ ! -f /etc/debian_version ]]; then
-  echo "Fout: alleen Debian wordt ondersteund."
+  echo "Alleen Debian wordt ondersteund."
   exit 1
 fi
 
@@ -177,14 +130,14 @@ fi
 USERNAME="${SUDO_USER:-$USER}"
 
 if ! id "$USERNAME" &>/dev/null; then
-  echo "Fout: gebruiker '$USERNAME' bestaat niet."
+  echo "Gebruiker bestaat niet: $USERNAME"
   exit 1
 fi
 
 USER_HOME=$(getent passwd "$USERNAME" | cut -d: -f6)
 
 if [[ -z "$USER_HOME" ]]; then
-  echo "Fout: home directory van '$USERNAME' niet gevonden."
+  echo "Kan home directory niet bepalen."
   exit 1
 fi
 
@@ -202,11 +155,7 @@ echo ""
 AVAILABLE_SPACE=$(df --output=avail "$USER_HOME" | tail -1)
 
 if [[ "$AVAILABLE_SPACE" -lt "$REQUIRED_SPACE_KB" ]]; then
-  echo "Fout: onvoldoende vrije schijfruimte."
-  echo ""
-  echo "Benodigd : minimaal 1GB"
-  echo "Beschikbaar: $((AVAILABLE_SPACE / 1024)) MB"
-  echo ""
+  echo "Minimaal 1GB vrije ruimte vereist."
   exit 1
 fi
 
@@ -215,7 +164,7 @@ fi
 ###############################################################################
 
 if ss -tuln | grep -q ":${GRAV_PORT} "; then
-  echo "Fout: poort ${GRAV_PORT} is al in gebruik."
+  echo "Poort ${GRAV_PORT} is al in gebruik."
   echo ""
   echo "Gebruik:"
   echo "  ss -tulnp | grep ${GRAV_PORT}"
@@ -243,7 +192,7 @@ echo "==> Package index updaten..."
 apt update
 
 if [[ "$DO_FULL_UPGRADE" == true ]]; then
-  echo "==> Volledige systeem upgrade..."
+  echo "==> Volledige upgrade uitvoeren..."
   apt upgrade -y
 fi
 
@@ -301,18 +250,14 @@ if [[ "$SKIP_DOCKER_INSTALL" == false ]]; then
     docker-buildx-plugin \
     docker-compose-plugin
 
-  echo "==> Docker service activeren..."
-
   systemctl enable docker
   systemctl start docker
-
-  echo "==> Gebruiker toevoegen aan docker group..."
 
   usermod -aG docker "$USERNAME"
 
 else
 
-  echo "==> Docker draait al, installatie overslaan..."
+  echo "==> Docker draait al."
 
 fi
 
@@ -321,7 +266,7 @@ fi
 ###############################################################################
 
 if command -v ufw &>/dev/null; then
-  echo "==> Firewall regel toevoegen voor poort ${GRAV_PORT}..."
+  echo "==> Firewall openen voor ${GRAV_PORT}/tcp ..."
   ufw allow "${GRAV_PORT}/tcp" || true
 fi
 
@@ -376,23 +321,94 @@ runuser -u "$USERNAME" -- docker compose up -d
 # WAIT FOR STARTUP
 ###############################################################################
 
-echo "==> Wachten op container startup..."
+echo "==> Wachten op Grav startup..."
 
-sleep 8
+sleep 15
+
+###############################################################################
+# INSTALL PLUGINS
+###############################################################################
+
+echo "==> Grav plugins installeren..."
+
+CONTAINER_ID=$(docker ps --format '{{.Names}}' | grep grav | head -n1)
+
+if [[ -z "$CONTAINER_ID" ]]; then
+  echo "Grav container niet gevonden."
+  exit 1
+fi
+
+###############################################################################
+# ADMIN
+###############################################################################
+
+echo "==> Admin plugin installeren..."
+
+docker exec "$CONTAINER_ID" bin/gpm install admin -y || true
+
+###############################################################################
+# DEFAULT PLUGINS
+###############################################################################
+
+PLUGINS=(
+  "form"
+  "email"
+  "login"
+  "admin-addon-user-manager"
+  "archives"
+  "breadcrumbs"
+  "feed"
+  "pagination"
+  "relatedpages"
+  "seo"
+  "sitemap"
+  "taxonomylist"
+  "random"
+  "highlight"
+  "markdown-notices"
+  "shortcode-core"
+  "twigfeeds"
+  "external-links"
+  "image-captions"
+  "lightbox-gallery"
+  "readingtime"
+)
+
+for plugin in "${PLUGINS[@]}"; do
+  echo "==> Installing plugin: $plugin"
+  docker exec "$CONTAINER_ID" bin/gpm install "$plugin" -y || true
+done
+
+###############################################################################
+# THEME
+###############################################################################
+
+echo "==> Quark theme installeren..."
+
+docker exec "$CONTAINER_ID" bin/gpm install quark -y || true
+
+###############################################################################
+# CLEAR CACHE
+###############################################################################
+
+echo "==> Cache legen..."
+
+docker exec "$CONTAINER_ID" bin/grav clear-cache || true
 
 ###############################################################################
 # VERIFY CONTAINER
 ###############################################################################
 
+echo "==> Container status controleren..."
+
 if runuser -u "$USERNAME" -- docker compose ps --status running | grep -q grav; then
-  echo "==> Grav container draait."
+  echo "==> Grav draait correct."
 else
   echo ""
   echo "WAARSCHUWING:"
-  echo "Grav container lijkt niet correct te draaien."
+  echo "Container lijkt niet correct te draaien."
   echo ""
   echo "Controleer logs:"
-  echo ""
   echo "  docker compose logs"
   echo ""
 fi
@@ -413,20 +429,25 @@ echo " INSTALLATIE VOLTOOID"
 echo "========================================="
 echo ""
 
-echo "Open Grav lokaal via:"
+echo "Grav website:"
 echo ""
 echo "  http://localhost:${GRAV_PORT}"
 echo ""
 
+echo "Grav Admin:"
+echo ""
+echo "  http://localhost:${GRAV_PORT}/admin"
+echo ""
+
 if [[ -n "$IP_LIST" ]]; then
-  echo "Of vanaf andere machines:"
+  echo "Beschikbaar via netwerk:"
   echo ""
 
   for ip in $IP_LIST; do
     echo "  http://${ip}:${GRAV_PORT}"
+    echo "  http://${ip}:${GRAV_PORT}/admin"
+    echo ""
   done
-
-  echo ""
 fi
 
 echo "Docker commando's:"
