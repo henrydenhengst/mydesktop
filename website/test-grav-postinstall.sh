@@ -63,7 +63,8 @@
 # -------------
 #
 # Ondersteund:
-# - Debian 12+
+# - Debian 12
+# - Debian 11
 #
 # Vereist:
 # - sudo/root rechten
@@ -108,7 +109,7 @@ echo ""
 if [[ $EUID -ne 0 ]]; then
   echo "Gebruik sudo:"
   echo ""
-  echo "  sudo ./test-grav-post-install.sh"
+  echo "  sudo ./test-grav-postinstall.sh"
   echo ""
   exit 1
 fi
