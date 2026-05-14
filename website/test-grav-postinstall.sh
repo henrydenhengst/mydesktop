@@ -51,8 +51,7 @@
 #
 # Ondersteund:
 #
-# - Debian 12 (aanbevolen)
-# - Debian 11 (meestal compatibel)
+# - Debian 12+
 #
 # Aanbevolen desktop:
 #
@@ -70,15 +69,15 @@
 #
 # 1. Bestand opslaan:
 #
-#    test-grav-post-install.sh
+#    test-grav-postinstall.sh
 #
 # 2. Execute permission geven:
 #
-#    chmod +x test-grav-post-install.sh
+#    chmod +x test-grav-postinstall.sh
 #
 # 3. Script uitvoeren:
 #
-#    sudo ./test-grav-post-install.sh
+#    sudo ./test-grav-postinstall.sh
 #
 #
 # RESULTAAT
