@@ -2,9 +2,9 @@
 
 ###############################################################################
 #                                                                             #
-#   Debian 13 (Trixie) + Docker + Grav + Admin + Plugins - Volledige Setup   #
+#   Debian 13 (Trixie) + Docker + Grav + Admin - Volledige Setup             #
 #                                                                             #
-#   Version: 3.1.0                                                            #
+#   Version: 3.2.0                                                            #
 #   Datum: 2025-01-27                                                         #
 #   Doel: Debian 13 Trixie ONLY                                               #
 #   Getest op: Debian 13 Trixie (testing)                                     #
@@ -15,12 +15,7 @@
 #   -----------                                                               #
 #                                                                             #
 #   Dit script is UITSLUITEND ontworpen voor Debian 13 "Trixie".              #
-#   Het gebruikt moderne Debian features zoals:                               #
-#                                                                             #
-#     • /etc/apt/keyrings/ voor GPG keys                                      #
-#     • signed-by in apt sources                                              #
-#     • Docker repository compatibiliteit met Bookworm fallback               #
-#     • Alleen packages die bestaan in Debian 13                              #
+#   Het gebruikt moderne Debian features.                                     #
 #                                                                             #
 #   Gebruik dit script NIET op oudere Debian versies.                         #
 #                                                                             #
@@ -33,25 +28,35 @@
 #   Debian 13 binnen enkele minuten, inclusief:                               #
 #                                                                             #
 #     • Docker Engine + Compose                                               #
-#     • Grav CMS met Admin panel                                              #
-#     • Quark theme (modern default)                                          #
-#     • Specifieke plugins (zie lijst hieronder)                              #
-#     • Firewall configuratie (indien UFW aanwezig)                           #
+#     • Grav CMS (kale core met error + problems plugins)                     #
+#     • Admin panel (trekt login, form, flex-objects automatisch mee)         #
+#     • Quark theme                                                           #
+#     • Optionele extra plugins (breadcrumbs, git-sync, sitemap, etc.)        #
 #                                                                             #
-#   GEÏNSTALLEERDE PLUGINS:                                                   #
-#   ----------------------                                                    #
+###############################################################################
 #                                                                             #
-#     ✓ Admin Panel         - CMS beheerinterface                             #
-#     ✓ Breadcrumbs         - Navigatie broodkruimels                         #
-#     ✓ Email               - E-mail functionaliteit                          #
-#     ✓ Error               - Foutafhandeling                                 #
-#     ✓ Flex Objects        - Flexibele objecten                              #
-#     ✓ Form                - Formulieren builder                             #
-#     ✓ Git Sync            - Git integratie                                  #
-#     ✓ Login               - Gebruikers authenticatie                        #
-#     ✓ Markdown Notices    - Markdown notificaties                           #
-#     ✓ Problems            - Probleem detectie                               #
-#     ✓ Sitemap             - XML sitemap generator                           #
+#   GRAV CORE PLUGINS (AL AANWEZIG)                                           #
+#   -----------------------------                                             #
+#                                                                             #
+#     ✓ Error      - Foutafhandeling in nette layout                          #
+#     ✓ Problems   - Diagnostische tool voor serveromgeving                   #
+#                                                                             #
+#   GEÏNSTALLEERDE PLUGINS (VIA ADMIN)                                        #
+#   ----------------------------------                                        #
+#                                                                             #
+#     ✓ Admin           - CMS beheerinterface                                 #
+#     ✓ Login           - Gebruikers authenticatie (admin dependency)         #
+#     ✓ Form            - Formulieren builder (admin dependency)              #
+#     ✓ Flex Objects    - Flexibele objecten (admin dependency)               #
+#     ✓ Email           - E-mail functionaliteit (optioneel maar aanbevolen)  #
+#                                                                             #
+#   EXTRA PLUGINS (OPTIONEEL)                                                 #
+#   -------------------------                                                 #
+#                                                                             #
+#     ✓ Breadcrumbs      - Navigatie broodkruimels                            #
+#     ✓ Git Sync         - Git integratie                                     #
+#     ✓ Markdown Notices - Markdown notificaties                              #
+#     ✓ Sitemap          - XML sitemap generator                              #
 #                                                                             #
 ###############################################################################
 #                                                                             #
@@ -116,6 +121,9 @@
 #   Herstarten:                                                               #
 #      cd ~/grav && docker compose restart                                    #
 #                                                                             #
+#   Nieuwe plugin installeren:                                                #
+#      docker exec grav bin/gpm install [plugin-naam] -y                      #
+#                                                                             #
 ###############################################################################
 
 set -euo pipefail
@@ -149,27 +157,21 @@ header() { echo -e "${BLUE}▶${NC} $1"; }
 
 REQUIRED_SPACE_KB=1048576          # 1GB in KB
 GRAV_PORT=8080                     # Wijzig indien nodig
-GRAV_VERSION="1.7.48"              # Vaste versie
+GRAV_VERSION="1.7.48"              # Vaste versie voor reproduceerbaarheid
 GRAV_IMAGE="lscr.io/linuxserver/grav:${GRAV_VERSION}"
-STARTUP_WAIT=45
+STARTUP_WAIT=45                    # Max wachten op Grav startup
 
-# Lijst van te installeren plugins (exact zoals gespecificeerd)
-PLUGINS=(
-    "admin"
+# Extra plugins (deze worden NIET automatisch met admin mee geïnstalleerd)
+# Let op: error + problems zitten AL in Grav core en worden NIET opnieuw geïnstalleerd
+EXTRA_PLUGINS=(
     "breadcrumbs"
-    "email"
-    "error"
-    "flex-objects"
-    "form"
     "git-sync"
-    "login"
     "markdown-notices"
-    "problems"
     "sitemap"
 )
 
-# Theme
-THEME="quark"
+# Of extra plugins geïnstalleerd moeten worden
+INSTALL_EXTRA_PLUGINS=true
 
 ###############################################################################
 #                           DEBIAN 13 CHECK                                   #
@@ -178,7 +180,7 @@ THEME="quark"
 clear
 echo "╔════════════════════════════════════════════════════════════════════╗"
 echo "║        Debian 13 (Trixie) + Docker + Grav - Volledige Setup        ║"
-echo "║                              v3.1.0                                 ║"
+echo "║                              v3.2.0                                 ║"
 echo "║                   ⚠️  DEBIAN 13 ONLY  ⚠️                            ║"
 echo "╚════════════════════════════════════════════════════════════════════╝"
 echo ""
@@ -189,6 +191,9 @@ echo "────────────────────────�
 # Root check
 if [[ $EUID -ne 0 ]]; then
     error "Dit script moet met sudo worden uitgevoerd"
+    echo ""
+    echo "  sudo ./debian13-grav-install.sh"
+    echo ""
     exit 1
 fi
 info "Root/sudo check geslaagd"
@@ -232,7 +237,7 @@ info "Doel gebruiker: $USERNAME"
 # Home directory
 USER_HOME=$(getent passwd "$USERNAME" | cut -d: -f6)
 if [[ -z "$USER_HOME" ]]; then
-    error "Kan home directory niet vinden"
+    error "Kan home directory niet vinden voor $USERNAME"
     exit 1
 fi
 GRAV_DIR="$USER_HOME/grav"
@@ -242,22 +247,33 @@ info "Grav directory: $GRAV_DIR"
 AVAILABLE_SPACE=$(df --output=avail "$USER_HOME" | tail -1)
 if [[ "$AVAILABLE_SPACE" -lt "$REQUIRED_SPACE_KB" ]]; then
     error "Onvoldoende schijfruimte (minimaal 1GB vereist)"
+    echo ""
+    echo "  Beschikbaar: $((AVAILABLE_SPACE / 1024)) MB"
+    echo "  Benodigd:    $((REQUIRED_SPACE_KB / 1024)) MB"
+    echo ""
     exit 1
 fi
 info "Schijfruimte: $((AVAILABLE_SPACE / 1024)) MB beschikbaar"
 
 # Poort check (moderne methode met ss)
+PORT_IN_USE=false
 if command -v ss &>/dev/null; then
     if ss -tuln 2>/dev/null | grep -q ":${GRAV_PORT} "; then
-        error "Poort ${GRAV_PORT} is al in gebruik"
-        exit 1
+        PORT_IN_USE=true
     fi
-else
-    # Fallback naar lsof
-    if command -v lsof &>/dev/null && lsof -i ":${GRAV_PORT}" &>/dev/null 2>&1; then
-        error "Poort ${GRAV_PORT} is al in gebruik"
-        exit 1
+elif command -v lsof &>/dev/null; then
+    if lsof -i ":${GRAV_PORT}" &>/dev/null 2>&1; then
+        PORT_IN_USE=true
     fi
+fi
+
+if [[ "$PORT_IN_USE" == true ]]; then
+    error "Poort ${GRAV_PORT} is al in gebruik"
+    echo ""
+    echo "  Wijzig GRAV_PORT in het script of stop de draaiende service"
+    echo "  Controleer met: ss -tuln | grep ${GRAV_PORT}"
+    echo ""
+    exit 1
 fi
 info "Poort ${GRAV_PORT} is beschikbaar"
 
@@ -267,9 +283,10 @@ echo ""
 #                           SYSTEM UPDATE                                      #
 ###############################################################################
 
-header "Stap 2/6: Systeem updaten"
+header "Stap 2/6: Systeem voorbereiden"
 echo "───────────────────────────────────────────────────────────────────────"
 
+# Package index updaten
 info "Package index updaten..."
 apt update -qq
 
@@ -289,6 +306,13 @@ apt install -y -qq \
 
 info "Basis packages geïnstalleerd"
 
+# Check of ss beschikbaar is (zit in iproute2)
+if command -v ss &>/dev/null; then
+    info "Network tools (ss) beschikbaar"
+else
+    warn "ss command niet beschikbaar - alternatieve port check gebruikt"
+fi
+
 echo ""
 
 ###############################################################################
@@ -300,7 +324,7 @@ echo "────────────────────────�
 
 # Check of Docker al geïnstalleerd is
 if command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
-    info "Docker is al geïnstalleerd"
+    info "Docker is al geïnstalleerd en draait"
 else
     info "Docker repository configureren..."
 
@@ -322,7 +346,7 @@ else
     DOCKER_REPO_CODENAME="bookworm"
     info "  Docker repo codename: $DOCKER_REPO_CODENAME (fallback voor Trixie)"
 
-    # Repository toevoegen met signed-by
+    # Repository toevoegen met signed-by (moderne methode)
     if [[ ! -f /etc/apt/sources.list.d/docker.list ]]; then
         echo "deb [arch=$ARCH signed-by=$DOCKER_GPG] \
             https://download.docker.com/linux/debian \
@@ -331,7 +355,7 @@ else
         info "  Docker repository toegevoegd"
     fi
 
-    # Docker installeren
+    # Docker installatie
     info "Docker packages installeren..."
     apt update -qq
     apt install -y -qq \
@@ -342,14 +366,15 @@ else
         docker-compose-plugin \
         > /dev/null
 
-    # Docker service
+    # Docker service starten
     systemctl enable docker > /dev/null 2>&1
     systemctl start docker
     info "  Docker service gestart"
 
     # Gebruiker toevoegen aan docker group
     usermod -aG docker "$USERNAME"
-    info "  Gebruiker toegevoegd aan docker group"
+    info "  Gebruiker $USERNAME toegevoegd aan docker group"
+    info "Docker succesvol geïnstalleerd"
 fi
 
 # Versies tonen
@@ -372,9 +397,9 @@ echo "────────────────────────�
 
 # Directory aanmaken
 mkdir -p "$GRAV_DIR"
-info "Directory: $GRAV_DIR"
+info "Directory aangemaakt: $GRAV_DIR"
 
-# Docker Compose file (met healthcheck)
+# Docker Compose file met healthcheck
 cat > "$GRAV_DIR/compose.yml" <<EOF
 services:
   grav:
@@ -394,117 +419,152 @@ services:
 EOF
 
 chown -R "$USERNAME":"$USERNAME" "$GRAV_DIR"
-info "Compose file: $GRAV_DIR/compose.yml"
+info "Compose file aangemaakt: $GRAV_DIR/compose.yml"
 
 # Container starten
 info "Grav container starten..."
 cd "$GRAV_DIR"
 runuser -u "$USERNAME" -- docker compose up -d > /dev/null 2>&1
 
+# Wacht kort voor container init
 sleep 3
 
+# Check of container draait
 if docker ps | grep -q grav; then
-    info "Container gestart"
+    info "Container gestart: $(docker ps --filter name=grav --format '{{.Status}}')"
 else
-    error "Container start mislukt"
-    docker logs grav
+    error "Grav container is niet gestart"
+    echo ""
+    echo "  Check logs: docker logs grav"
+    echo ""
     exit 1
 fi
 
 echo ""
 
 ###############################################################################
-#                           WACHTEN OP GRAV                                    #
+#                           WACHTEN OP GRAV STARTUP                           #
 ###############################################################################
 
-header "Stap 5/6: Wachten op Grav startup"
+header "Stap 5/6: Wachten tot Grav volledig gestart is"
 echo "───────────────────────────────────────────────────────────────────────"
 
-echo -n "  Grav initialiseren"
-WAITED=0
-while [[ $WAITED -lt $STARTUP_WAIT ]]; do
-    if docker exec grav test -f /app/index.php 2>/dev/null; then
-        echo ""
-        info "Grav is klaar! (${WAITED} seconden)"
-        break
-    fi
-    echo -n "."
-    sleep 2
-    WAITED=$((WAITED + 2))
-done
-
-if [[ $WAITED -ge $STARTUP_WAIT ]]; then
+# Functie om te wachten op Grav
+wait_for_grav() {
+    local max_wait=$STARTUP_WAIT
+    local waited=0
+    
+    echo -n "  Grav initialiseren"
+    
+    while [[ $waited -lt $max_wait ]]; do
+        # Check of index.php bestaat (indicatie dat Grav klaar is)
+        if docker exec grav test -f /app/index.php 2>/dev/null; then
+            echo ""
+            info "Grav is klaar! (${waited} seconden)"
+            return 0
+        fi
+        echo -n "."
+        sleep 2
+        waited=$((waited + 2))
+    done
+    
     echo ""
-    warn "Startup duurt langer - doorgaan..."
-fi
+    warn "Grav startup duurt langer dan verwacht, maar gaat door..."
+    return 0
+}
 
-# Healthcheck status
+wait_for_grav
+
+# Healthcheck status (indien beschikbaar)
 if docker inspect grav &>/dev/null; then
-    HEALTH=$(docker inspect --format='{{.State.Health.Status}}' grav 2>/dev/null || echo "starting")
-    info "Healthcheck: $HEALTH"
+    HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' grav 2>/dev/null || echo "starting")
+    if [[ "$HEALTH_STATUS" == "healthy" ]]; then
+        info "Healthcheck: Grav is gezond"
+    else
+        warn "Healthcheck status: $HEALTH_STATUS"
+    fi
 fi
 
 echo ""
 
 ###############################################################################
-#                           PLUGINS INSTALLATIE                               #
+#                ADMIN PANEL EN PLUGINS INSTALLATIE                           #
 ###############################################################################
 
 header "Stap 6/6: Admin panel, theme en plugins installeren"
 echo "───────────────────────────────────────────────────────────────────────"
 
-# Grav initialiseren
+# Grav initialiseren (indien nodig)
 info "Grav initialiseren..."
 docker exec grav bin/grav install > /dev/null 2>&1 || true
 sleep 3
 
 # Tellers voor installatie
-TOTAL_PLUGINS=${#PLUGINS[@]}
 INSTALLED=0
 FAILED=0
 
-# Admin panel installeren (eerste en belangrijkste)
-info "Admin panel installeren..."
+# Admin panel installatie
+# Let op: admin trekt automatisch login, form en flex-objects mee
+info "Admin panel installeren (inclusief dependencies)..."
+echo ""
+
 if docker exec -w /app grav bin/gpm install admin -y > /dev/null 2>&1; then
-    info "  ✓ Admin panel"
+    echo -e "    ${GREEN}✓${NC} Admin panel (CMS beheerinterface)"
+    echo -e "    ${GREEN}✓${NC} Login (gebruikers authenticatie - dependency)"
+    echo -e "    ${GREEN}✓${NC} Form (formulieren builder - dependency)"
+    echo -e "    ${GREEN}✓${NC} Flex Objects (flexibele objecten - dependency)"
+    INSTALLED=$((INSTALLED + 4))
+else
+    echo -e "    ${RED}✗${NC} Admin panel installatie mislukt"
+    FAILED=$((FAILED + 1))
+    error "Admin panel is vereist voor verdere installatie"
+    exit 1
+fi
+
+echo ""
+
+# Email plugin (optioneel maar aanbevolen voor admin)
+info "Email plugin installeren (aanbevolen voor admin)..."
+if docker exec -w /app grav bin/gpm install email -y > /dev/null 2>&1; then
+    echo -e "    ${GREEN}✓${NC} Email (e-mail functionaliteit)"
     INSTALLED=$((INSTALLED + 1))
 else
-    warn "  ✗ Admin panel (mislukt)"
+    echo -e "    ${YELLOW}⚠${NC} Email (niet geïnstalleerd)"
     FAILED=$((FAILED + 1))
 fi
 
-# Theme installeren
-info "Theme installeren (quark)..."
-if docker exec -w /app grav bin/gpm install quark -y > /dev/null 2>&1; then
-    info "  ✓ Quark theme"
-else
-    warn "  ✗ Quark theme (mislukt)"
-fi
-
-# Overige plugins installeren
-info "Plugins installeren..."
 echo ""
 
-for plugin in "${PLUGINS[@]}"; do
-    # Skip admin want die is al geïnstalleerd
-    if [[ "$plugin" == "admin" ]]; then
-        continue
-    fi
+# Quark theme installeren
+info "Quark theme installeren (modern standaard thema)..."
+if docker exec -w /app grav bin/gpm install quark -y > /dev/null 2>&1; then
+    echo -e "    ${GREEN}✓${NC} Quark theme"
+    INSTALLED=$((INSTALLED + 1))
+else
+    echo -e "    ${YELLOW}⚠${NC} Quark theme (niet geïnstalleerd)"
+    FAILED=$((FAILED + 1))
+fi
+
+echo ""
+
+# Extra plugins (optioneel)
+if [[ "$INSTALL_EXTRA_PLUGINS" == true ]]; then
+    info "Extra plugins installeren..."
+    echo ""
     
-    echo -n "    • ${plugin} ... "
-    
-    # Format plugin naam voor GPM (git-sync blijft git-sync, flex-objects blijft flex-objects)
-    if docker exec -w /app grav bin/gpm install "$plugin" -y > /dev/null 2>&1; then
-        echo -e "${GREEN}✓${NC}"
-        INSTALLED=$((INSTALLED + 1))
-    else
-        echo -e "${RED}✗${NC}"
-        FAILED=$((FAILED + 1))
-    fi
-    
-    # Korte pauze tussen plugin installaties
-    sleep 1
-done
+    for plugin in "${EXTRA_PLUGINS[@]}"; do
+        echo -n "    • ${plugin} ... "
+        if docker exec -w /app grav bin/gpm install "$plugin" -y > /dev/null 2>&1; then
+            echo -e "${GREEN}✓${NC}"
+            INSTALLED=$((INSTALLED + 1))
+        else
+            echo -e "${YELLOW}⚠${NC}"
+            FAILED=$((FAILED + 1))
+        fi
+        # Korte pauze tussen plugin installaties
+        sleep 1
+    done
+fi
 
 echo ""
 
@@ -515,28 +575,43 @@ docker exec grav bin/grav clear-cache > /dev/null 2>&1 || true
 # Samenvatting plugin installatie
 echo ""
 info "Plugin installatie samenvatting:"
-info "  ✅ Succesvol: ${INSTALLED}"
+info "  ✅ Succesvol geïnstalleerd: ${INSTALLED} component(en)"
 if [[ $FAILED -gt 0 ]]; then
-    warn "  ❌ Mislukt: ${FAILED}"
+    warn "  ⚠️  Niet geïnstalleerd/mislukt: ${FAILED}"
+fi
+
+echo ""
+
+# Toon welke plugins er in Grav core zitten (voor informatie)
+info "Let op: Error en Problems plugins zitten standaard in Grav Core"
+info "  Deze hoeven niet apart te worden geïnstalleerd."
+
+echo ""
+
+###############################################################################
+#                         FIREWALL CONFIGURATIE                               #
+###############################################################################
+
+if command -v ufw &>/dev/null; then
+    if ufw status | grep -q "Status: active"; then
+        info "UFW firewall is actief - poort ${GRAV_PORT} openen..."
+        ufw allow "${GRAV_PORT}/tcp" > /dev/null 2>&1 || true
+        info "  Poort ${GRAV_PORT}/tcp open gezet"
+    else
+        warn "UFW is geïnstalleerd maar niet actief"
+        echo "  Activeer met: sudo ufw enable"
+    fi
+else
+    info "Geen UFW gevonden - firewall configuratie overgeslagen"
 fi
 
 echo ""
 
 ###############################################################################
-#                           FIREWALL                                          #
+#                          SAMENVATTING & INFO                                 #
 ###############################################################################
 
-if command -v ufw &>/dev/null; then
-    if ufw status | grep -q "Status: active"; then
-        info "UFW: poort ${GRAV_PORT} openen..."
-        ufw allow "${GRAV_PORT}/tcp" > /dev/null 2>&1 || true
-    fi
-fi
-
-###############################################################################
-#                           SAMENVATTING                                      #
-###############################################################################
-
+# Verzamel IP adressen
 IP_LIST=$(hostname -I 2>/dev/null || echo "")
 
 clear
@@ -548,69 +623,102 @@ echo ""
 echo -e "${GREEN}✅ Grav CMS is succesvol geïnstalleerd op Debian 13!${NC}"
 echo ""
 
-echo "🌐 Toegang:"
+echo "🌐 Toegang tot Grav:"
+echo ""
+echo "   Lokaal:"
 echo "   ├── Frontend: ${BLUE}http://localhost:${GRAV_PORT}${NC}"
 echo "   └── Admin:    ${BLUE}http://localhost:${GRAV_PORT}/admin${NC}"
 echo ""
 
 if [[ -n "$IP_LIST" ]]; then
-    echo "   Netwerk toegang:"
+    echo "   Vanaf andere apparaten in hetzelfde netwerk:"
     for ip in $IP_LIST; do
-        if [[ "$ip" != "127.0.0.1" && "$ip" != "::1" ]]; then
-            echo "   ├── http://${ip}:${GRAV_PORT}"
+        # Skip loopback en IPv6 link-local
+        if [[ "$ip" != "127.0.0.1" && "$ip" != "::1" && ! "$ip" =~ ^fe80 ]]; then
+            echo "   ├── Frontend: ${BLUE}http://${ip}:${GRAV_PORT}${NC}"
+            echo "   └── Admin:    ${BLUE}http://${ip}:${GRAV_PORT}/admin${NC}"
         fi
     done
     echo ""
 fi
 
-echo "📦 Geïnstalleerde plugins:"
-echo "   ├── Admin Panel         - CMS beheerinterface"
-echo "   ├── Breadcrumbs         - Navigatie broodkruimels"
-echo "   ├── Email               - E-mail functionaliteit"
-echo "   ├── Error               - Foutafhandeling"
-echo "   ├── Flex Objects        - Flexibele objecten"
-echo "   ├── Form                - Formulieren builder"
-echo "   ├── Git Sync            - Git integratie"
-echo "   ├── Login               - Gebruikers authenticatie"
-echo "   ├── Markdown Notices    - Markdown notificaties"
-echo "   ├── Problems            - Probleem detectie"
-echo "   ├── Sitemap             - XML sitemap generator"
-echo "   └── Quark theme         - Modern standaard thema"
+echo "📂 Bestanden en directories:"
+echo "   ├── Compose configuratie: ${BLUE}$GRAV_DIR/compose.yml${NC}"
+echo "   ├── Grav configuratie:    ${BLUE}$GRAV_DIR/config/${NC}"
+echo "   └── Docker volumes:       ${BLUE}docker volume ls${NC}"
 echo ""
 
-echo "👤 Eerste login:"
+echo "📦 Geïnstalleerde componenten:"
+echo ""
+echo "   Grav Core (altijd aanwezig):"
+echo "   ├── Error       - Foutafhandeling in nette layout"
+echo "   └── Problems    - Diagnostische tool voor serveromgeving"
+echo ""
+echo "   Via Admin panel geïnstalleerd:"
+echo "   ├── Admin           - CMS beheerinterface"
+echo "   ├── Login           - Gebruikers authenticatie (dependency)"
+echo "   ├── Form            - Formulieren builder (dependency)"
+echo "   ├── Flex Objects    - Flexibele objecten (dependency)"
+echo "   ├── Email           - E-mail functionaliteit"
+echo "   └── Quark theme     - Modern standaard thema"
+echo ""
+
+if [[ "$INSTALL_EXTRA_PLUGINS" == true ]]; then
+    echo "   Extra plugins:"
+    echo "   ├── Breadcrumbs      - Navigatie broodkruimels"
+    echo "   ├── Git Sync         - Git integratie"
+    echo "   ├── Markdown Notices - Markdown notificaties"
+    echo "   └── Sitemap          - XML sitemap generator"
+    echo ""
+fi
+
+echo "👤 Eerste login (belangrijk!):"
 echo "   1. Open ${BLUE}http://localhost:${GRAV_PORT}/admin${NC}"
 echo "   2. Volg de wizard om een admin account aan te maken"
+echo "   3. Gebruik een sterk wachtwoord voor de beveiliging"
 echo ""
 
-echo "🐳 Commando's:"
-echo "   ├── Status:    ${BLUE}docker ps${NC}"
-echo "   ├── Logs:      ${BLUE}docker logs -f grav${NC}"
-echo "   ├── Stoppen:   ${BLUE}cd $GRAV_DIR && docker compose down${NC}"
-echo "   └── Starten:   ${BLUE}cd $GRAV_DIR && docker compose up -d${NC}"
+echo "🐳 Handige Docker commando's:"
+echo "   ├── Status bekijken:     ${BLUE}docker ps${NC}"
+echo "   ├── Logs bekijken:       ${BLUE}docker logs -f grav${NC}"
+echo "   ├── Container stoppen:   ${BLUE}cd $GRAV_DIR && docker compose down${NC}"
+echo "   ├── Container starten:   ${BLUE}cd $GRAV_DIR && docker compose up -d${NC}"
+echo "   └── Container herstarten: ${BLUE}cd $GRAV_DIR && docker compose restart${NC}"
 echo ""
 
 echo "🔧 Nieuwe plugin installeren:"
 echo "   ${BLUE}docker exec grav bin/gpm install [plugin-naam] -y${NC}"
 echo ""
 
-echo "⚠️  Notities:"
-echo "   ├── Docker group actief na ${YELLOW}uit- en inloggen${NC}"
-echo "   ├── Of: ${BLUE}newgrp docker${NC} in huidige terminal"
-echo "   └── Plugin installatie kan handmatig herhaald worden bij mislukking"
+echo "🔧 Plugin verwijderen:"
+echo "   ${BLUE}docker exec grav bin/gpm uninstall [plugin-naam]${NC}"
+echo ""
+
+echo "⚠️  Belangrijke notities:"
+echo "   ├── Docker group wordt actief na ${YELLOW}uit- en opnieuw inloggen${NC}"
+echo "   ├── Of gebruik in huidige terminal: ${BLUE}newgrp docker${NC}"
+echo "   ├── Poort ${GRAV_PORT} staat open in de firewall (indien UFW actief)"
+echo "   ├── Grav data blijft behouden bij container herstart"
+echo "   └── Error en Problems plugins zitten standaard in Grav Core"
 echo ""
 
 echo "═══════════════════════════════════════════════════════════════════════"
 echo ""
 
+# Check of container nog draait na plugin installatie
 if docker ps | grep -q grav; then
-    echo -e "${GREEN}✅ Grav draait!${NC}"
+    echo -e "${GREEN}✅ Grav container draait en is beschikbaar!${NC}"
 else
-    echo -e "${RED}❌ Container draait niet - check: docker logs grav${NC}"
+    echo -e "${RED}❌ Waarschuwing: Grav container lijkt niet te draaien.${NC}"
+    echo ""
+    echo "  Controleer met: ${BLUE}docker ps -a${NC}"
+    echo "  Bekijk logs:    ${BLUE}docker logs grav${NC}"
+    echo "  Herstart:       ${BLUE}cd $GRAV_DIR && docker compose up -d${NC}"
+    echo ""
 fi
 
 echo ""
-echo -e "${GREEN}Klaar!${NC}"
+echo -e "${GREEN}Installatie succesvol afgerond!${NC}"
 echo ""
 
 exit 0
