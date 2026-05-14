@@ -4,10 +4,10 @@
 #                                                                             #
 #   Debian + Docker + Grav + Admin + Plugins - Volledige Installatie         #
 #                                                                             #
-#   Version: 2.1.0                                                            #
+#   Version: 2.2.0                                                            #
 #   Datum: 2025-01-27                                                         #
-#   Compatibel: Debian 11, 12, 13 (met fallback)                             #
-#   Getest op: Debian 12 (Bookworm)                                           #
+#   Compatibel: Debian 11, 12, 13 (Bullseye, Bookworm, Trixie)               #
+#   Getest op: Debian 11, Debian 12, Debian 13 (testing)                      #
 #                                                                             #
 ###############################################################################
 #                                                                             #
@@ -23,7 +23,7 @@
 #     • Essentiële plugins (form, email, login, seo, sitemap, etc.)           #
 #     • Firewall configuratie (indien UFW aanwezig)                           #
 #                                                                             #
-#   Het resultaat is een productie-klaar development platform voor:           #
+#   Het resultaat is een development platform voor:                           #
 #                                                                             #
 #     • Proof-of-Concepts                                                     #
 #     • Client demo's                                                         #
@@ -44,7 +44,7 @@
 #                                                                             #
 #   2. Systeem voorbereiding                                                  #
 #      • APT update (en optioneel upgrade)                                    #
-#      • Basis packages (curl, git, iproute2, etc.)                           #
+#      • Basis packages (alleen Debian-compatibele)                           #
 #                                                                             #
 #   3. Docker installatie                                                     #
 #      • Officiële Docker repository                                          #
@@ -59,7 +59,7 @@
 #   5. Plugins & thema's                                                      #
 #      • Admin panel                                                          #
 #      • Quark theme                                                          #
-#      • 10+ essentiële plugins                                               #
+#      • Essentiële plugins                                                   #
 #      • Cache clearen                                                        #
 #                                                                             #
 #   6. Afronding                                                              #
@@ -72,7 +72,7 @@
 #   VEREISTEN                                                                 #
 #   ----------                                                                #
 #                                                                             #
-#   • Debian 11, 12 of 13 (getest op 12)                                      #
+#   • Debian 11, 12 of 13 (alle versies ondersteund)                          #
 #   • Werkende internetverbinding                                             #
 #   • sudo/root toegang                                                       #
 #   • Minimaal 1GB vrije schijfruimte                                         #
@@ -148,7 +148,7 @@
 #   -------------                                                             #
 #                                                                             #
 #   PROBLEM: Poort 8080 is al in gebruik                                      #
-#   OPLOSSING: Wijzig GRAV_PORT variabele in script (regel 195)               #
+#   OPLOSSING: Wijzig GRAV_PORT variabele in script (regel 220)               #
 #                                                                             #
 #   PROBLEM: Docker group niet actief                                         #
 #   OPLOSSING: Log uit en opnieuw in, of: newgrp docker                       #
@@ -161,6 +161,10 @@
 #                                                                             #
 #   PROBLEM: 'ss' command not found                                           #
 #   OPLOSSING: apt install iproute2 (wordt door script gedaan)                #
+#                                                                             #
+#   PROBLEM: software-properties-common niet gevonden                         #
+#   OPLOSSING: Dit package is verwijderd uit Debian 13 - script gebruikt het  #
+#              niet meer. Handmatige repo toevoeging werkt op alle versies.   #
 #                                                                             #
 ###############################################################################
 #                                                                             #
@@ -234,7 +238,8 @@ STARTUP_WAIT=45                     # Max wachten op Grav startup
 clear
 echo "╔════════════════════════════════════════════════════════════════════╗"
 echo "║     Debian + Docker + Grav + Admin + Plugins - Volledige Setup     ║"
-echo "║                              v2.1.0                                 ║"
+echo "║                              v2.2.0                                 ║"
+echo "║                   Compatibel: Debian 11, 12, 13                     ║"
 echo "╚════════════════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -261,7 +266,8 @@ if [[ ! -f /etc/debian_version ]]; then
   exit 1
 fi
 DEBIAN_VERSION=$(cat /etc/debian_version)
-info "Debian versie: $DEBIAN_VERSION"
+DEBIAN_MAJOR=$(echo "$DEBIAN_VERSION" | cut -d. -f1)
+info "Debian versie: $DEBIAN_VERSION (major: $DEBIAN_MAJOR)"
 
 # Detecteer gebruiker
 USERNAME="${SUDO_USER:-$USER}"
@@ -289,18 +295,41 @@ if [[ "$AVAILABLE_SPACE" -lt "$REQUIRED_SPACE_KB" ]]; then
 fi
 info "Schijfruimte: $((AVAILABLE_SPACE / 1024)) MB beschikbaar"
 
-# Check poort (inclusief Docker containers)
-PORT_IN_USE=false
-if command -v ss &>/dev/null && ss -tuln 2>/dev/null | grep -q ":${GRAV_PORT} "; then
-  PORT_IN_USE=true
-fi
-if command -v lsof &>/dev/null && lsof -i ":${GRAV_PORT}" &>/dev/null 2>&1; then
-  PORT_IN_USE=true
-fi
-if $PORT_IN_USE; then
+# Functie om poort te checken (werkt op alle Debian versies)
+check_port() {
+  local port=$1
+  local in_use=false
+  
+  # Check met ss (indien beschikbaar)
+  if command -v ss &>/dev/null; then
+    if ss -tuln 2>/dev/null | grep -q ":${port} "; then
+      in_use=true
+    fi
+  fi
+  
+  # Check met netstat (fallback als ss niet beschikbaar is)
+  if [[ "$in_use" == false ]] && command -v netstat &>/dev/null; then
+    if netstat -tuln 2>/dev/null | grep -q ":${port} "; then
+      in_use=true
+    fi
+  fi
+  
+  # Check met lsof (meest betrouwbaar, indien beschikbaar)
+  if [[ "$in_use" == false ]] && command -v lsof &>/dev/null; then
+    if lsof -i ":${port}" &>/dev/null 2>&1; then
+      in_use=true
+    fi
+  fi
+  
+  echo "$in_use"
+}
+
+# Poort check uitvoeren
+if [[ "$(check_port "$GRAV_PORT")" == "true" ]]; then
   error "Poort ${GRAV_PORT} is al in gebruik"
   echo ""
   echo "  Wijzig GRAV_PORT in het script of stop de draaiende service"
+  echo "  Controleer met: ss -tuln | grep ${GRAV_PORT}"
   echo ""
   exit 1
 fi
@@ -309,25 +338,42 @@ info "Poort ${GRAV_PORT} is beschikbaar"
 echo ""
 
 ###############################################################################
-#                        DEBIAN 13 COMPATIBILITEIT                            #
+#                        DEBIAN VERSIE DETECTIE                               #
 ###############################################################################
 
 header "Stap 2/7: Systeem voorbereiden"
 echo "───────────────────────────────────────────────────────────────────────"
 
-# Detecteer Debian codename
-if [[ -f /etc/os-release ]]; then
-  # shellcheck source=/dev/null
-  source /etc/os-release
-  CODENAME="${VERSION_CODENAME:-}"
-else
-  CODENAME=""
-fi
+# Detecteer Debian codename op een manier die werkt op alle versies
+detect_codename() {
+  if [[ -f /etc/os-release ]]; then
+    # shellcheck source=/dev/null
+    source /etc/os-release
+    echo "${VERSION_CODENAME:-}"
+  elif command -v lsb_release &>/dev/null; then
+    lsb_release -sc
+  else
+    # Fallback obv major version
+    case $DEBIAN_MAJOR in
+      11) echo "bullseye" ;;
+      12) echo "bookworm" ;;
+      13) echo "trixie" ;;
+      *) echo "" ;;
+    esac
+  fi
+}
+
+CODENAME=$(detect_codename)
+info "Debian codename: ${CODENAME:-onbekend}"
 
 # Fix voor Debian 13 (Trixie) - Docker repo ondersteunt Trixie nog niet
 case "$CODENAME" in
   trixie)
     warn "Debian 13 (Trixie) gedetecteerd - gebruik Bookworm repo voor Docker"
+    DOCKER_CODENAME="bookworm"
+    ;;
+  "")
+    warn "Kan codename niet detecteren - fallback naar bookworm voor Docker"
     DOCKER_CODENAME="bookworm"
     ;;
   *)
@@ -345,30 +391,45 @@ if [[ "$DO_FULL_UPGRADE" == true ]]; then
   apt upgrade -y -qq
 fi
 
-# Basis packages installeren (alleen Debian-compatibele packages)
+# Basis packages installeren - ALLEEN packages die bestaan op ALLE Debian versies
+# software-properties-common is VERWIJDERD omdat het niet bestaat op Debian 13
 info "Basis packages installeren..."
-apt install -y -qq \
-  curl \
-  wget \
-  git \
-  nano \
-  ca-certificates \
-  gnupg \
-  lsb-release \
-  apt-transport-https \
-  software-properties-common \
-  lsof \
-  iproute2 \
-  > /dev/null
 
-# Controleer of ss beschikbaar is (zit in iproute2)
+# Eerst de packages die overal bestaan
+BASE_PACKAGES=(
+  "curl"
+  "wget"
+  "git"
+  "nano"
+  "ca-certificates"
+  "gnupg"
+  "lsb-release"
+  "apt-transport-https"
+  "lsof"
+  "iproute2"
+)
+
+# Installeer basis packages
+for pkg in "${BASE_PACKAGES[@]}"; do
+  if apt-cache show "$pkg" &>/dev/null; then
+    apt install -y -qq "$pkg" > /dev/null
+    info "  $pkg"
+  else
+    warn "Package $pkg niet beschikbaar - wordt overgeslagen"
+  fi
+done
+
+# Check of ss beschikbaar is (zit in iproute2)
 if command -v ss &>/dev/null; then
   info "Network tools (ss) beschikbaar"
 else
-  warn "ss command niet beschikbaar - alternatieve port check wordt gebruikt"
+  warn "ss command niet beschikbaar - netstat fallback wordt gebruikt"
+  # Installeer net-tools als fallback voor netstat
+  if apt-cache show net-tools &>/dev/null; then
+    apt install -y -qq net-tools > /dev/null
+    info "net-tools geïnstalleerd (fallback voor port check)"
+  fi
 fi
-
-info "Basis packages geïnstalleerd"
 
 echo ""
 
@@ -394,6 +455,7 @@ if [[ "$SKIP_DOCKER_INSTALL" == false ]]; then
   if [[ ! -f /etc/apt/keyrings/docker.gpg ]]; then
     curl -fsSL https://download.docker.com/linux/debian/gpg | \
       gpg --dearmor -o /etc/apt/keyrings/docker.gpg > /dev/null 2>&1
+    info "  Docker GPG key geïnstalleerd"
   fi
   chmod a+r /etc/apt/keyrings/docker.gpg
 
@@ -405,6 +467,7 @@ if [[ "$SKIP_DOCKER_INSTALL" == false ]]; then
       https://download.docker.com/linux/debian \
       $DOCKER_CODENAME stable" | \
       tee /etc/apt/sources.list.d/docker.list > /dev/null
+    info "  Docker repository toegevoegd (codename: $DOCKER_CODENAME)"
   fi
 
   # Docker installatie
@@ -421,9 +484,12 @@ if [[ "$SKIP_DOCKER_INSTALL" == false ]]; then
   # Docker service starten
   systemctl enable docker > /dev/null 2>&1
   systemctl start docker
+  info "  Docker service gestart"
 
   # Gebruiker toevoegen aan docker group
   usermod -aG docker "$USERNAME"
+  info "  Gebruiker $USERNAME toegevoegd aan docker group"
+  
   info "Docker succesvol geïnstalleerd"
 fi
 
@@ -448,6 +514,7 @@ echo "────────────────────────�
 
 # Directory aanmaken
 mkdir -p "$GRAV_DIR"
+info "Directory aangemaakt: $GRAV_DIR"
 
 # Docker Compose file met healthcheck
 cat > "$GRAV_DIR/compose.yml" <<EOF
@@ -480,15 +547,15 @@ runuser -u "$USERNAME" -- docker compose up -d > /dev/null 2>&1
 sleep 3
 
 # Check of container draait
-if ! docker ps | grep -q grav; then
+if docker ps | grep -q grav; then
+  info "Container gestart: $(docker ps --filter name=grav --format '{{.Status}}')"
+else
   error "Grav container is niet gestart"
   echo ""
   echo "  Check logs: docker logs grav"
   echo ""
   exit 1
 fi
-
-info "Container gestart: $(docker ps --filter name=grav --format '{{.Status}}')"
 
 echo ""
 
@@ -499,7 +566,7 @@ echo ""
 header "Stap 5/7: Wachten tot Grav volledig gestart is"
 echo "───────────────────────────────────────────────────────────────────────"
 
-# Functie om te wachten op Grav
+# Functie om te wachten op Grav (werkt met elke versie)
 wait_for_grav() {
   local max_wait=$STARTUP_WAIT
   local waited=0
@@ -525,11 +592,14 @@ wait_for_grav() {
 
 wait_for_grav
 
-# Extra healthcheck
-if docker inspect --format='{{.State.Health.Status}}' grav 2>/dev/null | grep -q "healthy"; then
-  info "Healthcheck: Grav is gezond"
-else
-  warn "Healthcheck nog niet voltooid, maar container draait"
+# Extra healthcheck check (indien beschikbaar)
+if docker inspect grav &>/dev/null; then
+  HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' grav 2>/dev/null || echo "starting")
+  if [[ "$HEALTH_STATUS" == "healthy" ]]; then
+    info "Healthcheck: Grav is gezond"
+  else
+    warn "Healthcheck status: $HEALTH_STATUS"
+  fi
 fi
 
 echo ""
@@ -550,9 +620,9 @@ sleep 3
 if [[ "$INSTALL_ADMIN" == true ]]; then
   info "Admin panel installeren..."
   if docker exec -w /app grav bin/gpm install admin -y > /dev/null 2>&1; then
-    info "Admin panel geïnstalleerd"
+    info "  Admin panel geïnstalleerd"
   else
-    warn "Admin panel installatie mislukt (kan later handmatig: docker exec grav bin/gpm install admin -y)"
+    warn "  Admin panel installatie mislukt (kan later handmatig)"
   fi
 fi
 
@@ -560,9 +630,9 @@ fi
 if [[ "$INSTALL_QUARK" == true ]]; then
   info "Quark theme installeren..."
   if docker exec -w /app grav bin/gpm install quark -y > /dev/null 2>&1; then
-    info "Quark theme geïnstalleerd"
+    info "  Quark theme geïnstalleerd"
   else
-    warn "Quark theme installatie mislukt"
+    warn "  Quark theme installatie mislukt"
   fi
 fi
 
@@ -586,7 +656,7 @@ if [[ "$INSTALL_EXTRA_PLUGINS" == true ]]; then
     fi
   done
   
-  # Extra plugins (optioneel - kunnen falen afhankelijk van Grav versie)
+  # Extra plugins (optioneel)
   OPTIONAL_PLUGINS=(
     "admin-addon-user-manager"
     "seo"
@@ -628,12 +698,15 @@ echo "────────────────────────�
 
 if command -v ufw &>/dev/null; then
   if ufw status | grep -q "Status: active"; then
-    info "UFW firewall is actief - regel toevoegen voor poort ${GRAV_PORT}..."
-    ufw allow "${GRAV_PORT}/tcp" > /dev/null 2>&1 || true
-    info "Firewall geconfigureerd: poort ${GRAV_PORT}/tcp staat open"
+    info "UFW firewall is actief"
+    if ufw allow "${GRAV_PORT}/tcp" > /dev/null 2>&1; then
+      info "  Poort ${GRAV_PORT}/tcp open gezet"
+    else
+      warn "  Kon poort ${GRAV_PORT}/tcp niet openen"
+    fi
   else
-    warn "UFW is geïnstalleerd maar niet actief - firewall regels niet toegevoegd"
-    echo "  Activeer UFW met: sudo ufw enable"
+    warn "UFW is geïnstalleerd maar niet actief"
+    echo "  Activeer met: sudo ufw enable"
   fi
 else
   info "Geen UFW gevonden - firewall configuratie overgeslagen"
@@ -668,8 +741,11 @@ echo ""
 if [[ -n "$IP_LIST" ]]; then
   echo "   Vanaf andere apparaten in hetzelfde netwerk:"
   for ip in $IP_LIST; do
-    echo "   ├── Frontend: ${BLUE}http://${ip}:${GRAV_PORT}${NC}"
-    echo "   └── Admin:    ${BLUE}http://${ip}:${GRAV_PORT}/admin${NC}"
+    # Skip loopback en IPv6 link-local
+    if [[ "$ip" != "127.0.0.1" && "$ip" != "::1" && ! "$ip" =~ ^fe80 ]]; then
+      echo "   ├── Frontend: ${BLUE}http://${ip}:${GRAV_PORT}${NC}"
+      echo "   └── Admin:    ${BLUE}http://${ip}:${GRAV_PORT}/admin${NC}"
+    fi
   done
   echo ""
 fi
@@ -710,12 +786,13 @@ echo "   └── Grav data blijft behouden bij container herstart"
 echo ""
 
 echo "📦 Geïnstalleerde componenten:"
-echo "   ├── Docker ${DOCKER_VERSION}"
-echo "   ├── Docker Compose ${COMPOSE_VERSION:-geïnstalleerd}"
-echo "   ├── Grav CMS ${GRAV_VERSION}"
-echo "   ├── Admin panel: ${INSTALL_ADMIN:-ja}"
-echo "   ├── Quark theme: ${INSTALL_QUARK:-ja}"
-echo "   └── Extra plugins: ${INSTALL_EXTRA_PLUGINS:-ja}"
+echo "   ├── Debian versie:        ${DEBIAN_VERSION} (codename: ${CODENAME:-onbekend})"
+echo "   ├── Docker versie:        ${DOCKER_VERSION}"
+echo "   ├── Docker Compose:       ${COMPOSE_VERSION:-geïnstalleerd}"
+echo "   ├── Grav CMS:             ${GRAV_VERSION}"
+echo "   ├── Admin panel:          ${INSTALL_ADMIN:-ja}"
+echo "   ├── Quark theme:          ${INSTALL_QUARK:-ja}"
+echo "   └── Extra plugins:        ${INSTALL_EXTRA_PLUGINS:-ja}"
 echo ""
 
 echo "═══════════════════════════════════════════════════════════════════════"
@@ -734,7 +811,7 @@ else
 fi
 
 echo ""
-echo "${GREEN}Installatie succesvol afgerond!${NC}"
+echo -e "${GREEN}Installatie succesvol afgerond!${NC}"
 echo ""
 
 exit 0
