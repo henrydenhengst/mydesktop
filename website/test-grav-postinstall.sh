@@ -4,7 +4,7 @@
 #                                                                             #
 #   Debian 13 (Trixie) + Docker + Grav + Admin + Plugins - Volledige Setup   #
 #                                                                             #
-#   Version: 3.0.0                                                            #
+#   Version: 3.1.0                                                            #
 #   Datum: 2025-01-27                                                         #
 #   Doel: Debian 13 Trixie ONLY                                               #
 #   Getest op: Debian 13 Trixie (testing)                                     #
@@ -35,8 +35,23 @@
 #     • Docker Engine + Compose                                               #
 #     • Grav CMS met Admin panel                                              #
 #     • Quark theme (modern default)                                          #
-#     • Essentiële plugins (form, email, login, seo, sitemap, etc.)           #
+#     • Specifieke plugins (zie lijst hieronder)                              #
 #     • Firewall configuratie (indien UFW aanwezig)                           #
+#                                                                             #
+#   GEÏNSTALLEERDE PLUGINS:                                                   #
+#   ----------------------                                                    #
+#                                                                             #
+#     ✓ Admin Panel         - CMS beheerinterface                             #
+#     ✓ Breadcrumbs         - Navigatie broodkruimels                         #
+#     ✓ Email               - E-mail functionaliteit                          #
+#     ✓ Error               - Foutafhandeling                                 #
+#     ✓ Flex Objects        - Flexibele objecten                              #
+#     ✓ Form                - Formulieren builder                             #
+#     ✓ Git Sync            - Git integratie                                  #
+#     ✓ Login               - Gebruikers authenticatie                        #
+#     ✓ Markdown Notices    - Markdown notificaties                           #
+#     ✓ Problems            - Probleem detectie                               #
+#     ✓ Sitemap             - XML sitemap generator                           #
 #                                                                             #
 ###############################################################################
 #                                                                             #
@@ -80,7 +95,7 @@
 #   ------------                                                              #
 #                                                                             #
 #   1. Open http://localhost:8080/admin                                       #
-#   2. Volg de wizard om admin account aan te maken                           #
+#   2. Volg de wizard om een admin account aan te maken                       #
 #   3. Kies een sterk wachtwoord                                              #
 #                                                                             #
 #   HANDIGE COMMANDS:                                                         #
@@ -138,6 +153,24 @@ GRAV_VERSION="1.7.48"              # Vaste versie
 GRAV_IMAGE="lscr.io/linuxserver/grav:${GRAV_VERSION}"
 STARTUP_WAIT=45
 
+# Lijst van te installeren plugins (exact zoals gespecificeerd)
+PLUGINS=(
+    "admin"
+    "breadcrumbs"
+    "email"
+    "error"
+    "flex-objects"
+    "form"
+    "git-sync"
+    "login"
+    "markdown-notices"
+    "problems"
+    "sitemap"
+)
+
+# Theme
+THEME="quark"
+
 ###############################################################################
 #                           DEBIAN 13 CHECK                                   #
 ###############################################################################
@@ -145,7 +178,7 @@ STARTUP_WAIT=45
 clear
 echo "╔════════════════════════════════════════════════════════════════════╗"
 echo "║        Debian 13 (Trixie) + Docker + Grav - Volledige Setup        ║"
-echo "║                              v3.0.0                                 ║"
+echo "║                              v3.1.0                                 ║"
 echo "║                   ⚠️  DEBIAN 13 ONLY  ⚠️                            ║"
 echo "╚════════════════════════════════════════════════════════════════════╝"
 echo ""
@@ -417,7 +450,7 @@ echo ""
 #                           PLUGINS INSTALLATIE                               #
 ###############################################################################
 
-header "Stap 6/6: Admin panel en plugins"
+header "Stap 6/6: Admin panel, theme en plugins installeren"
 echo "───────────────────────────────────────────────────────────────────────"
 
 # Grav initialiseren
@@ -425,39 +458,67 @@ info "Grav initialiseren..."
 docker exec grav bin/grav install > /dev/null 2>&1 || true
 sleep 3
 
-# Admin panel
+# Tellers voor installatie
+TOTAL_PLUGINS=${#PLUGINS[@]}
+INSTALLED=0
+FAILED=0
+
+# Admin panel installeren (eerste en belangrijkste)
 info "Admin panel installeren..."
 if docker exec -w /app grav bin/gpm install admin -y > /dev/null 2>&1; then
-    info "  Admin panel geïnstalleerd"
+    info "  ✓ Admin panel"
+    INSTALLED=$((INSTALLED + 1))
 else
-    warn "  Admin panel installatie mislukt"
+    warn "  ✗ Admin panel (mislukt)"
+    FAILED=$((FAILED + 1))
 fi
 
-# Quark theme
-info "Quark theme installeren..."
-docker exec -w /app grav bin/gpm install quark -y > /dev/null 2>&1 || true
+# Theme installeren
+info "Theme installeren (quark)..."
+if docker exec -w /app grav bin/gpm install quark -y > /dev/null 2>&1; then
+    info "  ✓ Quark theme"
+else
+    warn "  ✗ Quark theme (mislukt)"
+fi
 
-# Kern plugins
-info "Kern plugins installeren..."
-for plugin in form email login; do
-    echo -n "    • $plugin ... "
+# Overige plugins installeren
+info "Plugins installeren..."
+echo ""
+
+for plugin in "${PLUGINS[@]}"; do
+    # Skip admin want die is al geïnstalleerd
+    if [[ "$plugin" == "admin" ]]; then
+        continue
+    fi
+    
+    echo -n "    • ${plugin} ... "
+    
+    # Format plugin naam voor GPM (git-sync blijft git-sync, flex-objects blijft flex-objects)
     if docker exec -w /app grav bin/gpm install "$plugin" -y > /dev/null 2>&1; then
         echo -e "${GREEN}✓${NC}"
+        INSTALLED=$((INSTALLED + 1))
     else
-        echo -e "${YELLOW}⚠${NC}"
+        echo -e "${RED}✗${NC}"
+        FAILED=$((FAILED + 1))
     fi
+    
+    # Korte pauze tussen plugin installaties
+    sleep 1
 done
 
-# Optionele plugins
-info "Optionele plugins..."
-for plugin in admin-addon-user-manager seo sitemap archives breadcrumbs; do
-    echo -n "    • $plugin ... "
-    docker exec -w /app grav bin/gpm install "$plugin" -y > /dev/null 2>&1 && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}⚠${NC}"
-done
+echo ""
 
 # Cache clearen
 info "Cache clearen..."
 docker exec grav bin/grav clear-cache > /dev/null 2>&1 || true
+
+# Samenvatting plugin installatie
+echo ""
+info "Plugin installatie samenvatting:"
+info "  ✅ Succesvol: ${INSTALLED}"
+if [[ $FAILED -gt 0 ]]; then
+    warn "  ❌ Mislukt: ${FAILED}"
+fi
 
 echo ""
 
@@ -502,6 +563,21 @@ if [[ -n "$IP_LIST" ]]; then
     echo ""
 fi
 
+echo "📦 Geïnstalleerde plugins:"
+echo "   ├── Admin Panel         - CMS beheerinterface"
+echo "   ├── Breadcrumbs         - Navigatie broodkruimels"
+echo "   ├── Email               - E-mail functionaliteit"
+echo "   ├── Error               - Foutafhandeling"
+echo "   ├── Flex Objects        - Flexibele objecten"
+echo "   ├── Form                - Formulieren builder"
+echo "   ├── Git Sync            - Git integratie"
+echo "   ├── Login               - Gebruikers authenticatie"
+echo "   ├── Markdown Notices    - Markdown notificaties"
+echo "   ├── Problems            - Probleem detectie"
+echo "   ├── Sitemap             - XML sitemap generator"
+echo "   └── Quark theme         - Modern standaard thema"
+echo ""
+
 echo "👤 Eerste login:"
 echo "   1. Open ${BLUE}http://localhost:${GRAV_PORT}/admin${NC}"
 echo "   2. Volg de wizard om een admin account aan te maken"
@@ -514,9 +590,14 @@ echo "   ├── Stoppen:   ${BLUE}cd $GRAV_DIR && docker compose down${NC}"
 echo "   └── Starten:   ${BLUE}cd $GRAV_DIR && docker compose up -d${NC}"
 echo ""
 
+echo "🔧 Nieuwe plugin installeren:"
+echo "   ${BLUE}docker exec grav bin/gpm install [plugin-naam] -y${NC}"
+echo ""
+
 echo "⚠️  Notities:"
 echo "   ├── Docker group actief na ${YELLOW}uit- en inloggen${NC}"
-echo "   └── Of: ${BLUE}newgrp docker${NC} in huidige terminal"
+echo "   ├── Of: ${BLUE}newgrp docker${NC} in huidige terminal"
+echo "   └── Plugin installatie kan handmatig herhaald worden bij mislukking"
 echo ""
 
 echo "═══════════════════════════════════════════════════════════════════════"
