@@ -63,8 +63,7 @@
 # -------------
 #
 # Ondersteund:
-# - Debian 12
-# - Debian 11
+# - Debian 12+
 #
 # Vereist:
 # - sudo/root rechten
