@@ -15,12 +15,12 @@ Het installeert rTorrent met automatisch starten, een watch map en ingebouwde fo
 
 1) Sla het playbook op als rtorrent.yml
 
-Stap 2: Draai het playbook
+2) Draai het playbook
 ```bash
 ansible-playbook -K rtorrent.yml
 ```
 
-Stap 3: Check of het werkt
+3) Check of het werkt
 ```bash
 systemctl --user status rtorrent
 ```
