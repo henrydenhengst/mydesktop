@@ -1,147 +1,483 @@
 ---
-- name: Enterprise rTorrent Deployment - v1.1.0 Stable
+# =============================================================================
+# Enterprise rTorrent Deployment - v2.1.0 (tmux edition)
+# =============================================================================
+# 
+# Dit playbook installeert en configureert rTorrent op Debian 13 (Trixie)
+# met tmux als terminal multiplexer (modern alternatief voor screen).
+#
+# Geschikt voor:
+#   - Seedboxes
+#   - Homelab torrent servers
+#   - Geautomatiseerde download omgevingen
+#
+# Vereisten:
+#   - Debian 13 (Trixie) of compatibel
+#   - sudo rechten
+#   - Internet verbinding
+#
+# Gebruik:
+#   ansible-playbook -K rtorrent.yml
+#
+# =============================================================================
+
+- name: Enterprise rTorrent Deployment - v2.1.0 (tmux edition)
   hosts: localhost
-  connection: local
-  become_method: sudo
+  become: true
+  gather_facts: true
+
   vars:
-    user_home: "{{ lookup('env', 'HOME') }}"
-    user_id: "{{ lookup('env', 'USER') }}"
-    base_dir: "{{ user_home }}/rtorrent"
-    watch_dir: "{{ user_home }}/rtorrent/watch"
-    watch_processed_dir: "{{ user_home }}/rtorrent/watch/processed"
-    download_dir: "{{ user_home }}/rtorrent/downloading"
+    # Gebruiker configuratie
+    target_user: "{{ ansible_user_id }}"
+    user_home: "/home/{{ target_user }}"
+    
+    # rTorrent directories
+    rtorrent_base: "{{ user_home }}/rtorrent"
+    rtorrent_session: "{{ rtorrent_base }}/.session"
+    rtorrent_watch: "{{ rtorrent_base }}/watch"
+    rtorrent_processed: "{{ rtorrent_base }}/watch/processed"
+    rtorrent_downloading: "{{ rtorrent_base }}/downloading"
+    rtorrent_logs: "{{ rtorrent_base }}/logs"
+    
+    # tmux session name
+    tmux_session: "rtorrent"
+    
+    # Systeem limits (geoptimaliseerd voor torrents)
+    limits_conf: |
+      {{ target_user }} soft nofile 65536
+      {{ target_user }} hard nofile 65536
+      {{ target_user }} soft nproc 32768
+      {{ target_user }} hard nproc 32768
+    
+    # .rtorrent.rc configuratie (v2.0 - met processed map)
+    rtorrent_rc_content: |
+      # ============================================================
+      # rTorrent Configuration - v2.1.0
+      # ============================================================
+      
+      # Directory instellingen
+      directory = {{ rtorrent_downloading }}
+      session = {{ rtorrent_session }}
+      
+      # Watch directories
+      schedule = watch_directory,5,5,"load_start={{ rtorrent_watch }}/*.torrent"
+      schedule = watch_directory_processed,10,10,"load_start={{ rtorrent_processed }}/*.torrent"
+      
+      # Netwerk instellingen
+      port_range = 6881-6999
+      port_random = yes
+      peer_exchange = yes
+      dht = auto
+      dht_port = 6881
+      
+      # Bandbreedte limits (0 = unlimited)
+      upload_rate = 0
+      download_rate = 0
+      
+      # Maximale connecties per torrent
+      max_uploads = 50
+      max_uploads_global = 200
+      max_downloads_global = 100
+      
+      # Protocol instellingen
+      protocol.encryption.set = allow_incoming,enable_retry,prefer_plaintext
+      protocol.pex.set = yes
+      
+      # Performance optimalisatie
+      pieces.hash.on_complete = no
+      trackers.numwant.set = 80
+      execute.nothrow = sh,-c,"ulimit -n 65536"
+      
+      # Logging
+      log.execute = {{ rtorrent_logs }}/execute.log
+      log.tracker = {{ rtorrent_logs }}/tracker.log
+      log.rtorrent = {{ rtorrent_logs }}/rtorrent.log
+      
+      # UI instellingen (voor tmux)
+      ui.tracker.show_pex = yes
+      ui.tracker.show_upnp = yes
+      ui.tracker.show_dht = yes
+      encoding.plugin.set = utf8
+      encoding.add = utf8
+      
+      # Auto opschonen
+      schedule = session_save,240,3600,session_save
+      schedule = low_diskspace,0,30,"close_low_diskspace=100M"
+      
+      # Throttle instellingen
+      throttle.max_uploads.global.set = 200
+      throttle.max_uploads.set = 50
+      throttle.min_peers.normal.set = 20
+      throttle.max_peers.normal.set = 100
+      throttle.min_peers.seed.set = 10
+      throttle.max_peers.seed.set = 50
+      
+      # ============================================================
+      # End of Configuration
+      # ============================================================
+    
+    # Systemd user service met tmux
+    systemd_service_content: |
+      [Unit]
+      Description=rTorrent Client (tmux)
+      After=network.target
+      Wants=network.target
+      
+      [Service]
+      Type=forking
+      KillMode=process
+      ExecStart=/usr/bin/tmux new-session -d -s {{ tmux_session }} '/usr/bin/rtorrent'
+      ExecStop=/usr/bin/tmux send-keys -t {{ tmux_session }} C-q
+      ExecReload=/usr/bin/tmux send-keys -t {{ tmux_session }} C-r
+      WorkingDirectory={{ rtorrent_base }}
+      User={{ target_user }}
+      Restart=on-failure
+      RestartSec=10
+      LimitNOFILE=65536
+      LimitNPROC=32768
+      
+      [Install]
+      WantedBy=default.target
+    
+    # tmux configuratie (optioneel)
+    tmux_conf_content: |
+      # tmux configuratie voor rTorrent
+      set -g default-terminal "screen-256color"
+      set -g history-limit 10000
+      
+      # Status bar
+      set -g status-bg black
+      set -g status-fg white
+      set -g status-left "#[fg=green]⚡ rTorrent#[default]"
+      set -g status-right "#[fg=yellow]%H:%M#[default] | #[fg=cyan]%d-%b#[default]"
+      
+      # Key bindings
+      bind r send-keys C-r
+      bind q confirm-before "kill-session -t rtorrent"
+      
+      # Mouse ondersteuning
+      set -g mouse on
+    
+    # Logrotate configuratie
+    logrotate_content: |
+      {{ rtorrent_logs }}/*.log {
+          daily
+          rotate 7
+          compress
+          delaycompress
+          missingok
+          notifempty
+          create 644 {{ target_user }} {{ target_user }}
+          sharedscripts
+          postrotate
+              systemctl --user restart rtorrent > /dev/null 2>&1 || true
+          endscript
+      }
+
+  pre_tasks:
+    - name: Check if running on Debian
+      fail:
+        msg: "Dit playbook werkt alleen op Debian"
+      when: ansible_os_family != "Debian"
+
+    - name: Show deployment start
+      debug:
+        msg: |
+          ====================================
+          🚀 rTorrent Deployment v2.1.0 (tmux)
+          📍 Target user: {{ target_user }}
+          📁 Base directory: {{ rtorrent_base }}
+          🖥️  Terminal: tmux (modern)
+          ====================================
 
   tasks:
-    - name: Stat huidige .rtorrent.rc voor backup
-      stat:
-        path: "{{ user_home }}/.rtorrent.rc"
-      register: rtorrent_rc_stat
-
-    - name: Backup bestaande .rtorrent.rc (Local copy)
-      copy:
-        src: "{{ user_home }}/.rtorrent.rc"
-        dest: "{{ user_home }}/.rtorrent.rc.bak.{{ ansible_date_time.epoch | default('init') }}"
-        remote_src: yes
-        mode: '0600'
-      when: rtorrent_rc_stat.stat.exists
-
+    # ========================================================================
+    # Systeem optimalisatie
+    # ========================================================================
+    
     - name: Systeem limits optimaliseren
-      become: yes
-      copy:
-        dest: "/etc/security/limits.d/rtorrent.conf"
-        content: |
-          {{ user_id }} soft nofile 16384
-          {{ user_id }} hard nofile 32768
+      lineinfile:
+        path: /etc/security/limits.conf
+        line: "{{ item }}"
+        create: yes
         mode: '0644'
+      loop: "{{ limits_conf.split('\n') }}"
+      when: limits_conf.split('\n') | length > 0
+      register: limits_updated
 
+    - name: PAM limits module inschakelen (indien nodig)
+      lineinfile:
+        path: /etc/pam.d/common-session
+        line: "session required pam_limits.so"
+        insertafter: EOF
+      when: limits_updated.changed
+
+    # ========================================================================
+    # Software installatie (met tmux ipv screen)
+    # ========================================================================
+    
     - name: Installeer software stack
-      become: yes
       apt:
-        name: [rtorrent, tmux, logrotate]
+        name:
+          - rtorrent
+          - tmux                    # tmux vervangt screen
+          - curl
+          - htop
+          - ncdu
+          - nload
+          - mediainfo
+          - unrar
+          - unzip
+          - p7zip-full
+          - bc
+          - logrotate
         state: present
         update_cache: yes
         cache_valid_time: 3600
 
+    # ========================================================================
+    # Directory structuur
+    # ========================================================================
+    
     - name: Mappenstructuur inrichten
       file:
         path: "{{ item }}"
         state: directory
-        owner: "{{ user_id }}"
-        mode: '0700'
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0755'
       loop:
-        - "{{ base_dir }}"
-        - "{{ base_dir }}/.session"
-        - "{{ watch_dir }}"
-        - "{{ watch_processed_dir }}"
-        - "{{ download_dir }}"
+        - "{{ rtorrent_base }}"
+        - "{{ rtorrent_session }}"
+        - "{{ rtorrent_watch }}"
+        - "{{ rtorrent_processed }}"
+        - "{{ rtorrent_downloading }}"
+        - "{{ rtorrent_logs }}"
         - "{{ user_home }}/.config/systemd/user"
+        - "{{ user_home }}/.tmux"   # tmux configuratie directory
 
-    - name: Genereer .rtorrent.rc (v1.1.0 met processed map)
+    # ========================================================================
+    # Configuratie bestanden
+    # ========================================================================
+    
+    - name: Backup bestaande .rtorrent.rc (indien aanwezig)
       copy:
+        src: "{{ user_home }}/.rtorrent.rc"
+        dest: "{{ user_home }}/.rtorrent.rc.backup.{{ ansible_date_time.epoch }}"
+        remote_src: yes
+        mode: '0644'
+      ignore_errors: yes
+      when: ansible_date_time is defined
+
+    - name: Genereer .rtorrent.rc (v2.1.0 met tmux support)
+      copy:
+        content: "{{ rtorrent_rc_content }}"
         dest: "{{ user_home }}/.rtorrent.rc"
-        owner: "{{ user_id }}"
-        mode: '0600'
-        content: |
-          # Directories
-          directory.default.set = {{ download_dir }}
-          session.path.set = {{ base_dir }}/.session
-          
-          # Watch Directory - torrents worden na laden verplaatst naar processed/
-          schedule2 = watch_directory,5,5,"load.start={{ watch_dir }}/*.torrent, (execute=mv,-n,$argument.0=,{{ watch_processed_dir }}/)"
-          
-          # Smart Network Watchdog (stops active downloads on net-loss)
-          schedule2 = network_check,300,60,"if=(equal=(network.is_online),no), (d.stop=*), (d.close=*)"
-          
-          # Network & Ports
-          port_range.set = 49164-49184
-          port_random.set = 1
-          check_hash.set = yes
-          
-          # Performance & Logging
-          pieces.memory_max.set = 512M
-          log.open_file = "rtorrent", {{ base_dir }}/rtorrent.log
-          log.add_output = "info", "rtorrent"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0644'
+      notify: reload_rtorrent
 
-    - name: Systemd User Service configureren
+    - name: tmux configuratie (optioneel - verbetert UI)
       copy:
+        content: "{{ tmux_conf_content }}"
+        dest: "{{ user_home }}/.tmux.conf"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0644'
+      ignore_errors: yes
+
+    - name: Systemd User Service configureren (tmux)
+      copy:
+        content: "{{ systemd_service_content }}"
         dest: "{{ user_home }}/.config/systemd/user/rtorrent.service"
-        content: |
-          [Unit]
-          Description=rTorrent Enterprise Daemon
-          After=network-online.target
-          Wants=network-online.target
-
-          [Service]
-          Type=simple
-          LimitNOFILE=32768
-          ExecStartPre=-/usr/bin/tmux kill-session -t rtorrent
-          ExecStart=/usr/bin/tmux new-session -d -s rtorrent /usr/bin/rtorrent
-          ExecStop=-/usr/bin/tmux send-keys -t rtorrent C-q Enter
-          WorkingDirectory=%h
-          KillMode=control-group
-          TimeoutStopSec=30
-          Restart=on-failure
-
-          [Install]
-          WantedBy=default.target
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0644'
+      register: systemd_service
 
     - name: Logrotate configureren
-      become: yes
       copy:
+        content: "{{ logrotate_content }}"
         dest: /etc/logrotate.d/rtorrent
-        content: |
-          {{ base_dir }}/rtorrent.log {
-            daily
-            rotate 7
-            compress
-            missingok
-            notifempty
-            create 0600 {{ user_id }} {{ user_id }}
-          }
+        owner: root
+        group: root
+        mode: '0644'
+      register: logrotate_config
 
-    - name: Enable Linger (Persistentie)
-      become: yes
-      shell: |
-        if [ "$(loginctl show-user {{ user_id }} -p Linger --value)" = "no" ]; then
-          loginctl enable-linger {{ user_id }}
-          echo "changed"
-        fi
-      register: linger_result
-      changed_when: "'changed' in linger_result.stdout"
+    # ========================================================================
+    # Service persistentie
+    # ========================================================================
+    
+    - name: Enable Linger voor user (zorgt dat service blijft draaien na logout)
+      command: "loginctl enable-linger {{ target_user }}"
+      changed_when: false
+      become: true
 
-    - name: Service Reload & Start
+    # ========================================================================
+    # Service start
+    # ========================================================================
+    
+    - name: Systemd daemon reload (user)
+      command: "systemctl --user daemon-reload"
+      become: true
+      become_user: "{{ target_user }}"
+      changed_when: false
+      when: systemd_service.changed
+
+    - name: Start rTorrent service (tmux session)
       systemd:
         name: rtorrent
+        state: started
         enabled: yes
+        scope: user
+      become: true
+      become_user: "{{ target_user }}"
+      register: service_start
+
+    - name: Wacht op service initialisatie
+      pause:
+        seconds: 3
+      when: service_start.changed
+
+    - name: Check of tmux session actief is
+      command: "tmux has-session -t {{ tmux_session }}"
+      become: true
+      become_user: "{{ target_user }}"
+      register: tmux_check
+      failed_when: false
+      changed_when: false
+
+    # ========================================================================
+    # Healthcheck (alleen output bij problemen)
+    # ========================================================================
+    
+    - name: Healthcheck - wacht op rTorrent
+      wait_for:
+        port: 8080
+        host: localhost
+        timeout: 60
+        delay: 5
+      register: _wait_result
+      failed_when: false
+      changed_when: false
+      ignore_errors: true
+
+    - name: Healthcheck - UI verificatie
+      uri:
+        url: http://localhost:8080
+        status_code: 200
+        timeout: 10
+      register: _ui_result
+      failed_when: false
+      changed_when: false
+      when: _wait_result is successful
+      ignore_errors: true
+
+    - name: ⚠️ DEPLOYMENT MISLUKT - Geen output bij succes
+      fail:
+        msg: |
+          ========================================
+          ❌ rTorrent healthcheck mislukt
+          
+          Probleem: {% if _wait_result is failed %}Poort 8080 niet bereikbaar{% else %}UI reageert niet op HTTP{% endif %}
+          
+          Diagnose commando's:
+          • systemctl --user status rtorrent
+          • tmux attach -t {{ tmux_session }}
+          • journalctl --user -u rtorrent -n 50
+          • ss -tuln | grep 8080
+          • cat {{ rtorrent_logs }}/rtorrent.log
+          ========================================
+      when: 
+        - _wait_result is failed or (_ui_result is defined and _ui_result.status is not defined) or (_ui_result is defined and _ui_result.status != 200)
+
+  handlers:
+    - name: reload_rtorrent
+      systemd:
+        name: rtorrent
         state: restarted
         scope: user
         daemon_reload: yes
+      become: true
+      become_user: "{{ target_user }}"
 
-    - name: Deep Healthcheck (UI Verification)
-      shell: tmux capture-pane -t rtorrent -p | grep -qi "rtorrent"
-      register: health_check
-      until: health_check.rc == 0
-      retries: 5
-      delay: 2
-      changed_when: false
-      failed_when: health_check.rc != 0 and health_check.attempts == 5
+  post_tasks:
+    - name: Deployment succesvol - Toon samenvatting
+      debug:
+        msg: |
+          ╔═══════════════════════════════════════════════════════════════════╗
+          ║              ✅ rTorrent DEPLOYMENT SUCCESSFUL (tmux)             ║
+          ╚═══════════════════════════════════════════════════════════════════╝
+          
+          📦 Geïnstalleerde componenten:
+             • rTorrent + tmux (modern)
+             • Systemd user service (persistent)
+             • Logrotate (7 dagen retentie)
+          
+          📁 Directory structuur:
+             ├── {{ rtorrent_base }}
+             │   ├── .session/     (sessie data)
+             │   ├── watch/        (nieuwe torrents)
+             │   │   └── processed/(backup van verwerkte torrents)
+             │   ├── downloading/  (download locatie)
+             │   └── logs/         (log bestanden)
+          
+          🔧 Beheer commando's:
+             • Status:      systemctl --user status rtorrent
+             • Start:       systemctl --user start rtorrent
+             • Stop:        systemctl --user stop rtorrent
+             • Logs:        journalctl --user -u rtorrent -f
+             • Console:     tmux attach -t {{ tmux_session }}
+             • Detach:      Ctrl+B, D (of Ctrl+A, D als je screen gewend bent)
+          
+          🖥️  tmux sneltoetsen:
+             • Ctrl+B, [      → Scroll modus (q om te stoppen)
+             • Ctrl+B, D      → Detach (blijft draaien op achtergrond)
+             • Ctrl+B, ?      → Help (alle sneltoetsen)
+          
+          📡 Web UI (indien geïnstalleerd):
+             • http://localhost:8080
+          
+          📝 Configuratie bestanden:
+             • Main config:     {{ user_home }}/.rtorrent.rc
+             • tmux config:     {{ user_home }}/.tmux.conf
+             • Systemd service: {{ user_home }}/.config/systemd/user/rtorrent.service
+             • Logrotate:       /etc/logrotate.d/rtorrent
+          
+          💡 Tip: Bij aanpassen configuratie → systemctl --user restart rtorrent
+          
+          ╔═══════════════════════════════════════════════════════════════════╗
+          ║                         🎉 READY FOR USE! 🎉                       ║
+          ╚═══════════════════════════════════════════════════════════════════╝
+      when: 
+        - _wait_result is successful
+        - _ui_result is defined
+        - _ui_result.status == 200
+
+    - name: tmux sessie info (alternatief als UI niet werkt)
+      debug:
+        msg: |
+          ╔═══════════════════════════════════════════════════════════════════╗
+          ║         ✅ rTorrent SERVICE DRAALT - Gebruik tmux console         ║
+          ╚═══════════════════════════════════════════════════════════════════╝
+          
+          📟 Verbinden met rTorrent console:
+             tmux attach -t {{ tmux_session }}
+          
+          🚪 Detachen (blijft draaien):
+             Ctrl+B, D
+          
+          📊 tmux sessie status: {% if tmux_check.rc == 0 %}✅ ACTIEF{% else %}❌ NIET ACTIEF{% endif %}
+          
+          🔧 Als sessie niet actief is:
+             systemctl --user restart rtorrent
+      when:
+        - _wait_result is successful
+        - _ui_result is defined
+        - _ui_result.status != 200
+      ignore_errors: yes
+
+# =============================================================================
+# End of Playbook - tmux edition
+# =============================================================================
