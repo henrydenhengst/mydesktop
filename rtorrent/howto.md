@@ -1,5 +1,5 @@
 # rTorrent Deployment
-> How-To Guide - Versie 1.0.0
+> How-To Guide - Versie 1.1.0
 
 ## Wat doet dit script?
 
@@ -75,3 +75,38 @@ rm -rf ~/.config/systemd/user/rtorrent.service
 ## Belangrijk om te weten
 
 De software draait als gewone gebruiker, niet als root. Bij netwerkverlies stoppen actieve downloads automatisch. Logbestanden worden wekelijks opgeruimd.
+
+---
+
+# Voorkomen van dubbele downloads
+
+## Het probleem
+
+Standaard blijft een .torrent bestand in de watch map staan nadat rTorrent hem heeft geladen. Bij een herstart van de service wordt dezelfde torrent opnieuw geladen. Dit leidt tot verwarring en mogelijk dubbele downloads.
+
+## De oplossing
+
+Vanaf versie 1.1.0 verplaatst rTorrent elk .torrent bestand automatisch naar de map 'watch/processed' zodra de download is gestart.
+
+## Hoe het werkt
+
+Eerst kopieer je een .torrent bestand naar de watch map
+Daarna laadt rTorrent het bestand binnen 5 seconden
+Vervolgens start de download automatisch
+Tenslotte verplaatst rTorrent het .torrent bestand naar de processed map
+
+## Wat gebeurt er met verplaatste bestanden
+
+De .torrent bestanden in de processed map blijven bewaard. Je kunt ze handmatig verwijderen als je ze niet meer nodig hebt. Ze worden nooit opnieuw geladen omdat rTorrent alleen naar de watch map kijkt.
+
+## Gevolgen voor jou
+
+Geen dubbele downloads meer
+Geen handmatig opruhmen van .torrent bestanden nodig
+Een archief van alle ooit geladen torrents in de processed map
+
+## Let op
+
+Als je een torrent wilt hervatten die al in de processed map staat, kopieer hem dan gewoon opnieuw naar de watch map. rTorrent herkent aan de hand van de sessie data dat de download al bestaat en zal niet opnieuw downloaden.
+
+Versie 1.1.0 en hoger
