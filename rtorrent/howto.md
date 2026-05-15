@@ -13,7 +13,7 @@ Het installeert rTorrent met automatisch starten, een watch map en ingebouwde fo
 
 ## Installatie in 3 stappen
 
-- 1) Sla het playbook op als rtorrent.yml
+1) Sla het playbook op als rtorrent.yml
 
 Stap 2: Draai het playbook
 ```bash
