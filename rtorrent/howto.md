@@ -36,17 +36,17 @@ Je persoonlijke map bevat een nieuwe map 'rtorrent'. Daarin vind je:
 
 ## Hoe gebruik ik het?
 
-Een torrent toevoegen:
+- Een torrent toevoegen:
 Kopieer het .torrent bestand naar ~/rtorrent/watch/
 
-De service bedienen:
+- De service bedienen:
 ```bash
 systemctl --user start rtorrent
 systemctl --user stop rtorrent
 systemctl --user restart rtorrent
 ```
 
-Logboek bekijken:
+- Logboek bekijken:
 ```bash
 tail -f ~/rtorrent/rtorrent.log
 ```
