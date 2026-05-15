@@ -1,5 +1,5 @@
 # rTorrent Deployment
-> How-To Guide
+> How-To Guide - Versie 1.0.0
 
 ## Wat doet dit script?
 
@@ -75,5 +75,3 @@ rm -rf ~/.config/systemd/user/rtorrent.service
 ## Belangrijk om te weten
 
 De software draait als gewone gebruiker, niet als root. Bij netwerkverlies stoppen actieve downloads automatisch. Logbestanden worden wekelijks opgeruimd.
-
-Versie 1.0.0
