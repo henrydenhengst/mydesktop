@@ -1,4 +1,5 @@
-# rTorrent Enterprise Deployment - How-To Guide
+# rTorrent Deployment
+> How-To Guide
 
 ## Wat doet dit script?
 
