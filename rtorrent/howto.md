@@ -62,7 +62,7 @@ systemctl --user restart rtorrent
 - Geen downloads na herstart:
 ```bash
 loginctl show-user $USER -p Linger
-``|
+```
 (moet 'yes' zijn)
 
 ## Alles verwijderen
