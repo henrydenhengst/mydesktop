@@ -1,5 +1,5 @@
 ---
-- name: Enterprise rTorrent Deployment - v1.0.0 Stable
+- name: Enterprise rTorrent Deployment - v1.1.0 Stable
   hosts: localhost
   connection: local
   become_method: sudo
@@ -8,6 +8,7 @@
     user_id: "{{ lookup('env', 'USER') }}"
     base_dir: "{{ user_home }}/rtorrent"
     watch_dir: "{{ user_home }}/rtorrent/watch"
+    watch_processed_dir: "{{ user_home }}/rtorrent/watch/processed"
     download_dir: "{{ user_home }}/rtorrent/downloading"
 
   tasks:
@@ -51,10 +52,11 @@
         - "{{ base_dir }}"
         - "{{ base_dir }}/.session"
         - "{{ watch_dir }}"
+        - "{{ watch_processed_dir }}"
         - "{{ download_dir }}"
         - "{{ user_home }}/.config/systemd/user"
 
-    - name: Genereer .rtorrent.rc (v1.0.0)
+    - name: Genereer .rtorrent.rc (v1.1.0 met processed map)
       copy:
         dest: "{{ user_home }}/.rtorrent.rc"
         owner: "{{ user_id }}"
@@ -64,8 +66,8 @@
           directory.default.set = {{ download_dir }}
           session.path.set = {{ base_dir }}/.session
           
-          # Watch Directory
-          schedule2 = watch_directory,5,5,"load.start={{ watch_dir }}/*.torrent"
+          # Watch Directory - torrents worden na laden verplaatst naar processed/
+          schedule2 = watch_directory,5,5,"load.start={{ watch_dir }}/*.torrent, (execute=mv,-n,$argument.0=,{{ watch_processed_dir }}/)"
           
           # Smart Network Watchdog (stops active downloads on net-loss)
           schedule2 = network_check,300,60,"if=(equal=(network.is_online),no), (d.stop=*), (d.close=*)"
