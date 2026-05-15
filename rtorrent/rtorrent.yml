@@ -1,49 +1,124 @@
-ansible-playbook rtorrent.yml 
-[WARNING]: No inventory was parsed, only implicit localhost is available
-[WARNING]: provided hosts list is empty, only localhost is available. Note that the implicit localhost does not match
-'all'
+---
+- name: rTorrent Deployment - v6.0 (Eenvoudig met tmux)
+  hosts: localhost
+  connection: local
+  gather_facts: true
 
-PLAY [rTorrent Deployment - v6.0 (Eenvoudig met tmux)] *******************************************************************
+  vars:
+    user: "{{ ansible_user_id }}"
+    home: "{{ ansible_env.HOME }}"
+    base: "{{ home }}/rtorrent"
+    session_dir: "{{ base }}/.session"
+    watch_dir: "{{ base }}/watch"
+    processed_dir: "{{ base }}/watch/processed"
+    download_dir: "{{ base }}/downloading"
+    log_dir: "{{ base }}/logs"
 
-TASK [Gathering Facts] ***************************************************************************************************
-ok: [localhost]
+  tasks:
+    - name: Update package lijst
+      become: yes
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
 
-TASK [Update package lijst] **********************************************************************************************
-ok: [localhost]
+    - name: Installeer rTorrent en tmux
+      become: yes
+      apt:
+        name:
+          - rtorrent
+          - tmux
+          - logrotate
+        state: present
 
-TASK [Installeer rTorrent en tmux] ***************************************************************************************
-ok: [localhost]
+    - name: Maak mappen aan
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: '0755'
+      loop:
+        - "{{ base }}"
+        - "{{ session_dir }}"
+        - "{{ watch_dir }}"
+        - "{{ processed_dir }}"
+        - "{{ download_dir }}"
+        - "{{ log_dir }}"
+        - "{{ home }}/bin"
 
-TASK [Maak mappen aan] ***************************************************************************************************
-ok: [localhost] => (item=/home/henry/rtorrent)
-ok: [localhost] => (item=/home/henry/rtorrent/.session)
-ok: [localhost] => (item=/home/henry/rtorrent/watch)
-ok: [localhost] => (item=/home/henry/rtorrent/watch/processed)
-ok: [localhost] => (item=/home/henry/rtorrent/downloading)
-ok: [localhost] => (item=/home/henry/rtorrent/logs)
-ok: [localhost] => (item=/home/henry/bin)
+    - name: Schrijf rtorrent configuratie
+      copy:
+        dest: "{{ home }}/.rtorrent.rc"
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: '0644'
+        content: |
+          directory = {{ download_dir }}
+          session = {{ session_dir }}
+          schedule = watch_directory,5,5,"load.start={{ watch_dir }}/*.torrent"
+          port_range = 6881-6999
+          port_random = yes
+          dht = auto
+          dht_port = 6881
+          download_rate = 0
+          upload_rate = 0
+          max_uploads = 50
+          encryption = allow_incoming,enable_retry,prefer_plaintext
+          log.open_file = log_file, {{ log_dir }}/rtorrent.log
+          log.add_output = info, log_file
+          schedule = session_save,240,3600,session_save
 
-TASK [Schrijf rtorrent configuratie] *************************************************************************************
-ok: [localhost]
+    - name: Maak start script
+      copy:
+        dest: "{{ home }}/bin/start-rtorrent"
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          if ! tmux has-session -t rtorrent 2>/dev/null; then
+              tmux new-session -d -s rtorrent 'bash -c "export TERM=xterm-256color; /usr/bin/rtorrent -D"'
+              echo "rTorrent gestart"
+          else
+              echo "rTorrent draait al"
+          fi
 
-TASK [Maak start script] *************************************************************************************************
-changed: [localhost]
+    - name: Schrijf logrotate config
+      become: yes
+      copy:
+        dest: /etc/logrotate.d/rtorrent
+        content: |
+          {{ log_dir }}/*.log {
+              daily
+              rotate 7
+              compress
+              missingok
+              notifempty
+              create 0644 {{ user }} {{ user }}
+          }
+        mode: '0644'
 
-TASK [Schrijf logrotate config] ******************************************************************************************
-ok: [localhost]
+    - name: Zet linger aan
+      become: yes
+      command: "loginctl enable-linger {{ user }}"
+      changed_when: false
 
-TASK [Zet linger aan] ****************************************************************************************************
-ok: [localhost]
+    - name: Start rTorrent
+      command: "{{ home }}/bin/start-rtorrent"
 
-TASK [Start rTorrent] ****************************************************************************************************
-changed: [localhost]
+  post_tasks:
+    - name: Toon succes bericht
+      debug:
+        msg: |
+          ==================================================
+          rTorrent is geinstalleerd!
+          ==================================================
 
-TASK [Toon succes bericht] ***********************************************************************************************
-ok: [localhost] => {
-    "msg": "==================================================\nrTorrent is geinstalleerd!\n==================================================\n\nStart:   ~/bin/start-rtorrent\nStatus:  tmux has-session -t rtorrent\nConsole: tmux attach -t rtorrent\nDetach:  Ctrl+B, D\nLogs:    tail -f /home/henry/rtorrent/logs/rtorrent.log\nWatch:   /home/henry/rtorrent/watch\n\n==================================================\n"
-}
+          Start:   ~/bin/start-rtorrent
+          Status:  tmux has-session -t rtorrent
+          Console: tmux attach -t rtorrent
+          Detach:  Ctrl+B, D
+          Logs:    tail -f {{ log_dir }}/rtorrent.log
+          Watch:   {{ watch_dir }}
 
-PLAY RECAP ***************************************************************************************************************
-localhost                  : ok=10   changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-
-henry@laptop ~/repo/mydesktop/rtorrent $ 
+          ==================================================
