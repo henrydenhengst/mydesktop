@@ -53,13 +53,13 @@ tail -f ~/rtorrent/rtorrent.log
 
 ## Problemen oplossen
 
-Service start niet:
+- Service start niet:
 ```bash
 tmux kill-session -t rtorrent
 systemctl --user restart rtorrent
 ```
 
-Geen downloads na herstart:
+- Geen downloads na herstart:
 ```bash
 loginctl show-user $USER -p Linger
 ``|
