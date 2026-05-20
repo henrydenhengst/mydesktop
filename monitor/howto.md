@@ -156,8 +156,8 @@ fi
 
 Om ervoor te zorgen dat het script betrouwbaar de systeembestanden, firewall-statistieken en kernel-logs kan inzien, dient het met root-rechten te worden uitgevoerd.
 
-- 1. Sla de bovenstaande code op in `/usr/local/bin/syscheck.sh`.
-- 2. Maak het bestand uitsluitend lees- en uitvoerbaar voor de root-gebruiker om misbruik te voorkomen:
+- Sla de bovenstaande code op in `/usr/local/bin/syscheck.sh`.
+- Maak het bestand uitsluitend lees- en uitvoerbaar voor de root-gebruiker om misbruik te voorkomen:
 ```bash
    sudo chmod 700 /usr/local/bin/syscheck.sh
    sudo chown root:root /usr/local/bin/syscheck.sh
