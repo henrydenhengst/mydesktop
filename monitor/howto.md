@@ -1,17 +1,17 @@
-================================================================================
+---
 HOW-TO: EEN STILLE BEST-PRACTICE THRESHOLD MONITOR OPZETTEN
-================================================================================
+---
 
 Deze handleiding beschrijft hoe je een vederlichte, stille systeem-wachthond (syscheck-thresholds.sh) inricht op een Linux-systeem. Het script is gebaseerd op de 10 essentiële categorieën van de HexSec Linux Quick-Fix cheatsheets. 
 
 In tegenstelling tot traditionele monitoring-tools verbruikt dit script geen resources op de achtergrond. Het blijft volledig stil (silent exit) zolang het systeem binnen de gestelde drempelwaarden (thresholds) draait. Pas wanneer een best practice wordt overschreden, genereert het script output en waarschuwt het de beheerder, inclusief de bijbehorende herstelcommando's.
 
---------------------------------------------------------------------------------
+---
 1. HET SCRIPT AANMAKEN
---------------------------------------------------------------------------------
 
-Sla de onderstaande Bash-code op in een centrale, uitvoerbare locatie op het systeem, bijvoorbeeld in /usr/local/bin/syscheck.sh.
+Sla de onderstaande Bash-code op in een centrale, uitvoerbare locatie op het systeem, bijvoorbeeld in `/usr/local/bin/syscheck.sh`.
 
+```bash
 #!/usr/bin/env bash
 #
 # syscheck-thresholds.sh - Stille threshold-monitor gebaseerd op 10 Linux Cheatsheets
@@ -146,6 +146,8 @@ else
     # Systeem is gezond, wees volledig stil
     exit 0
 fi
+
+```
 
 --------------------------------------------------------------------------------
 2. INSTALLATIE & RECHTEN
