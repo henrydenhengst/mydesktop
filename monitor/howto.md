@@ -1,13 +1,14 @@
 ---
-HOW-TO: EEN STILLE BEST-PRACTICE THRESHOLD MONITOR OPZETTEN
----
+>HOW-TO
+
+# EEN STILLE BEST-PRACTICE THRESHOLD MONITOR OPZETTEN
 
 Deze handleiding beschrijft hoe je een vederlichte, stille systeem-wachthond (syscheck-thresholds.sh) inricht op een Linux-systeem. Het script is gebaseerd op de 10 essentiële categorieën van de HexSec Linux Quick-Fix cheatsheets. 
 
 In tegenstelling tot traditionele monitoring-tools verbruikt dit script geen resources op de achtergrond. Het blijft volledig stil (silent exit) zolang het systeem binnen de gestelde drempelwaarden (thresholds) draait. Pas wanneer een best practice wordt overschreden, genereert het script output en waarschuwt het de beheerder, inclusief de bijbehorende herstelcommando's.
 
 ---
-1. HET SCRIPT AANMAKEN
+## 1. HET SCRIPT AANMAKEN
 
 Sla de onderstaande Bash-code op in een centrale, uitvoerbare locatie op het systeem, bijvoorbeeld in `/usr/local/bin/syscheck.sh`.
 
@@ -150,43 +151,41 @@ fi
 ```
 
 ---
-2. INSTALLATIE & RECHTEN
+## 2. INSTALLATIE & RECHTEN
 
 Om ervoor te zorgen dat het script betrouwbaar de systeembestanden, firewall-statistieken en kernel-logs kan inzien, dient het met root-rechten te worden uitgevoerd.
 
-1. Sla de bovenstaande code op in `/usr/local/bin/syscheck.sh`.
-2. Maak het bestand uitsluitend lees- en uitvoerbaar voor de root-gebruiker om misbruik te voorkomen:
+- 1. Sla de bovenstaande code op in `/usr/local/bin/syscheck.sh`.
+- 2. Maak het bestand uitsluitend lees- en uitvoerbaar voor de root-gebruiker om misbruik te voorkomen:
 ```bash
    sudo chmod 700 /usr/local/bin/syscheck.sh
    sudo chown root:root /usr/local/bin/syscheck.sh
 ```
 ---
-3. HANDMATIGE TEST
---------------------------------------------------------------------------------
+
+## 3. HANDMATIGE TEST
 
 Je kunt de werking van het script direct handmatig controleren via de terminal:
 
-sudo /usr/local/bin/syscheck.sh
+`sudo /usr/local/bin/syscheck.sh`
 
-* Indien alles in orde is: Het script geeft geen enkele output en keert direct terug naar de prompt (exit 0).
-* Indien een threshold is overschreden: Het script toont een overzichtelijke waarschuwing met directe quick-fixes (exit 1).
+- Indien alles in orde is: Het script geeft geen enkele output en keert direct terug naar de prompt (exit 0).
+- Indien een threshold is overschreden: Het script toont een overzichtelijke waarschuwing met directe quick-fixes (exit 1).
 
---------------------------------------------------------------------------------
-4. AUTOMATISERING VIA CRON
---------------------------------------------------------------------------------
+---
+## 4. AUTOMATISERING VIA CRON
 
 De kracht van dit 'stille' script komt pas echt tot zijn recht wanneer je het periodiek laat draaien via de systeem-cron. Omdat Cron de output van scripts opvangt, kun je er eenvoudig voor zorgen dat je alleen bij calamiteiten wordt genotificeerd.
 
 1. Open de crontab van de root-gebruiker:
-   sudo crontab -e
+   `sudo crontab -e`
 
 2. Voeg een regel toe onderaan het bestand om de controle bijvoorbeeld elke ochtend om 08:00 uur uit te voeren:
 
    Optie A: Meldingen wegschrijven naar een lokaal logbestand
-   0 8 * * * /usr/local/bin/syscheck.sh >> /var/log/syscheck_alerts.log 2>&1
+   `0 8 * * * /usr/local/bin/syscheck.sh >> /var/log/syscheck_alerts.log 2>&1`
 
    Optie B: Direct e-mailen (indien een lokale mail-agent zoals postfix of ssmtp actief is op de host)
-   0 8 * * * /usr/local/bin/syscheck.sh
+   `0 8 * * * /usr/local/bin/syscheck.sh`
 
    (Cron verstuurt automatisch een e-mail naar root zodra een script tekstuele output genereert. Blijft het script stil? Dan wordt er geen mail verstuurd).
-================================================================================
