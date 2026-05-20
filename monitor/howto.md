@@ -183,10 +183,10 @@ De kracht van dit 'stille' script komt pas echt tot zijn recht wanneer je het pe
 
 2. Voeg een regel toe onderaan het bestand om de controle bijvoorbeeld elke ochtend om 08:00 uur uit te voeren:
 
-   A. Meldingen wegschrijven naar een lokaal logbestand
+   - Meldingen wegschrijven naar een lokaal logbestand
    `0 8 * * * /usr/local/bin/syscheck.sh >> /var/log/syscheck_alerts.log 2>&1`
 
-   B. Direct e-mailen (indien een lokale mail-agent zoals postfix of ssmtp actief is op de host)
+   - Direct e-mailen (indien een lokale mail-agent zoals postfix of ssmtp actief is op de host)
    `0 8 * * * /usr/local/bin/syscheck.sh`
 
-   (Cron verstuurt automatisch een e-mail naar root zodra een script tekstuele output genereert. Blijft het script stil? Dan wordt er geen mail verstuurd).
+   - (Cron verstuurt automatisch een e-mail naar root zodra een script tekstuele output genereert. Blijft het script stil? Dan wordt er geen mail verstuurd).
