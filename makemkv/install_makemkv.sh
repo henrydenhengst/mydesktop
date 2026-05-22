@@ -87,7 +87,7 @@ BIN_URL="https://www.makemkv.com/download/makemkv-bin-${MAKEMKV_VERSION}.tar.gz"
 OSS_URL="https://www.makemkv.com/download/makemkv-oss-${MAKEMKV_VERSION}.tar.gz"
 
 ########################################
-# OS CHECK (Debian/Ubuntu only)
+# OS CHECK (FIXED)
 ########################################
 
 if [[ ! -f /etc/os-release ]]; then
@@ -97,10 +97,12 @@ fi
 
 source /etc/os-release
 
-if [[ "${ID:-}" != "debian" && "${ID:-}" != "ubuntu" && "${ID_LIKE:-}" != *"debian"* && "${ID_LIKE:-}" != *"ubuntu"* ]]; then
-    echo "ERROR: Only Debian/Ubuntu supported"
-    echo "Detected: ${ID:-unknown}"
-    exit 1
+if [[ "${ID:-}" != "debian" && "${ID:-}" != "ubuntu" ]]; then
+    if [[ "${ID_LIKE:-}" != *debian* && "${ID_LIKE:-}" != *ubuntu* ]]; then
+        echo "ERROR: Only Debian/Ubuntu supported"
+        echo "Detected: ${ID:-unknown}"
+        exit 1
+    fi
 fi
 
 echo "Detected OS: ${PRETTY_NAME:-unknown}"
@@ -124,7 +126,7 @@ if ! command -v wget >/dev/null 2>&1 && ! command -v curl >/dev/null 2>&1; then
 fi
 
 ########################################
-# INSTALL BUILD DEPENDENCIES
+# INSTALL BUILD DEPENDENCIES (FIXED)
 ########################################
 
 echo "Installing build dependencies..."
@@ -138,7 +140,8 @@ sudo apt install -y \
     libexpat1-dev \
     libavcodec-dev \
     libgl1-mesa-dev \
-    qtbase5-dev
+    qtbase5-dev \
+    libcurl4-openssl-dev
 
 ########################################
 # DOWNLOAD FUNCTION
@@ -162,6 +165,9 @@ download_file() {
 ########################################
 
 WORKDIR=$(mktemp -d)
+
+trap 'rm -rf "$WORKDIR"' EXIT
+
 cd "$WORKDIR"
 
 echo "Using temp dir: $WORKDIR"
@@ -202,5 +208,3 @@ sudo make install
 
 echo "Installation complete!"
 echo "Run: makemkv"
-
-rm -rf "$WORKDIR"
