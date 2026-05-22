@@ -36,7 +36,7 @@
 #   - Script is restricted to Debian/Ubuntu systems only.
 #   - Uses sudo only for installation steps, not full script execution.
 #
-########################################
+#
 ########################################
 # Usage / After Installation
 ########################################
