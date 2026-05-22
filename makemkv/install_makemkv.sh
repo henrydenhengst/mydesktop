@@ -6,26 +6,27 @@
 #
 # Description:
 #   This script automatically installs MakeMKV on Debian/Ubuntu systems.
-#   It downloads the specified MakeMKV source packages, installs required
+#   It downloads the latest MakeMKV source packages, installs required
 #   dependencies, compiles both makemkv-oss and makemkv-bin, and installs
 #   them system-wide.
 #
 # Requirements:
 #   - Debian or Ubuntu-based Linux distribution
 #   - sudo privileges
-#   - Internet connection
+#   - Internet connection (or cached version for offline mode)
 #
 # What it does:
 #   1. Checks if the system is Debian/Ubuntu
 #   2. Ensures wget or curl is installed
 #   3. Installs required build dependencies via apt
-#   4. Downloads MakeMKV source packages
-#   5. Builds makemkv-oss
-#   6. Builds makemkv-bin
-#   7. Installs both packages
+#   4. Detects latest MakeMKV version (online or cached)
+#   5. Downloads MakeMKV source packages
+#   6. Builds makemkv-oss
+#   7. Builds makemkv-bin
+#   8. Installs both packages
 #
 # Version:
-#   MakeMKV: 1.18.3 (configurable via MAKEMKV_VERSION variable)
+#   Auto-detected latest MakeMKV version (with caching + offline fallback)
 #
 # Notes:
 #   - DVD functionality is free to use.
@@ -35,7 +36,6 @@
 # Safety:
 #   - Script is restricted to Debian/Ubuntu systems only.
 #   - Uses sudo only for installation steps, not full script execution.
-#
 #
 ########################################
 # Usage / After Installation
@@ -81,13 +81,62 @@ set -euo pipefail
 # CONFIG
 ########################################
 
-MAKEMKV_VERSION="1.18.3"
-
-BIN_URL="https://www.makemkv.com/download/makemkv-bin-${MAKEMKV_VERSION}.tar.gz"
-OSS_URL="https://www.makemkv.com/download/makemkv-oss-${MAKEMKV_VERSION}.tar.gz"
+CACHE_FILE="${HOME}/.cache/makemkv_version"
 
 ########################################
-# OS CHECK (FIXED)
+# VERSION DETECTION (ROBUST)
+########################################
+
+fetch_latest_version() {
+    echo "Detecting latest MakeMKV version..."
+
+    mkdir -p "${HOME}/.cache"
+
+    local page=""
+    page=$(curl -fsSL \
+        --connect-timeout 10 \
+        --max-time 20 \
+        --retry 3 \
+        --retry-delay 2 \
+        "https://www.makemkv.com/download/" || true)
+
+    local latest_version=""
+
+    if [[ -n "$page" ]]; then
+        latest_version=$(
+            echo "$page" \
+            | grep -oE 'makemkv-bin-[0-9]+\.[0-9]+\.[0-9]+' \
+            | sed 's/makemkv-bin-//' \
+            | sort -V \
+            | tail -n 1
+        )
+    fi
+
+    if [[ -z "$latest_version" ]]; then
+        echo "Warning: online detection failed, trying cache..."
+
+        if [[ -f "$CACHE_FILE" ]]; then
+            latest_version=$(cat "$CACHE_FILE")
+            echo "Using cached version: $latest_version"
+        else
+            echo "ERROR: No internet and no cached version available"
+            exit 1
+        fi
+    else
+        echo "$latest_version" > "$CACHE_FILE"
+        echo "Cached version: $latest_version"
+    fi
+
+    MAKEMKV_VERSION="$latest_version"
+
+    BIN_URL="https://www.makemkv.com/download/makemkv-bin-${MAKEMKV_VERSION}.tar.gz"
+    OSS_URL="https://www.makemkv.com/download/makemkv-oss-${MAKEMKV_VERSION}.tar.gz"
+
+    echo "Detected MakeMKV version: $MAKEMKV_VERSION"
+}
+
+########################################
+# OS CHECK
 ########################################
 
 if [[ ! -f /etc/os-release ]]; then
@@ -100,7 +149,6 @@ source /etc/os-release
 if [[ "${ID:-}" != "debian" && "${ID:-}" != "ubuntu" ]]; then
     if [[ "${ID_LIKE:-}" != *debian* && "${ID_LIKE:-}" != *ubuntu* ]]; then
         echo "ERROR: Only Debian/Ubuntu supported"
-        echo "Detected: ${ID:-unknown}"
         exit 1
     fi
 fi
@@ -114,19 +162,17 @@ echo "Detected OS: ${PRETTY_NAME:-unknown}"
 sudo -v
 
 ########################################
-# ENSURE DOWNLOAD TOOLS
+# ENSURE DOWNLOAD TOOL
 ########################################
 
-echo "Checking for wget/curl..."
-
-if ! command -v wget >/dev/null 2>&1 && ! command -v curl >/dev/null 2>&1; then
-    echo "No wget or curl found. Installing..."
+if ! command -v curl >/dev/null 2>&1; then
+    echo "Installing curl..."
     sudo apt update
-    sudo apt install -y wget curl
+    sudo apt install -y curl
 fi
 
 ########################################
-# INSTALL BUILD DEPENDENCIES (FIXED)
+# DEPENDENCIES
 ########################################
 
 echo "Installing build dependencies..."
@@ -144,6 +190,12 @@ sudo apt install -y \
     libcurl4-openssl-dev
 
 ########################################
+# GET VERSION
+########################################
+
+fetch_latest_version
+
+########################################
 # DOWNLOAD FUNCTION
 ########################################
 
@@ -153,19 +205,19 @@ download_file() {
 
     echo "Downloading: $url"
 
-    if command -v curl >/dev/null 2>&1; then
-        curl -L "$url" -o "$output"
-    else
-        wget -O "$output" "$url"
-    fi
+    curl -L \
+        --connect-timeout 10 \
+        --max-time 60 \
+        --retry 3 \
+        --retry-delay 2 \
+        -o "$output" "$url"
 }
 
 ########################################
-# DOWNLOAD SOURCES
+# BUILD
 ########################################
 
 WORKDIR=$(mktemp -d)
-
 trap 'rm -rf "$WORKDIR"' EXIT
 
 cd "$WORKDIR"
@@ -174,10 +226,6 @@ echo "Using temp dir: $WORKDIR"
 
 download_file "$OSS_URL" "makemkv-oss.tar.gz"
 download_file "$BIN_URL" "makemkv-bin.tar.gz"
-
-########################################
-# BUILD OSS
-########################################
 
 echo "Building makemkv-oss..."
 
@@ -189,10 +237,6 @@ make -j"$(nproc)"
 sudo make install
 
 cd "$WORKDIR"
-
-########################################
-# BUILD BIN
-########################################
 
 echo "Building makemkv-bin..."
 
@@ -207,4 +251,5 @@ sudo make install
 ########################################
 
 echo "Installation complete!"
+echo "MakeMKV version: $MAKEMKV_VERSION"
 echo "Run: makemkv"
