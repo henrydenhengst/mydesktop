@@ -1,4 +1,79 @@
 #!/usr/bin/env bash
+#
+########################################
+# MakeMKV Installer Script
+########################################
+#
+# Description:
+#   This script automatically installs MakeMKV on Debian/Ubuntu systems.
+#   It downloads the specified MakeMKV source packages, installs required
+#   dependencies, compiles both makemkv-oss and makemkv-bin, and installs
+#   them system-wide.
+#
+# Requirements:
+#   - Debian or Ubuntu-based Linux distribution
+#   - sudo privileges
+#   - Internet connection
+#
+# What it does:
+#   1. Checks if the system is Debian/Ubuntu
+#   2. Ensures wget or curl is installed
+#   3. Installs required build dependencies via apt
+#   4. Downloads MakeMKV source packages
+#   5. Builds makemkv-oss
+#   6. Builds makemkv-bin
+#   7. Installs both packages
+#
+# Version:
+#   MakeMKV: 1.18.3 (configurable via MAKEMKV_VERSION variable)
+#
+# Notes:
+#   - DVD functionality is free to use.
+#   - Blu-ray/UHD support requires a license after trial period.
+#   - Temporary beta keys are sometimes available on the MakeMKV forums.
+#
+# Safety:
+#   - Script is restricted to Debian/Ubuntu systems only.
+#   - Uses sudo only for installation steps, not full script execution.
+#
+########################################
+########################################
+# Usage / After Installation
+########################################
+#
+# Start MakeMKV:
+#   makemkv
+#
+# If the command is not found, try:
+#   /usr/bin/makemkv
+#
+# Typical workflow:
+#   1. Insert a DVD / Blu-ray disc
+#   2. Start MakeMKV
+#   3. Select the optical drive
+#   4. Wait for disc scan
+#   5. Select titles (main movie usually largest file size)
+#   6. Choose output folder
+#   7. Click "Make MKV"
+#
+# Output:
+#   - Files are saved as .mkv (video is not re-encoded)
+#   - Only streams are remuxed (fast, no quality loss)
+#
+# Notes:
+#   - DVDs: fully free
+#   - Blu-ray / UHD: requires license after trial period
+#   - A temporary beta key is often available on the MakeMKV forums
+#
+# Troubleshooting:
+#   - If optical drive is not detected:
+#       sudo modprobe sg
+#
+#   - If permission issues occur:
+#       sudo usermod -aG cdrom $USER
+#       (then log out and back in)
+#
+########################################
 
 set -euo pipefail
 
