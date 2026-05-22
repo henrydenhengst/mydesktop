@@ -1,87 +1,60 @@
 #!/usr/bin/env bash
 
-# MakeMKV installer for Debian/Ubuntu only
-#
-# Supported:
-#   - Debian
-#   - Ubuntu
-#
-# This script intentionally refuses to run on:
-#   - Arch
-#   - Fedora
-#   - openSUSE
-#   - Alpine
-#   - Other unsupported distros
-#
-# Usage:
-#   chmod +x install_makemkv.sh
-#   ./install_makemkv.sh
-#
-# Required files in the same directory:
-#   makemkv-oss-x.x.x.tar.gz
-#   makemkv-bin-x.x.x.tar.gz
-
 set -euo pipefail
 
 ########################################
-# OS CHECK
+# CONFIG
+########################################
+
+MAKEMKV_VERSION="1.18.3"
+
+BIN_URL="https://www.makemkv.com/download/makemkv-bin-${MAKEMKV_VERSION}.tar.gz"
+OSS_URL="https://www.makemkv.com/download/makemkv-oss-${MAKEMKV_VERSION}.tar.gz"
+
+########################################
+# OS CHECK (Debian/Ubuntu only)
 ########################################
 
 if [[ ! -f /etc/os-release ]]; then
-    echo "ERROR: Cannot determine Linux distribution."
+    echo "ERROR: Cannot detect OS"
     exit 1
 fi
 
-# shellcheck disable=SC1091
 source /etc/os-release
 
-SUPPORTED=false
-
-case "${ID:-}" in
-    ubuntu|debian)
-        SUPPORTED=true
-        ;;
-esac
-
-# Also allow derivatives based on Debian/Ubuntu
-if [[ "${SUPPORTED}" == "false" ]]; then
-    if [[ "${ID_LIKE:-}" =~ (debian|ubuntu) ]]; then
-        SUPPORTED=true
-    fi
-fi
-
-if [[ "${SUPPORTED}" != "true" ]]; then
-    echo "ERROR: Unsupported Linux distribution."
-    echo
-    echo "Detected:"
-    echo "  ID=${ID:-unknown}"
-    echo "  ID_LIKE=${ID_LIKE:-unknown}"
-    echo
-    echo "This installer only supports Debian and Ubuntu based systems."
-    echo "Example supported distros:"
-    echo "  - Debian"
-    echo "  - Ubuntu"
-    echo "  - Linux Mint"
-    echo "  - Pop!_OS"
-    echo
-    echo "Refusing to continue."
+if [[ "${ID:-}" != "debian" && "${ID:-}" != "ubuntu" && "${ID_LIKE:-}" != *"debian"* && "${ID_LIKE:-}" != *"ubuntu"* ]]; then
+    echo "ERROR: Only Debian/Ubuntu supported"
+    echo "Detected: ${ID:-unknown}"
     exit 1
 fi
 
-########################################
-# START
-########################################
+echo "Detected OS: ${PRETTY_NAME:-unknown}"
 
-echo "=== MakeMKV Installer ==="
-echo "Detected distro: ${PRETTY_NAME:-Unknown}"
+########################################
+# SUDO CHECK
+########################################
 
 sudo -v
 
-echo
-echo ">>> Installing dependencies..."
+########################################
+# ENSURE DOWNLOAD TOOLS
+########################################
+
+echo "Checking for wget/curl..."
+
+if ! command -v wget >/dev/null 2>&1 && ! command -v curl >/dev/null 2>&1; then
+    echo "No wget or curl found. Installing..."
+    sudo apt update
+    sudo apt install -y wget curl
+fi
+
+########################################
+# INSTALL BUILD DEPENDENCIES
+########################################
+
+echo "Installing build dependencies..."
 
 sudo apt update
-
 sudo apt install -y \
     build-essential \
     pkg-config \
@@ -93,120 +66,66 @@ sudo apt install -y \
     qtbase5-dev
 
 ########################################
-# FIND ARCHIVES
+# DOWNLOAD FUNCTION
 ########################################
 
-echo
-echo ">>> Searching for source archives..."
+download_file() {
+    local url="$1"
+    local output="$2"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    echo "Downloading: $url"
 
-OSS_ARCHIVE=$(find "${SCRIPT_DIR}" -maxdepth 1 -type f -name "makemkv-oss-*.tar.gz" | head -n 1)
-BIN_ARCHIVE=$(find "${SCRIPT_DIR}" -maxdepth 1 -type f -name "makemkv-bin-*.tar.gz" | head -n 1)
-
-if [[ -z "${OSS_ARCHIVE}" ]]; then
-    echo "ERROR: makemkv-oss archive not found."
-    exit 1
-fi
-
-if [[ -z "${BIN_ARCHIVE}" ]]; then
-    echo "ERROR: makemkv-bin archive not found."
-    exit 1
-fi
-
-echo "Found archives:"
-echo "  $(basename "${OSS_ARCHIVE}")"
-echo "  $(basename "${BIN_ARCHIVE}")"
+    if command -v curl >/dev/null 2>&1; then
+        curl -L "$url" -o "$output"
+    else
+        wget -O "$output" "$url"
+    fi
+}
 
 ########################################
-# TEMP BUILD DIR
+# DOWNLOAD SOURCES
 ########################################
 
 WORKDIR=$(mktemp -d)
+cd "$WORKDIR"
 
-cleanup() {
-    echo
-    echo ">>> Cleaning temporary build files..."
-    rm -rf "${WORKDIR}"
-}
+echo "Using temp dir: $WORKDIR"
 
-trap cleanup EXIT
-
-echo
-echo ">>> Build directory:"
-echo "    ${WORKDIR}"
-
-cd "${WORKDIR}"
+download_file "$OSS_URL" "makemkv-oss.tar.gz"
+download_file "$BIN_URL" "makemkv-bin.tar.gz"
 
 ########################################
 # BUILD OSS
 ########################################
 
-echo
-echo ">>> Extracting makemkv-oss..."
+echo "Building makemkv-oss..."
 
-tar -xvzf "${OSS_ARCHIVE}"
+tar -xvzf makemkv-oss.tar.gz
+cd makemkv-oss-*
 
-OSS_DIR=$(find . -maxdepth 1 -type d -name "makemkv-oss-*" | head -n 1)
-
-if [[ -z "${OSS_DIR}" ]]; then
-    echo "ERROR: Failed to extract makemkv-oss."
-    exit 1
-fi
-
-cd "${OSS_DIR}"
-
-echo
-echo ">>> Configuring makemkv-oss..."
 ./configure
-
-echo
-echo ">>> Compiling makemkv-oss..."
 make -j"$(nproc)"
-
-echo
-echo ">>> Installing makemkv-oss..."
 sudo make install
 
-cd "${WORKDIR}"
+cd "$WORKDIR"
 
 ########################################
 # BUILD BIN
 ########################################
 
-echo
-echo ">>> Extracting makemkv-bin..."
+echo "Building makemkv-bin..."
 
-tar -xvzf "${BIN_ARCHIVE}"
+tar -xvzf makemkv-bin.tar.gz
+cd makemkv-bin-*
 
-BIN_DIR=$(find . -maxdepth 1 -type d -name "makemkv-bin-*" | head -n 1)
-
-if [[ -z "${BIN_DIR}" ]]; then
-    echo "ERROR: Failed to extract makemkv-bin."
-    exit 1
-fi
-
-cd "${BIN_DIR}"
-
-echo
-echo ">>> Compiling makemkv-bin..."
 make -j"$(nproc)"
-
-echo
-echo ">>> Installing makemkv-bin..."
 sudo make install
 
 ########################################
 # DONE
 ########################################
 
-echo
-echo "=== MakeMKV installation completed ==="
-echo
-echo "Run with:"
-echo "  makemkv"
-echo
-echo "Important:"
-echo "  - DVD support is free."
-echo "  - Blu-ray/UHD support is shareware."
-echo "  - Community beta keys are usually posted on the MakeMKV forum."
+echo "Installation complete!"
+echo "Run: makemkv"
+
+rm -rf "$WORKDIR"
