@@ -1,11 +1,12 @@
 #!ipxe
 
-set base https://download.opensuse.org/tumbleweed/repo/oss/boot/x86_64/loader
+set mirror https://download.opensuse.org/tumbleweed/repo/oss/boot/x86_64/loader
 
-kernel ${base}/linux \
+kernel ${mirror}/linux \
   autoyast=https://raw.githubusercontent.com/henrydenhengst/mydesktop/main/suse/autoinst.xml \
   netsetup=dhcp \
+  ifcfg=eth0=dhcp \
   textmode=1
 
-initrd ${base}/initrd
+initrd ${mirror}/initrd
 boot
