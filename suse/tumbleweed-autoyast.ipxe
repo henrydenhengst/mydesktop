@@ -1,6 +1,6 @@
 #!ipxe
 
-set base https://download.opensuse.org/tumbleweed/iso
+set base https://download.opensuse.org/tumbleweed/repo/oss/boot/x86_64/loader
 
 kernel ${base}/linux \
   autoyast=https://raw.githubusercontent.com/henrydenhengst/mydesktop/main/suse/autoinst.xml \
