@@ -6,7 +6,6 @@ set mirror ${base}/tumbleweed/repo/oss/boot/x86_64/loader
 kernel ${mirror}/linux \
   autoyast=https://raw.githubusercontent.com/henrydenhengst/mydesktop/main/suse/autoinst.xml \
   netsetup=dhcp \
-  ifcfg=* \
   textmode=1
 
 initrd ${mirror}/initrd
