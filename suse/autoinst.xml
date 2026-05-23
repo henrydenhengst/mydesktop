@@ -1,0 +1,184 @@
+<?xml version="1.0"?>
+<!DOCTYPE profile>
+<profile xmlns="http://www.suse.com/1.0/yast2ns" xmlns:config="http://www.suse.com/1.0/configns">
+
+  <general>
+    <proposals config:type="list"/>
+    <single-user-mode config:type="boolean">false</single-user-mode>
+    <license>
+      <terms_accepted config:type="boolean">true</terms_accepted>
+    </license>
+    <registration>
+      <do_registration config:type="boolean">false</do_registration>
+    </registration>
+  </general>
+
+  <timezone>
+    <hwclock>UTC</hwclock>
+    <timezone>Europe/Amsterdam</timezone>
+  </timezone>
+
+  <language>
+    <language>nl_NL.UTF-8</language>
+    <languages>nl_NL.UTF-8,en_US.UTF-8</languages>
+  </language>
+
+  <keyboard>
+    <keymap>english-us</keymap>
+  </keyboard>
+
+  <networking>
+    <hostname>lch-init</hostname>
+    <domain>lch.lan</domain>
+    <dns>
+      <dhcp_hostname config:type="boolean">true</dhcp_hostname>
+    </dns>
+    <interfaces config:type="list">
+      <interface>
+        <bootproto>dhcp</bootproto>
+        <device>*</device>
+        <startmode>auto</startmode>
+      </interface>
+    </interfaces>
+  </networking>
+
+  <users config:type="list">
+    <user>
+      <username>root</username>
+      <user_password>$6$yoursalt$hashedpasswordhere</user_password>
+      <encrypted config:type="boolean">true</encrypted>
+    </user>
+    <user>
+      <username>lch</username>
+      <user_password>$6$yoursalt$hashedpasswordhere</user_password>
+      <encrypted config:type="boolean">true</encrypted>
+      <fullname>Linux Café Haarlem</fullname>
+      <shell>/bin/bash</shell>
+      <groups config:type="list">
+        <group>wheel</group>
+        <group>video</group>
+      </groups>
+    </user>
+  </users>
+
+  <software>
+    <patterns config:type="list">
+      <pattern>lxqt</pattern>
+      <pattern>base</pattern>
+      <pattern>x11</pattern>
+    </patterns>
+    <packages config:type="list">
+      <package>lightdm</package>
+      <package>lightdm-gtk-greeter</package>
+      <package>MozillaFirefox</package>
+      <package>libreoffice</package>
+      <package>terminator</package>
+      <package>vim</package>
+      <package>git</package>
+      <package>ansible</package>
+      <package>curl</package>
+      <package>wget</package>
+      <package>firewalld</package>
+      <package>sudo</package>
+      <package>chrony</package>
+    </packages>
+  </software>
+
+  <x11>
+    <display_manager>
+      <display_manager>lightdm</display_manager>
+    </display_manager>
+  </x11>
+
+  <partitioning config:type="list">
+    <drive>
+      <device>/dev/sda</device>
+      <initialize config:type="boolean">true</initialize>
+      <partitions config:type="list">
+        <partition>
+          <filesystem config:type="symbol">ext4</filesystem>
+          <format config:type="boolean">true</format>
+          <mount>/</mount>
+          <size>max</size>
+        </partition>
+      </partitions>
+      <use>all</use>
+    </drive>
+  </partitioning>
+
+  <services-manager>
+    <services>
+      <enable config:type="list">
+        <service>sshd</service>
+        <service>firewalld</service>
+        <service>chronyd</service>
+      </enable>
+    </services>
+  </services-manager>
+
+  <firewall>
+    <enable config:type="boolean">true</enable>
+    <start_firewall config:type="boolean">true</start_firewall>
+  </firewall>
+
+  <bootloader>
+    <loader_type>grub2</loader_type>
+  </bootloader>
+
+  <scripts>
+    <post-scripts config:type="list">
+      <script>
+        <source><![CDATA[
+#!/bin/bash
+exec > /var/log/postinstall.log 2>&1
+set -euo pipefail
+
+# 1. Robuuste en unieke hostname
+SERIAL=$(cat /sys/class/dmi/id/product_serial 2>/dev/null || true)
+
+if [ -z "${SERIAL}" ] || [ "${SERIAL}" = "To Be Filled By O.E.M." ]; then
+  SERIAL=$(cat /sys/class/dmi/id/product_uuid 2>/dev/null || true)
+fi
+
+if [ -z "${SERIAL}" ]; then
+  SERIAL=$(cat /etc/machine-id | cut -c1-8)
+fi
+
+SERIAL=$(echo "${SERIAL}" | tr ' ' '-' | tr -cd '[:alnum:]-')
+hostnamectl set-hostname "lch-${SERIAL}"
+
+# 2. Sudo rechten (wachtwoord vereist)
+echo 'lch ALL=(ALL) ALL' > /etc/sudoers.d/lch
+chmod 440 /etc/sudoers.d/lch
+
+# 3. SSH hardening (robuust)
+if grep -q "^#PermitRootLogin" /etc/ssh/sshd_config; then
+  sed -i 's/^#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+elif grep -q "^PermitRootLogin" /etc/ssh/sshd_config; then
+  sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+else
+  echo 'PermitRootLogin no' >> /etc/ssh/sshd_config
+fi
+
+systemctl enable sshd
+systemctl try-restart sshd || true
+
+# 4. Firewall setup (volgorde veilig gemaakt)
+systemctl enable firewalld
+systemctl start firewalld
+firewall-cmd --permanent --add-service=ssh
+firewall-cmd --reload
+
+# 5. SSD / filesystem optimalisatie
+systemctl enable fstrim.timer
+systemctl start fstrim.timer
+
+# 6. Updates (robuster network handling)
+zypper --non-interactive --gpg-auto-import-keys refresh
+zypper --non-interactive update
+        ]]></source>
+      </script>
+    </post-scripts>
+  </scripts>
+
+</profile>
