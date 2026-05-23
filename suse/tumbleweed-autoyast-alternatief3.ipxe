@@ -1,0 +1,11 @@
+#!ipxe
+
+set base http://192.168.1.10/opensuse/tumbleweed/loader
+
+kernel ${base}/linux \
+  autoyast=http://192.168.1.10/autoinst.xml \
+  netsetup=dhcp \
+  textmode=1
+
+initrd ${base}/initrd
+boot
