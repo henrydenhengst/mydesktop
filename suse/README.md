@@ -36,3 +36,12 @@ In je `autoinst.xml` vervang je de regel met de placeholder door deze string.
 **Kopiëren:** Zorg dat je de gehele string kopieert, inclusief de `$` tekens.
 
 **Opslaan:** Omdat dit XML-bestand straks op een webserver staat voor je Netboot, is het verstandig om het bestand zelf ook met de juiste rechten (`chmod 600`) op te slaan, zodat niet iedereen op je server zomaar het bestand kan inzien.
+
+---
+
+```
+https://raw.githubusercontent.com/henrydenhengst/mydesktop/main/suse/autoinst.xml
+```
+
+---
+
