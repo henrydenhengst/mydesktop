@@ -1,0 +1,11 @@
+#!ipxe
+
+set base https://download.opensuse.org/tumbleweed/iso
+
+kernel ${base}/linux \
+  autoyast=https://raw.githubusercontent.com/henrydenhengst/mydesktop/main/suse/autoinst.xml \
+  netsetup=dhcp \
+  textmode=1
+
+initrd ${base}/initrd
+boot
