@@ -33,7 +33,7 @@ onderhoudbare Ansible-playbooks en Netboot.xyz-configuraties.
 
 VERANTWOORDELIJKHEDEN
 - Onderhoud van de 'Happy Path' infrastructuur voor de uitvoerders.
-- Versiebeheer van playbooks en Netboot-configs (Codeberg).
+- Versiebeheer van playbooks en Netboot-configs (Github).
 - Kwaliteitsbewaking: zorgt dat automatisering foutloos draait op de aangeleverde hardware.
 - Eerstelijns troubleshooting: lost complexe technische blokkades op waar de uitvoerder niet uitkomt.
 
@@ -45,7 +45,7 @@ OUTPUT
 - Duidelijke werkinstructies voor de Operationeel Automatisering.
 
 GEWENSTE COMPETENTIES
-- Praktische ervaring of sterke affiniteit met Ansible en netwerk-boot omgevingen.
+- Praktische ervaring of sterke affiniteit met Ansible en deployment omgevingen.
 - Procesmatig denkvermogen: kan complexe taken versimpelen tot een 'hufterproof' protocol.
 - Systeemdenken: begrijpt hoe wijzigingen in de configuratie invloed hebben op de fysieke operatie.
 
