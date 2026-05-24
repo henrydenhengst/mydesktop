@@ -9,7 +9,7 @@
 ### Taken
 ### Wat wij bieden
 
-## Vacature 2: OPERATIONEEL CONTENT BEHEERDER (COMMUNICATIE/ADMINISTRATIE)
+## Vacature 2: OPERATIONEEL CONTENT BEHEERDER (COMMUNICATIE / ADMINISTRATIE)
 - **Status:** Open
 - **Type rol:** Stagiair / Vrijwilliger 
 - **Tijdsbesteding:** 4-8 uur per week
