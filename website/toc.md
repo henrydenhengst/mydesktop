@@ -18,15 +18,39 @@
 ### Taken
 ### Wat wij bieden
 
-## Vacature 3: [Functietitel]
+## Vacature 3: TACTISCH SYSTEEMBEHEERDER (AUTOMATISERING)
 - **Status:** Open
 - **Type rol:** Vrijwilliger 
 - **Tijdsbesteding:** 4-8 uur per week
 - **Locatie:** Het Open Huis, Haarlem
 
 ### Profiel
+Verantwoordelijk voor de stabiliteit en betrouwbaarheid van de 
+technische infrastructuur. Vertaalt de strategische eisen naar 
+onderhoudbare Ansible-playbooks en Netboot.xyz-configuraties.
+
 ### Taken
-### Wat wij bieden
+
+VERANTWOORDELIJKHEDEN
+- Onderhoud van de 'Happy Path' infrastructuur voor de uitvoerders.
+- Versiebeheer van playbooks en Netboot-configs (Codeberg).
+- Kwaliteitsbewaking: zorgt dat automatisering foutloos draait op de aangeleverde hardware.
+- Eerstelijns troubleshooting: lost complexe technische blokkades op waar de uitvoerder niet uitkomt.
+
+INPUT
+- Strategische richtlijnen van de Architect (bijv. nieuwe software-eisen of hardware-standaarden).
+
+OUTPUT
+- Stabiele, reproduceerbare installatieomgevingen.
+- Duidelijke werkinstructies voor de Operationeel Automatisering.
+
+GEWENSTE COMPETENTIES
+- Praktische ervaring of sterke affiniteit met Ansible en netwerk-boot omgevingen.
+- Procesmatig denkvermogen: kan complexe taken versimpelen tot een 'hufterproof' protocol.
+- Systeemdenken: begrijpt hoe wijzigingen in de configuratie invloed hebben op de fysieke operatie.
+
+Kernprincipe: Bouwt de gereedschapskist; laat de uitvoerders het werk doen.
+
 
 ## Vacature 4: TACTISCH RELATIEBEHEERDER (COMMUNICATIE)
 - **Status:** Open
