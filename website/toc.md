@@ -18,7 +18,7 @@ VERANTWOORDELIJKHEDEN
 - Uitvoeren van het 'Happy Path' installatieprotocol:
   1. Aansluiten op netwerk.
   2. Booten via Netboot.xyz.
-  3. Starten van het toegewezen Ansible-image.
+  3. Starten van het toegewezen Ansible script.
 - Controleren of het proces succesvol is afgerond (checklist).
 - Signaleren van hardware-defecten (afwijkingen direct apart leggen voor de Systeembeheerder).
 
