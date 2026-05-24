@@ -4,7 +4,7 @@
 - **Status:** Open
 - **Type rol:** Stagiair / Vrijwilliger 
 - **Tijdsbesteding:** 4-8 uur per week
-- **Locatie:** Het Open Huis, Haarlem
+- **Locatie:**  Technische Locatie, Haarlem 
 ### Profiel
 ### Taken
 ### Wat wij bieden
@@ -22,7 +22,7 @@
 - **Status:** Open
 - **Type rol:** Vrijwilliger 
 - **Tijdsbesteding:** 4-8 uur per week
-- **Locatie:** Het Open Huis, Haarlem
+- **Locatie:** Technische Locatie, Haarlem
 
 ### Profiel
 Verantwoordelijk voor de stabiliteit en betrouwbaarheid van de 
