@@ -1,3 +1,19 @@
+# Vacatures: Bouw mee aan de digitale toekomst van Haarlem
+
+Welkom bij het Linux Café Haarlem. Wij geloven dat technologie toegankelijk, duurzaam en in eigen beheer moet zijn. In een tijd waarin digitale afhankelijkheid groeit, zetten wij ons in voor **Digital Sovereignty** (digitale soevereiniteit) en een circulaire economie.
+
+### Waarom meedoen?
+Bij Linux Café Haarlem draait het niet om het verkopen van producten, maar om het creëren van waarde voor de Haarlemse gemeenschap. Door gedoneerde hardware een tweede leven te geven met vrije en open-source software, maken we technologie inclusief en duurzaam. 
+
+Wanneer je bij ons instapt, werk je aan:
+- **Maatschappelijke impact:** Je helpt studenten en buurtgenoten aan betrouwbare apparatuur.
+- **Circulariteit:** Je voorkomt e-waste door hardware vakkundig te repareren en hergebruiken.
+- **Kennisdeling:** Je leert werken met de nieuwste automatiseringstechnieken (zoals Ansible en Netboot) in een professionele, maar informele setting.
+
+Wij zoeken mensen die niet alleen willen "gebruiken", maar ook willen "bouwen". Of je nu een hands-on aanpakker bent, een communicatietalent, of een technische architect: bij ons leg je de fundamenten voor een eerlijker digitaal landschap.
+
+Klaar om jouw steentje bij te dragen? Bekijk hieronder onze openstaande rollen en ontdek waar jouw kracht het beste tot zijn recht komt.
+
 [TOC]
 
 ## Vacature 1: OPERATIONEEL COMPUTER VERWERKER (AUTOMATISERING)
