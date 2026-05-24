@@ -28,17 +28,40 @@
 ### Taken
 ### Wat wij bieden
 
-## Vacature 4: [Functietitel]
+## Vacature 4: TACTISCH RELATIEBEHEERDER (COMMUNICATIE)
 **Status:** Open
 **Type rol:** Vrijwilliger 
 **Tijdsbesteding:** 4-8 uur per week
 **Locatie:** Het Open Huis, Haarlem
 
 ### Profiel
+Verantwoordelijk voor de externe positionering en de duurzaamheid 
+van het project. Vertaalt de strategische visie naar een concrete 
+communicatie-roadmap en beheert de relaties met partners en gemeente.
 ### Taken
-### Wat wij bieden
 
-## Vacature 5: [STRATEGISCH WOORDVOERDER & NETWERKER]
+VERANTWOORDELIJKHEDEN
+- Ontwikkeling van de contentstrategie en bewaking van de 'tone-of-voice'.
+- Opstellen en bijhouden van subsidie-aanvragen en verantwoordingen.
+- Onderhouden van contacten met de Gemeente Haarlem, scholen en andere maatschappelijke partners.
+- Vertalen van strategische doelen naar actielijsten voor de Operationeel Communicatie.
+
+INPUT
+- Strategische prioriteiten van de Architect (bijv. focus op circulaire initiatieven of fondsenwerving).
+
+OUTPUT
+- Goedgekeurde contentplannen, succesvolle subsidieaanvragen en een actieve netwerkagenda.
+- Duidelijke instructies en templates voor de Operationeel Communicatie.
+
+GEWENSTE COMPETENTIES
+- Organisatorisch sterk: kan complexe netwerken en planningen beheren.
+- Communicatief vaardig: kan de visie van Linux Café Haarlem vertalen naar verschillende doelgroepen.
+- Administratieve drive: vindt voldoening in het borgen van afspraken en het behalen van mijlpalen.
+
+Kernprincipe: Bouwt de brug naar de buitenwereld; faciliteert groei en continuïteit.
+
+
+## Vacature 5: STRATEGISCH WOORDVOERDER & NETWERKER
 **Status:** Open
 **Type rol:** Vrijwilliger 
 **Tijdsbesteding:** 4-8 uur per week
