@@ -9,14 +9,41 @@
 ### Taken
 ### Wat wij bieden
 
-## Vacature 2: [Functietitel]
+## Vacature 2: OPERATIONEEL CONTENT BEHEERDER (COMMUNICATIE/ADMINISTRATIE)
 - **Status:** Open
 - **Type rol:** Stagiair / Vrijwilliger 
 - **Tijdsbesteding:** 4-8 uur per week
 - **Locatie:** Het Open Huis, Haarlem
 ### Profiel
+Verantwoordelijk voor de zichtbaarheid en administratieve afhandeling van het project. Zorgt dat alle communicatie verloopt volgens de 
+afgesproken templates en planning.
+
 ### Taken
-### Wat wij bieden
+
+DOELSTELLING
+
+VERANTWOORDELIJKHEDEN
+- Up-to-date houden van de website (evenementen, nieuws).
+- Onderhouden van social media kanalen op basis van de contentkalender.
+- Verwerken van e-mailverkeer (beantwoorden van vragen/donaties) middels vaste templates.
+- Bijhouden van de administratie (ledenbestand, afspraken, subsidie-logboek).
+
+INPUT
+- Contentkalender en templates van de Tactisch Relatiebeheerder.
+- Vaste workflows voor administratieve taken.
+
+OUTPUT
+- Actieve en actuele online kanalen.
+- Een georganiseerde mailbox en administratieve dossiers.
+- Tijdige communicatie naar partners en donateurs.
+
+GEWENSTE COMPETENTIES
+- Secuur en gestructureerd: werkt altijd volgens de geldende templates en protocollen.
+- Betrouwbaar: beantwoordt e-mails en updates binnen de gestelde termijnen.
+- Digital native: handig met website-CMS, e-mailclients en social media tools.
+
+Kernprincipe: Consistente communicatie via vastgelegde templates; ontzorgt de organisatie door administratieve flow.
+
 
 ## Vacature 3: TACTISCH SYSTEEMBEHEERDER (AUTOMATISERING)
 - **Status:** Open
