@@ -197,3 +197,10 @@ GEWENSTE COMPETENTIES
 
 Kernprincipe: "Jij bouwt de motor, zij zijn de ambassadeur die de reis verkoopt en brandstof regelt."
 
+
+---
+### Interesse om mee te bouwen?
+Ben je enthousiast geworden over een van deze rollen? Stuur een korte motivatie naar **haarlem@st-lkcc.nl**
+**. We maken graag kennis onder het genot van een kop koffie in Het Open Huis om te kijken hoe jouw talenten en onze ambities samenkomen.
+
+
