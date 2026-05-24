@@ -29,10 +29,10 @@
 ### Wat wij bieden
 
 ## Vacature 4: TACTISCH RELATIEBEHEERDER (COMMUNICATIE)
-**Status:** Open
-**Type rol:** Vrijwilliger 
-**Tijdsbesteding:** 4-8 uur per week
-**Locatie:** Het Open Huis, Haarlem
+- **Status:** Open
+- **Type rol:** Vrijwilliger 
+- **Tijdsbesteding:** 4-8 uur per week
+- **Locatie:** Het Open Huis, Haarlem
 
 ### Profiel
 Verantwoordelijk voor de externe positionering en de duurzaamheid 
