@@ -1,13 +1,40 @@
 [TOC]
 
-## Vacature 1: [Functietitel]
+## Vacature 1: OPERATIONEEL COMPUTER VERWERKER (AUTOMATISERING)
 - **Status:** Open
 - **Type rol:** Stagiair / Vrijwilliger 
 - **Tijdsbesteding:** 4-8 uur per week
 - **Locatie:**  Technische Locatie, Haarlem 
 ### Profiel
+
+Verantwoordelijk voor de fysieke verwerking van gedoneerde apparatuur. Zorgt dat elke laptop volgens de gestelde standaard klaargemaakt wordt voor gebruik.
+
 ### Taken
-### Wat wij bieden
+
+DOELSTELLING
+
+VERANTWOORDELIJKHEDEN
+- Fysieke inspectie en reiniging van binnenkomende hardware.
+- Uitvoeren van het 'Happy Path' installatieprotocol:
+  1. Aansluiten op netwerk.
+  2. Booten via Netboot.xyz.
+  3. Starten van het toegewezen Ansible-image.
+- Controleren of het proces succesvol is afgerond (checklist).
+- Signaleren van hardware-defecten (afwijkingen direct apart leggen voor de Systeembeheerder).
+
+INPUT
+- 'Happy Path' protocollen en checklists van de Tactisch Systeembeheerder.
+
+OUTPUT
+- Gebruiksklare laptops die voldoen aan de technische standaard.
+- Geregistreerde hardware-status in het voorraadbeheer.
+
+GEWENSTE COMPETENTIES
+- Praktisch en secuur: houdt van fysiek werk en het afwerken van checklists.
+- Discipline: volgt het protocol strikt en probeert niet zelf te 'sleutelen' aan de backend.
+- Oog voor detail: merkt fysieke gebreken aan apparatuur tijdig op.
+
+Kernprincipe: Meters maken op basis van een vast protocol; kwaliteit door consistentie.
 
 ## Vacature 2: OPERATIONEEL CONTENT BEHEERDER (COMMUNICATIE / ADMINISTRATIE)
 - **Status:** Open
