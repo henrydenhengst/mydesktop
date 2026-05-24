@@ -1,10 +1,10 @@
 [TOC]
 
 ## Vacature 1: [Functietitel]
-**Status:** Open
-**Type rol:** Stagiair / Vrijwilliger 
-**Tijdsbesteding:** 4-8 uur per week
-**Locatie:** Het Open Huis, Haarlem
+- **Status:** Open
+- **Type rol:** Stagiair / Vrijwilliger 
+- **Tijdsbesteding:** 4-8 uur per week
+- **Locatie:** Het Open Huis, Haarlem
 ### Profiel
 ### Taken
 ### Wat wij bieden
