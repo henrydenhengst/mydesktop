@@ -1,0 +1,29 @@
+---
+- name: Installeer aanbevolen packages voor Sparky Linux
+  hosts: localhost
+  connection: local
+  become: yes
+
+  tasks:
+  - name: Update apt cache
+    apt:
+      update_cache: yes
+
+  - name: Installeer DevOps tools
+    apt:
+      name:
+        - fzf
+        - lsd
+        - bat
+        - fd-find
+        - ncdu
+        - btop
+        - duf
+        - lm-sensors
+        - upower
+        - tree
+        - curl
+        - git
+        - ansible
+        - bash-completion
+      state: present
