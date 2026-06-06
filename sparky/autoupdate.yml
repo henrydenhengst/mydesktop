@@ -1,0 +1,55 @@
+---
+- name: Setup automatische updates voor Sparky Linux (veilig)
+  hosts: localhost
+  connection: local
+  become: yes
+
+  vars:
+    script_path: "/usr/local/bin/auto_update.sh"
+    log_file: "/var/log/auto-update.log"
+
+  tasks:
+
+    - name: Installeer unattended-upgrades
+      apt:
+        name:
+          - unattended-upgrades
+        state: present
+        update_cache: yes
+
+    - name: Configureer unattended-upgrades (alleen security updates)
+      copy:
+        dest: /etc/apt/apt.conf.d/50unattended-upgrades
+        content: |
+          Unattended-Upgrade::Allowed-Origins {
+              "${distro_id}:${distro_codename}-security";
+          };
+          Unattended-Upgrade::AutoFixInterruptedDlds "true";
+          Unattended-Upgrade::MinimalSteps "true";
+          Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+          Unattended-Upgrade::Remove-Unused-Dependencies "false";
+          Unattended-Upgrade::Automatic-Reboot "false";
+
+      notify: restart unattended-upgrades
+
+    - name: Activeer automatische updates scheduling
+      copy:
+        dest: /etc/apt/apt.conf.d/20auto-upgrades
+        content: |
+          APT::Periodic::Enable "1";
+          APT::Periodic::Update-Package-Lists "1";
+          APT::Periodic::Download-Upgradeable-Packages "1";
+          APT::Periodic::AutocleanInterval "7";
+          APT::Periodic::Unattended-Upgrade "1";
+
+    - name: Start unattended-upgrades service
+      systemd:
+        name: unattended-upgrades
+        enabled: yes
+        state: started
+
+  handlers:
+    - name: restart unattended-upgrades
+      systemd:
+        name: unattended-upgrades
+        state: restarted
