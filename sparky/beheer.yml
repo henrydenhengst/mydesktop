@@ -1,0 +1,101 @@
+---
+- name: Geoptimaliseerd Systeemonderhoud (Failsafe Editie) - Sparky Linux
+  hosts: localhost
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: 1. APT Pakketbeheer Opschonen en Updaten
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: dist
+        autoremove: true
+        autoclean: true
+        purge: true
+      register: apt_res
+      until: apt_res is success
+      retries: 3
+      delay: 5
+
+    - name: 2a. Check of de schijf TRIM ondersteunt (SSD check)
+      ansible.builtin.shell: |
+        cat /sys/block/$(lsblk -no pkname $(findmnt -nvo SOURCE /) | head -n1)/queue/rotational
+      register: is_ssd
+      changed_when: false
+      failed_when: false
+      ignore_errors: true
+
+    - name: 2b. SSD Onderhoud (FSTRIM)
+      ansible.builtin.shell: fstrim -av
+      register: trim_result
+      when: is_ssd.stdout | default('1') == "0"
+      failed_when: false
+      ignore_errors: true
+
+    - name: 3. Firmware check met fwupdmgr
+      ansible.builtin.command: fwupdmgr get-updates
+      register: fw_check
+      changed_when: false
+      failed_when: false
+      ignore_errors: true
+
+    - name: 4. Update initramfs
+      ansible.builtin.command: update-initramfs -u
+      changed_when: true
+      failed_when: false
+      ignore_errors: true
+
+    - name: 5. Systeem Status ophalen
+      ansible.builtin.set_fact:
+        disk_usage: >-
+          {{ ansible_mounts | selectattr('mount', 'equalto', '/')
+          | map(attribute='size_total') | first | default(0) }}
+        disk_free: >-
+          {{ ansible_mounts | selectattr('mount', 'equalto', '/')
+          | map(attribute='size_available') | first | default(0) }}
+
+    - name: 6. Haal CPU Temperatuur op
+      ansible.builtin.shell: |
+        if command -v sensors >/dev/null 2>&1; then
+          sensors 2>/dev/null | grep -E '(Core 0|Package id 0)' | head -1 | awk '{print $3}' | sed 's/+//g' || echo "N/A"
+        else
+          echo "lm-sensors niet geïnstalleerd (sudo apt install lm-sensors)"
+        fi
+      register: temp_status
+      changed_when: false
+      ignore_errors: true
+
+    - name: 7. Controleer of herstart nodig is
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+
+    - name: 8. Install lm-sensors if needed (optional)
+      ansible.builtin.apt:
+        name: lm-sensors
+        state: present
+      when: temp_status.stdout | regex_search("niet geïnstalleerd")
+      ignore_errors: true
+
+    - name: 9. Eindrapportage
+      ansible.builtin.debug:
+        msg:
+          - "========================================="
+          - "Onderhoud voltooid op: {{ ansible_hostname }}"
+          - "Kernel: {{ ansible_kernel }}"
+          - "Uptime: {{ (ansible_uptime_seconds | int // 3600) if ansible_uptime_seconds is defined else 'N/A' }} uur"
+          - "SSD Gedetecteerd: {{ 'Ja' if is_ssd.stdout | default('1') == '0' else 'Nee/Onbekend' }}"
+          - "Trim Resultaat: {{ trim_result.stdout | default('Overgeslagen (geen SSD)') }}"
+          - "Disk Gebruik: {{ ((1 - (disk_free|float / disk_usage|float)) * 100) | round(1) if disk_usage|float > 0 else 'N/A' }}%"
+          - "CPU Temp: {{ temp_status.stdout | default('N/A') }}"
+          - "Firmware updates: {{ 'Ja' if fw_check.stdout else 'Geen/Geen fwupd' }}"
+          - "Herstart nodig: {{ 'JA ⚠️' if reboot_required.stat.exists else 'NEE ✅' }}"
+          - "========================================="
+
+    - name: 10. Waarschuw voor herstart indien nodig
+      ansible.builtin.debug:
+        msg: |
+          ⚠️ ⚠️ ⚠️ BELANGRIJK ⚠️ ⚠️ ⚠️
+          Een herstart wordt aanbevolen op {{ ansible_hostname }}!
+          Voer uit: sudo reboot
+      when: reboot_required.stat.exists
