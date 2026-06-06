@@ -1,0 +1,67 @@
+---
+- name: Installeer Nerd Fonts op Sparky/Debian
+  hosts: localhost
+  connection: local
+  become: yes
+  
+  vars:
+    nerd_fonts:
+      - JetBrainsMono
+      - RobotoMono
+      - Hack
+    font_dir: "/usr/local/share/fonts/nerdfonts"
+    temp_dir: "/tmp/nerdfonts"
+
+  tasks:
+    - name: Installeer benodigde pakketten
+      apt:
+        name: 
+          - unzip
+          - curl
+          - wget
+          - fontconfig
+        state: present
+        update_cache: yes
+
+    - name: Maak font directories aan
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ font_dir }}"
+        - "{{ temp_dir }}"
+
+    - name: Download Nerd Fonts (correcte URLs)
+      get_url:
+        url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/{{ item }}.zip"
+        dest: "{{ temp_dir }}/{{ item }}.zip"
+        timeout: 60
+        validate_certs: yes
+      loop: "{{ nerd_fonts }}"
+      register: download_fonts
+
+    - name: Unzip fonts naar font directory
+      unarchive:
+        src: "{{ temp_dir }}/{{ item.item }}.zip"
+        dest: "{{ font_dir }}"
+        remote_src: yes
+        creates: "{{ font_dir }}/{{ item.item }}"
+      loop: "{{ download_fonts.results }}"
+      when: item.changed
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Update font cache
+      command: fc-cache -fv
+      when: download_fonts.changed
+      register: font_cache
+
+    - name: Toon geïnstalleerde fonts
+      debug:
+        msg: "{{ nerd_fonts | map('regex_replace', '$', ' Nerd Font') | list }} geïnstalleerd"
+
+    - name: Schoon tijdelijke bestanden op
+      file:
+        path: "{{ temp_dir }}"
+        state: absent
