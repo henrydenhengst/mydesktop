@@ -1,0 +1,36 @@
+---
+- name: Onderdruk GRUB meldingen tijdens opstarten (Sparky Linux)
+  hosts: localhost
+  connection: local
+  become: yes
+
+  tasks:
+    - name: Optimaliseer kernel parameters voor silent boot
+      ansible.builtin.lineinfile:
+        path: /etc/default/grub
+        regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
+        line: 'GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=3 rd.systemd.show_status=false rd.udev.log_level=3 vt.global_cursor_default=0"'
+        state: present
+      notify: update grub
+
+    - name: Verberg GRUB menu (maar houd optie voor Shift toets)
+      ansible.builtin.lineinfile:
+        path: /etc/default/grub
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      loop:
+        - { regexp: '^GRUB_TIMEOUT=', line: 'GRUB_TIMEOUT=1' }          # 1 seconde ipv 0
+        - { regexp: '^GRUB_TIMEOUT_STYLE=', line: 'GRUB_TIMEOUT_STYLE=hidden' }
+        - { regexp: '^GRUB_RECORDFAIL_TIMEOUT=', line: 'GRUB_RECORDFAIL_TIMEOUT=2' }  # 2 sec bij error
+      notify: update grub
+
+    - name: Voeg instructie toe
+      ansible.builtin.debug:
+        msg: |
+          ✅ GRUB is geconfigureerd voor silent boot
+          💡 Houd SHIFT (BIOS) of ESC (UEFI) ingedrukt tijdens boot om GRUB menu te tonen
+
+  handlers:
+    - name: update grub
+      ansible.builtin.command: update-grub
+      changed_when: true
