@@ -1,0 +1,107 @@
+---
+- name: Configureer Shell Aliassen en FZF Integratie (Sparky Linux)
+  hosts: localhost
+  connection: local
+  become: no
+
+  tasks:
+  - name: Check FZF standaard pad
+    stat:
+      path: "/usr/share/doc/fzf/examples/key-bindings.bash"
+    register: fzf_standard
+
+  - name: Check FZF alternatief pad
+    stat:
+      path: "/usr/share/fzf/key-bindings.bash"
+    register: fzf_alt
+
+  - name: Voeg FZF configuratie en aliassen toe aan .bashrc
+    blockinfile:
+      path: "{{ lookup('env', 'HOME') }}/.bashrc"
+      marker: "# {mark} ANSIBLE MANAGED DEVOPS BLOCK"
+      block: |
+        # --- FZF INTEGRATIE ---
+        {% if fzf_standard.stat.exists %}
+        [ -f /usr/share/doc/fzf/examples/key-bindings.bash ] && source /usr/share/doc/fzf/examples/key-bindings.bash
+        [ -f /usr/share/doc/fzf/examples/completion.bash ] && source /usr/share/doc/fzf/examples/completion.bash
+        {% elif fzf_alt.stat.exists %}
+        [ -f /usr/share/fzf/key-bindings.bash ] && source /usr/share/fzf/key-bindings.bash
+        [ -f /usr/share/fzf/completion.bash ] && source /usr/share/fzf/completion.bash
+        {% endif %}
+
+        # --- DEVOPS ALIASSEN ---
+
+        # Navigatie
+        alias ..='cd ..'
+        alias ...='cd ../..'
+
+        # Bestanden
+        if command -v lsd >/dev/null 2>&1; then
+            alias l='lsd -F --group-dirs first'
+        else
+            alias l='ls -CF'
+        fi
+
+        alias ll='ls -alhF'
+
+        if command -v batcat >/dev/null 2>&1; then
+            alias bat='batcat'
+        fi
+
+        if command -v fdfind >/dev/null 2>&1; then
+            alias fd='fdfind'
+        fi
+
+        alias tree='tree -C'
+
+        if command -v ncdu >/dev/null 2>&1; then
+            alias ncdu='ncdu --color dark'
+        fi
+
+        # Systeem & Netwerk
+        if command -v btop >/dev/null 2>&1; then
+            alias top='btop'
+        fi
+
+        alias ip='ip -c'
+
+        if command -v ss >/dev/null 2>&1; then
+            alias ports='ss -tulanp'
+        else
+            alias ports='netstat -tulanp'
+        fi
+
+        alias myip='curl -s ifconfig.me'
+
+        if command -v duf >/dev/null 2>&1; then
+            alias df='duf'
+        fi
+
+        # Git & Ansible
+        alias gs='git status'
+        alias gp='git pull'
+        alias adone='ansible-playbook'
+        alias a-hosts='cat /etc/ansible/hosts'
+
+        # Hardware Checks
+        alias temp='sensors'
+
+        alias battery='upower -e | grep BAT | head -1 | xargs upower -i | grep percentage'
+
+  - name: Zorg dat bash-completion geactiveerd is
+    lineinfile:
+      path: "{{ lookup('env', 'HOME') }}/.bashrc"
+      line: "[[ -f /usr/share/bash-completion/bash_completion ]] && . /usr/share/bash-completion/bash_completion"
+      state: present
+
+  - name: Toon welke FZF configuratie gebruikt wordt
+    debug:
+      msg: |
+        FZF configuratie gebruikt:
+        {% if fzf_standard.stat.exists %}
+        - Standaard pad: /usr/share/doc/fzf/examples/
+        {% elif fzf_alt.stat.exists %}
+        - Alternatief pad: /usr/share/fzf/
+        {% else %}
+        - GEEN FZF PAD GEVONDEN! Installeer fzf: sudo apt install fzf
+        {% endif %}
