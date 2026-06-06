@@ -1,0 +1,92 @@
+---
+- name: Universele Hardware Support (Sparky 7 / Debian 12 compatible)
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: yes
+
+  tasks:
+
+  # 1. MICROCODE
+  - name: Installeer CPU microcode (Intel/AMD)
+    apt:
+      name:
+        - intel-microcode
+        - amd64-microcode
+      state: present
+      update_cache: yes
+
+  # 2. FIRMWARE
+  - name: Installeer firmware pakketten
+    apt:
+      name:
+        - firmware-linux-free
+        - firmware-misc-nonfree
+        - firmware-iwlwifi
+        - firmware-realtek
+        - firmware-atheros
+        - firmware-brcm80211
+        - firmware-amd-graphics
+        - firmware-sof-signed
+      state: present
+
+  # 3. NETWERK & BLUETOOTH
+  - name: Installeer netwerk en bluetooth tools
+    apt:
+      name:
+        - bluez
+        - bluez-firmware
+      state: present
+
+  # 4. GPU & SYSTEM TOOLS
+  - name: Installeer GPU en basis tools
+    apt:
+      name:
+        - mesa-utils
+        - va-driver-all
+        - xserver-xorg-input-libinput
+      state: present
+
+  # 5. FILESYSTEM SUPPORT
+  - name: Installeer filesystem support
+    apt:
+      name:
+        - ntfs-3g
+        - exfatprogs
+      state: present
+
+  # 6. SMARTCARD
+  - name: Installeer smartcard support
+    apt:
+      name:
+        - pcscd
+        - pcsc-tools
+        - opensc
+      state: present
+
+  - name: Start pcscd service
+    systemd:
+      name: pcscd
+      state: started
+      enabled: yes
+
+  # 7. BATTERY OPTIMIZATION
+  - name: Installeer TLP power management
+    apt:
+      name:
+        - tlp
+        - tlp-rdw
+      state: present
+
+  - name: Start TLP service
+    systemd:
+      name: tlp
+      state: started
+      enabled: yes
+
+  # 8. USER GROUPS
+  - name: Voeg gebruiker toe aan hardware groepen
+    user:
+      name: "{{ ansible_user_id }}"
+      groups: video,lp,scanner,plugdev,audio
+      append: yes
