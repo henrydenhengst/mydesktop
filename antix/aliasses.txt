@@ -1,0 +1,313 @@
+# ============================================================
+# antiX / Debian CLI TOOLBOX
+# ============================================================
+# Plaats dit in ~/.bashrc of source het vanuit ~/.bashrc:
+#   [ -f ~/.cli_toolbox ] && source ~/.cli_toolbox
+# ============================================================
+
+# ------------------------------------------------------------
+# OFFICE
+# ------------------------------------------------------------
+alias word='wordgrinder'
+alias excel='sc-im'
+alias calendar='calcurse'
+alias tasks='task'
+alias markdown='glow'
+
+# ------------------------------------------------------------
+# EDITORS
+# ------------------------------------------------------------
+alias edit='micro'
+alias vi='vim'
+alias nvi='nvim'
+
+# ------------------------------------------------------------
+# FILE MANAGERS
+# ------------------------------------------------------------
+alias files='mc'
+alias fileman='nnn'
+alias rangerfm='ranger'
+
+# ------------------------------------------------------------
+# FILES & SEARCH
+# ------------------------------------------------------------
+alias findfile='fd'
+alias search='rg'
+alias fuzzy='fzf'
+alias treeview='tree'
+alias filesize='du -sh'
+alias disk='ncdu'
+
+# ------------------------------------------------------------
+# BASIC FILE OPERATIONS
+# ------------------------------------------------------------
+alias ll='ls -lah'
+alias la='ls -A'
+alias l='ls -CF'
+
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+
+alias cpv='cp -v'
+alias mvv='mv -v'
+alias rmr='rm -r'
+alias mkdirp='mkdir -p'
+
+# ------------------------------------------------------------
+# TEXT / VIEWING
+# ------------------------------------------------------------
+alias catview='bat'
+alias lessr='less -R'
+alias countlines='wc -l'
+alias countwords='wc -w'
+
+# ------------------------------------------------------------
+# SYSTEM INFORMATION
+# ------------------------------------------------------------
+alias sysinfo='inxi -Fxxxz'
+alias hardware='inxi -Fxxxz'
+alias distro='inxi -Sxxx'
+alias cpuinfo='lscpu'
+alias meminfo='cat /proc/meminfo'
+alias memory='free -h'
+alias kernel='uname -a'
+alias uptime='uptime'
+alias sensors='sensors'
+
+alias disks='lsblk'
+alias diskinfo='lsblk -f'
+alias mounts='findmnt'
+alias partitions='blkid'
+
+# ------------------------------------------------------------
+# SYSTEM MONITORING
+# ------------------------------------------------------------
+alias top='btop'
+alias processes='ps aux'
+alias cputop='ps aux --sort=-%cpu | head -20'
+alias memtop='ps aux --sort=-%mem | head -20'
+alias openfiles='lsof'
+alias trace='strace'
+
+# ------------------------------------------------------------
+# DISK / FILESYSTEM
+# ------------------------------------------------------------
+alias dfh='df -h'
+alias duh='du -h'
+alias diskuse='ncdu'
+alias mountlist='findmnt'
+alias uuid='blkid'
+
+# ------------------------------------------------------------
+# NETWORK - BASIC
+# ------------------------------------------------------------
+alias net='nmap'
+alias scan='nmap'
+alias lan='netdiscover'
+alias arp='arp-scan'
+alias pingall='fping'
+
+alias route='traceroute'
+alias routewatch='mtr'
+alias packets='tcpdump'
+alias sniff='tshark'
+
+alias bandwidth='iftop'
+alias traffic='nload'
+alias speedtest='iperf3'
+
+# ------------------------------------------------------------
+# NETWORK - IP / INTERFACES
+# ------------------------------------------------------------
+alias interfaces='ip -br addr'
+alias routes='ip route'
+alias neighbours='ip neigh'
+alias connections='ss -tulpen'
+alias listening='ss -lntup'
+alias sockets='ss -s'
+
+alias ethernet='ethtool'
+alias netstats='netstat -tulpen'
+
+# ------------------------------------------------------------
+# NETWORK - ADVANCED
+# ------------------------------------------------------------
+alias packetcraft='hping3'
+alias netcat='ncat'
+alias stream='socat'
+alias sniffnet='netsniff-ng'
+
+# ------------------------------------------------------------
+# DNS
+# ------------------------------------------------------------
+alias dns='dig'
+alias dnsinfo='dnsrecon'
+alias dnsenumx='dnsenum'
+alias dnsmapx='dnsmap'
+alias dnstrace='dnstracer'
+alias dnswalkx='dnswalk'
+alias dnswho='whois'
+
+# ------------------------------------------------------------
+# NETWORK / HOST INFORMATION
+# ------------------------------------------------------------
+alias hostinfo='dmitry'
+alias fierce='fierce'
+alias netbios='nbtscan'
+
+# ------------------------------------------------------------
+# SECURITY
+# ------------------------------------------------------------
+alias audit='lynis'
+alias webscan='nikto'
+alias webtech='whatweb'
+alias waf='wafw00f'
+
+alias webfuzz='ffuf'
+alias webcrawl='feroxbuster'
+
+alias exploits='searchsploit'
+alias massscan='masscan'
+
+# ------------------------------------------------------------
+# SMB / WINDOWS
+# ------------------------------------------------------------
+alias smb='netexec'
+alias samba='enum4linux'
+alias smbscan='netexec'
+
+# ------------------------------------------------------------
+# FORENSICS / FILE ANALYSIS
+# ------------------------------------------------------------
+alias identify='file'
+alias binary='binwalk'
+alias recover='foremost'
+alias hash='hashdeep'
+alias stego='steghide'
+alias yara-scan='yara'
+
+# ------------------------------------------------------------
+# REVERSE ENGINEERING
+# ------------------------------------------------------------
+alias reverse='radare2'
+alias r2='radare2'
+
+# ------------------------------------------------------------
+# DEVELOPMENT
+# ------------------------------------------------------------
+alias json='jq'
+alias checkbash='shellcheck'
+
+# ------------------------------------------------------------
+# GIT
+# ------------------------------------------------------------
+alias gs='git status'
+alias gl='git log --oneline --graph --decorate'
+alias gd='git diff'
+alias ga='git add'
+alias gc='git commit'
+alias gp='git push'
+alias gpull='git pull'
+
+# ------------------------------------------------------------
+# REMOTE ACCESS / TRANSFER
+# ------------------------------------------------------------
+alias sshlist='ssh-add -l'
+alias copy='rsync'
+alias sync='rsync -avh'
+alias download='wget'
+alias curlget='curl -O'
+
+# ------------------------------------------------------------
+# TERMINAL / TMUX
+# ------------------------------------------------------------
+alias mux='tmux'
+alias sessions='tmux ls'
+alias muxnew='tmux new -s'
+alias muxattach='tmux attach'
+
+# ------------------------------------------------------------
+# PROCESSES / JOBS
+# ------------------------------------------------------------
+alias jobslist='jobs -l'
+alias psg='ps aux | grep -i'
+alias pstree='pstree -p'
+
+# ------------------------------------------------------------
+# LOGS
+# ------------------------------------------------------------
+alias journal='journalctl'
+alias bootlog='journalctl -b'
+alias errors='journalctl -p err -b'
+alias kernel-log='dmesg -T'
+
+# ------------------------------------------------------------
+# SERVICES
+# ------------------------------------------------------------
+alias services='service --status-all'
+alias servicestatus='systemctl --type=service --state=running'
+
+# ------------------------------------------------------------
+# PACKAGE MANAGEMENT
+# ------------------------------------------------------------
+alias update='sudo apt update'
+alias upgrade='sudo apt update && sudo apt upgrade'
+alias fullupgrade='sudo apt update && sudo apt full-upgrade'
+
+alias install='sudo apt install'
+alias reinstall='sudo apt install --reinstall'
+alias remove='sudo apt remove'
+alias purge='sudo apt purge'
+alias autoremove='sudo apt autoremove'
+
+alias searchpkg='apt search'
+alias showpkg='apt show'
+alias installed='apt list --installed'
+
+# ------------------------------------------------------------
+# ANTI-X / SYSTEM
+# ------------------------------------------------------------
+alias antixinfo='inxi -Sxxx'
+alias antixsys='inxi -Fxxxz'
+alias antixservices='service --status-all'
+
+# ------------------------------------------------------------
+# ARCHIVES / COMPRESSION
+# ------------------------------------------------------------
+alias tarlist='tar -tf'
+alias targz='tar -czvf'
+alias untargz='tar -xzvf'
+alias ziplist='unzip -l'
+alias unzipall='unzip'
+
+# ------------------------------------------------------------
+# DATE / TIME
+# ------------------------------------------------------------
+alias now='date'
+alias calendarweek='cal'
+
+# ------------------------------------------------------------
+# DOCUMENT / DATA CONVERSION
+# ------------------------------------------------------------
+alias convert='pandoc'
+alias mdview='glow'
+
+# ------------------------------------------------------------
+# GAMES
+# ------------------------------------------------------------
+alias invaders='ninvaders'
+alias tetris='bastet'
+alias snake='nsnake'
+alias sudoku='nudoku'
+alias solitaire='tty-solitaire'
+alias moon='moon-buggy'
+alias nethack='nethack-console'
+alias angband='angband'
+alias crawl='crawl'
+alias greed='greed'
+alias cataclysm='cataclysm-launcher'
+
+# ============================================================
+# END antiX / Debian CLI TOOLBOX
+# ============================================================
