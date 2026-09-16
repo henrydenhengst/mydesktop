@@ -8,6 +8,7 @@
 # ------------------------------------------------------------
 # OFFICE
 # ------------------------------------------------------------
+alias menu='awk -F'[ =]' '/^alias / {print $2}' ~/.bashrc | sort | column -x -c 80'
 alias word='wordgrinder'
 alias excel='sc-im'
 alias calendar='calcurse'
