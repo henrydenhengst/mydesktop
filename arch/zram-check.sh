@@ -1,398 +1,282 @@
 
 #!/usr/bin/env bash
+#
+# zram-check.sh
+# Controle en optionele configuratie van zram voor Arch Linux en CachyOS.
+#
+# Gebruik:
+#   bash zram-check.sh
+#   sudo bash zram-check.sh --dry-run
+#   sudo bash zram-check.sh --apply
+#   bash zram-check.sh --help
+#
+# Gebruikt uitsluitend pacman en officiële geconfigureerde pakketbronnen.
+# Geen AUR, yay of paru.
+#
+# Veiligheid:
+# - Bestaande zram-configuratie wordt niet overschreven.
+# - Actieve zram wordt niet gewijzigd.
+# - --dry-run voert geen wijzigingen uit.
+# - Na configuratie is een herstart nodig.
+
 set -Eeuo pipefail
 
-# ============================================================
-# zram-check.sh
-# Diagnose en veilige configuratie van zram op Arch/CachyOS.
-#
-# Standaard: alleen onderzoeken en advies geven.
-# --apply:   zram-generator installeren/configureren.
-# --dry-run: tonen wat --apply zou doen.
-# --help:    helptekst tonen.
-#
-# Het script:
-# - controleert distributie, RAM en CPU
-# - detecteert bestaande swap en zram
-# - herkent bestaande zram-configuratie
-# - geeft advies op basis van RAM
-# - maakt een back-up van een bestaande configuratie
-# - overschrijft geen bestaande zram-configuratie
-# - schakelt bestaande swap niet uit
-# ============================================================
-
-readonly SCRIPT_NAME="zram-check"
+readonly SCRIPT_NAME="${0##*/}"
 readonly CONFIG="/etc/systemd/zram-generator.conf"
-readonly BACKUP_DIR="/etc/systemd/zram-generator.conf.backups"
+readonly CONFIG_DIR="/etc/systemd/zram-generator.conf.d"
 
-APPLY=0
-DRY_RUN=0
-
-log()  { printf '\n[INFO] %s\n' "$*"; }
-warn() { printf '\n[WAARSCHUWING] %s\n' "$*" >&2; }
-die()  { printf '\n[FOUT] %s\n' "$*" >&2; exit 1; }
+MODE="check"
 
 usage() {
     cat <<EOF
-Gebruik: $SCRIPT_NAME [opties]
+Gebruik: $SCRIPT_NAME [OPTIE]
 
 Opties:
-  --apply     Voer aanbevolen wijzigingen uit.
-  --dry-run   Toon acties zonder iets te wijzigen.
-  -h, --help  Toon deze hulp.
+  --check      Alleen controleren (standaard)
+  --dry-run    Tonen wat --apply zou doen, zonder wijzigingen
+  --apply      zram-generator installeren en configuratie aanmaken
+  --help       Deze hulp tonen
 
-Zonder opties wordt alleen een diagnose uitgevoerd.
-
-Voorbeelden:
-  ./$SCRIPT_NAME
-  ./$SCRIPT_NAME --dry-run
-  ./$SCRIPT_NAME --apply
+Pakketbeheer:
+  Alleen pacman en officiële geconfigureerde repositories.
+  Geen AUR en geen AUR-helper.
 EOF
 }
 
-while (($# > 0)); do
-    case "$1" in
-        --apply)   APPLY=1 ;;
-        --dry-run) DRY_RUN=1 ;;
-        -h|--help) usage; exit 0 ;;
-        *) die "Onbekende optie: $1" ;;
+log() {
+    printf '[INFO] %s\n' "$*"
+}
+
+warn() {
+    printf '[WAARSCHUWING] %s\n' "$*" >&2
+}
+
+error() {
+    printf '[FOUT] %s\n' "$*" >&2
+}
+
+die() {
+    error "$*"
+    exit 1
+}
+
+for arg in "$@"; do
+    case "$arg" in
+        --check)  MODE="check" ;;
+        --dry-run) MODE="dry-run" ;;
+        --apply)  MODE="apply" ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        *)
+            die "Onbekende optie: $arg"
+            ;;
     esac
-    shift
 done
 
-if ((DRY_RUN)); then
-    APPLY=1
-fi
-
-# ------------------------------------------------------------
-# 1. Besturingssysteem
-# ------------------------------------------------------------
-
-[[ -r /etc/os-release ]] ||
-    die "Kan /etc/os-release niet lezen."
-
-# shellcheck disable=SC1091
+# Controleer of dit Arch Linux of een daarop gebaseerde distributie is.
+[[ -r /etc/os-release ]] || die "/etc/os-release niet gevonden."
+# shellcheck source=/dev/null
 source /etc/os-release
 
-if [[ "${ID:-}" != "arch" &&
-      "${ID:-}" != "cachyos" &&
-      " ${ID_LIKE:-} " != *" arch "* ]]; then
-    die "Dit script ondersteunt alleen Arch Linux en CachyOS."
-fi
+OS_IDS=" ${ID:-} ${ID_LIKE:-} "
 
-command -v pacman >/dev/null 2>&1 ||
-    die "Pacman is niet beschikbaar."
+case "$OS_IDS" in
+    *" arch "*|*" cachyos "*)
+        log "Distributie: ${PRETTY_NAME:-Arch Linux-compatibel}"
+        ;;
+    *)
+        die "Deze distributie lijkt geen Arch Linux of CachyOS te zijn."
+        ;;
+esac
 
-printf '%s\n' "=========================================="
-printf '%s\n' " zram-diagnose voor Arch Linux / CachyOS"
-printf '%s\n' "=========================================="
-printf 'Systeem: %s\n' "${PRETTY_NAME:-onbekend}"
-
-# ------------------------------------------------------------
-# 2. RAM bepalen
-# ------------------------------------------------------------
-
-[[ -r /proc/meminfo ]] ||
-    die "Kan /proc/meminfo niet lezen."
-
-RAM_KIB=$(awk '/^MemTotal:/ {print $2; exit}' /proc/meminfo)
-
-[[ "$RAM_KIB" =~ ^[0-9]+$ ]] ||
-    die "Totale hoeveelheid RAM kon niet worden bepaald."
+# Controleer beschikbare RAM.
+RAM_KIB="$(awk '/^MemTotal:/ { print $2; exit }' /proc/meminfo)"
+[[ "$RAM_KIB" =~ ^[0-9]+$ ]] || die "RAM kon niet worden bepaald."
 
 RAM_MIB=$((RAM_KIB / 1024))
-RAM_GIB=$((RAM_MIB / 1024))
+log "Totaal RAM: ${RAM_MIB} MiB"
 
-printf '\nRAM: %s MiB (ongeveer %s GiB)\n' \
-    "$RAM_MIB" "$RAM_GIB"
-
-# ------------------------------------------------------------
-# 3. MacBook en CPU onderzoeken
-# ------------------------------------------------------------
-
-MODEL="onbekend"
-
-for f in /sys/class/dmi/id/product_name \
-         /sys/class/dmi/id/board_name; do
-    if [[ -r "$f" ]]; then
-        value=$(<"$f")
-        if [[ "$value" == *MacBook* ]]; then
-            MODEL="$value"
-            break
-        fi
-    fi
-done
-
-printf 'Computermodel: %s\n' "$MODEL"
-
-if command -v lscpu >/dev/null 2>&1; then
-    CPU=$(lscpu | awk -F: '/^Model name:/ {
-        sub(/^[[:space:]]+/, "", $2); print $2; exit
-    }')
-    printf 'Processor: %s\n' "${CPU:-onbekend}"
-fi
-
-# ------------------------------------------------------------
-# 4. Huidige swap en zram onderzoeken
-# ------------------------------------------------------------
-
-printf '\n--- Huidige geheugensituatie ---\n'
-
-if command -v free >/dev/null 2>&1; then
-    free -h
-fi
-
-printf '\n--- Actieve swap ---\n'
+# Toon de huidige swapconfiguratie.
+printf '\n--- Huidige swap ---\n'
 
 if command -v swapon >/dev/null 2>&1; then
-    swapon --show || true
+    if ! swapon --show; then
+        warn "De swapstatus kon niet worden uitgelezen."
+    fi
 else
-    warn "swapon is niet beschikbaar."
+    warn "Het commando swapon is niet beschikbaar."
 fi
 
+# Controleer actieve zram-apparaten.
 printf '\n--- Zram-apparaten ---\n'
 
-ZRAM_FOUND=0
+shopt -s nullglob
+ZRAM_DEVICES=(/sys/block/zram*)
 
-for dev in /sys/block/zram*; do
-    [[ -e "$dev" ]] || continue
-    ZRAM_FOUND=1
+ACTIVE_ZRAM=0
 
-    printf 'Apparaat: %s\n' "${dev##*/}"
+if ((${#ZRAM_DEVICES[@]} == 0)); then
+    log "Geen zram-apparaten gevonden."
+else
+    ACTIVE_ZRAM=1
 
-    if [[ -r "$dev/disksize" ]]; then
-        size=$(<"$dev/disksize")
-        printf 'Capaciteit: %s bytes\n' "$size"
-    fi
+    for device in "${ZRAM_DEVICES[@]}"; do
+        [[ -e "$device" ]] || continue
 
-    if [[ -r "$dev/comp_algorithm" ]]; then
-        printf 'Compressie: '
-        cat "$dev/comp_algorithm"
-    fi
-done
+        DEVICE_NAME="${device##*/}"
+        printf 'Apparaat: %s\n' "$DEVICE_NAME"
 
-if ((ZRAM_FOUND == 0)); then
-    printf '%s\n' "Geen actief zram-apparaat aangetroffen."
+        if [[ -r "$device/disksize" ]]; then
+            SIZE_BYTES="$(<"$device/disksize")"
+            SIZE_MIB=$((SIZE_BYTES / 1024 / 1024))
+            printf '  Grootte: %s MiB\n' "$SIZE_MIB"
+        fi
+
+        if [[ -r "$device/comp_algorithm" ]]; then
+            printf '  Compressie: '
+            cat "$device/comp_algorithm"
+        fi
+
+        if [[ -r "$device/mm_stat" ]]; then
+            printf '  Geheugenstatistieken: '
+            cat "$device/mm_stat"
+        fi
+    done
 fi
 
-# ------------------------------------------------------------
-# 5. Bestaande zram-configuratie detecteren
-# ------------------------------------------------------------
+# Controleer de geïnstalleerde pakketstatus.
+printf '\n--- Pakketstatus ---\n'
 
+if pacman -Q zram-generator >/dev/null 2>&1; then
+    log "zram-generator is geïnstalleerd."
+    PACKAGE_INSTALLED=1
+else
+    log "zram-generator is niet geïnstalleerd."
+    PACKAGE_INSTALLED=0
+fi
+
+# Toon bestaande configuratiebestanden.
 printf '\n--- Bestaande configuratie ---\n'
 
-CONFIG_EXISTS=0
+EXISTING_CONFIGS=()
 
 if [[ -e "$CONFIG" ]]; then
-    CONFIG_EXISTS=1
-    printf 'Configuratie gevonden: %s\n' "$CONFIG"
-    cat "$CONFIG"
-else
-    printf '%s\n' "Geen hoofdbestand zram-generator.conf."
+    EXISTING_CONFIGS+=("$CONFIG")
 fi
 
-for f in /etc/systemd/zram-generator.conf.d/*.conf; do
-    [[ -e "$f" ]] || continue
-    printf '\nAanvullend configuratiebestand: %s\n' "$f"
-    cat "$f"
-    CONFIG_EXISTS=1
-done
-
-for pkg in zram-generator zram-tools zramswap; do
-    if pacman -Q "$pkg" >/dev/null 2>&1; then
-        printf 'Geïnstalleerd pakket: %s\n' "$pkg"
-    fi
-done
-
-# ------------------------------------------------------------
-# 6. Advies op basis van RAM
-# ------------------------------------------------------------
-
-printf '\n==========================================\n'
-printf '%s\n' " ADVIES"
-printf '%s\n' "=========================================="
-
-TARGET_MIB=0
-
-if ((RAM_MIB < 2048)); then
-    warn "Minder dan 2 GiB RAM."
-    printf '%s\n' \
-        "Zram kan helpen, maar lost ernstige geheugentekorten niet op."
-    TARGET_MIB=$((RAM_MIB / 2))
-
-elif ((RAM_MIB < 8192)); then
-    printf '%s\n' \
-        "Zram aanbevolen: het systeem heeft relatief weinig RAM."
-    TARGET_MIB=$((RAM_MIB / 2))
-
-elif ((RAM_MIB < 16384)); then
-    printf '%s\n' \
-        "Zram waarschijnlijk nuttig bij veel gelijktijdige programma's."
-    TARGET_MIB=$((RAM_MIB / 4))
-
-else
-    printf '%s\n' \
-        "Zram optioneel: het systeem heeft relatief veel RAM."
-    TARGET_MIB=$((RAM_MIB / 4))
+if [[ -d "$CONFIG_DIR" ]]; then
+    for file in "$CONFIG_DIR"/*.conf; do
+        [[ -e "$file" ]] && EXISTING_CONFIGS+=("$file")
+    done
 fi
 
-# Houd de standaardconfiguratie bescheiden.
+if ((${#EXISTING_CONFIGS[@]} == 0)); then
+    log "Geen bestaande zram-generator-configuratie gevonden."
+else
+    for file in "${EXISTING_CONFIGS[@]}"; do
+        printf 'Gevonden: %s\n' "$file"
+    done
+    warn "Bestaande configuratie wordt niet automatisch gewijzigd."
+fi
+
+# Bepaal een conservatieve zram-grootte: maximaal de helft van het RAM,
+# met een maximum van 8 GiB.
+TARGET_MIB=$((RAM_MIB / 2))
+
 if ((TARGET_MIB > 8192)); then
     TARGET_MIB=8192
 fi
-
-# Rond naar beneden af op veelvouden van 256 MiB.
-TARGET_MIB=$((TARGET_MIB / 256 * 256))
 
 if ((TARGET_MIB < 256)); then
     TARGET_MIB=256
 fi
 
-printf 'Voorgestelde zram-capaciteit: %s MiB\n' "$TARGET_MIB"
-printf '%s\n' \
-    "Dit is de maximale logische swapruimte, geen gegarandeerde geheugentoename."
+printf '\n--- Voorgestelde instelling ---\n'
+printf 'Zram-grootte: %s MiB\n' "$TARGET_MIB"
+printf 'Swap-prioriteit: 100\n'
 
-# ------------------------------------------------------------
-# 7. Bestaande zram niet overschrijven
-# ------------------------------------------------------------
-
-if ((ZRAM_FOUND)) || ((CONFIG_EXISTS)); then
-    warn "Er is al een zram-apparaat of configuratie gevonden."
-    printf '%s\n' \
-        "Automatische herconfiguratie wordt overgeslagen."
-    printf '%s\n' \
-        "Controleer de huidige instellingen voordat je iets wijzigt."
-
-    if ((APPLY)); then
-        die "Geen wijzigingen uitgevoerd vanwege bestaande zram-configuratie."
-    fi
-
+if [[ "$MODE" == "check" ]]; then
+    printf '\nControle voltooid. Er zijn geen wijzigingen aangebracht.\n'
     exit 0
 fi
 
-if ((ZRAM_FOUND == 0)); then
-    printf '%s\n' \
-        "Er is geen actief zram-apparaat gevonden."
+# Controleer of de wijziging veilig kan worden uitgevoerd.
+if ((ACTIVE_ZRAM == 1)); then
+    die "Er bestaat al een zram-apparaat. Er worden geen wijzigingen aangebracht."
 fi
 
-# ------------------------------------------------------------
-# 8. Alleen diagnose wanneer --apply ontbreekt
-# ------------------------------------------------------------
-
-if ((!APPLY)); then
-    printf '\n%s\n' \
-        "Diagnose afgerond. Er zijn geen wijzigingen uitgevoerd."
-    printf '%s\n' \
-        "Gebruik --dry-run om de voorgestelde acties te bekijken."
-    printf '%s\n' \
-        "Gebruik --apply om de configuratie toe te passen."
-    exit 0
+if ((${#EXISTING_CONFIGS[@]} > 0)); then
+    die "Er bestaat al configuratie. Controleer die eerst handmatig."
 fi
 
-# ------------------------------------------------------------
-# 9. Rechten en pakketcontrole
-# ------------------------------------------------------------
+if [[ "$MODE" == "dry-run" ]]; then
+    printf '\n--- Dry-run: geplande acties ---\n'
 
-if ((EUID == 0)); then
-    SUDO=()
-elif command -v sudo >/dev/null 2>&1; then
-    SUDO=(sudo)
-elif command -v doas >/dev/null 2>&1; then
-    SUDO=(doas)
-else
-    die "Geen sudo of doas beschikbaar."
-fi
-
-if ((!DRY_RUN)); then
-    if ((${#SUDO[@]} > 0)); then
-        "${SUDO[@]}" -v ||
-            die "Authenticatie mislukt."
-    fi
-fi
-
-if pacman -Q zram-generator >/dev/null 2>&1; then
-    log "zram-generator is al geïnstalleerd."
-else
-    if ((DRY_RUN)); then
-        log "DRY-RUN: zou zram-generator installeren."
+    if ((PACKAGE_INSTALLED == 0)); then
+        printf '1. Installeren met: pacman -S --needed zram-generator\n'
     else
-        log "zram-generator installeren..."
-
-        "${SUDO[@]}" pacman -S --needed zram-generator ||
-            die "Installatie van zram-generator mislukt."
+        printf '1. zram-generator is al geïnstalleerd; installatie overslaan.\n'
     fi
-fi
 
-# ------------------------------------------------------------
-# 10. Configuratie aanmaken
-# ------------------------------------------------------------
-
-if ((DRY_RUN)); then
-    printf '\n%s\n' "DRY-RUN: voorgestelde configuratie:"
-    printf '[zram0]\n'
-    printf 'zram-size = %sM\n' "$TARGET_MIB"
-    printf 'compression-algorithm = zstd\n'
-    printf 'swap-priority = 100\n'
-
-    printf '\n%s\n' \
-        "Er zijn geen configuratiebestanden gewijzigd."
+    printf '2. Configuratie aanmaken: %s\n' "$CONFIG"
+    printf '3. systemd opnieuw laten inlezen.\n'
+    printf '4. Herstarten om zram te activeren.\n'
+    printf '\nDry-run voltooid. Er zijn geen wijzigingen aangebracht.\n'
     exit 0
 fi
 
-# Controleer opnieuw om overschrijven te voorkomen.
-if [[ -e "$CONFIG" ]]; then
-    die "Configuratie bestaat inmiddels; bestand niet overschreven."
+# Vanaf hier is --apply actief.
+if [[ "$EUID" -ne 0 ]]; then
+    die "Gebruik voor --apply: sudo bash $SCRIPT_NAME --apply"
 fi
 
-# Maak de back-upmap aan voor eventuele latere wijzigingen.
-"${SUDO[@]}" install -d -m 0755 "$BACKUP_DIR"
+# Installeer uitsluitend vanuit de geconfigureerde pacman-repositories.
+if ((PACKAGE_INSTALLED == 0)); then
+    if ! pacman -Si zram-generator >/dev/null 2>&1; then
+        die "zram-generator niet gevonden in de geconfigureerde pacman-repositories. Er wordt geen AUR gebruikt."
+    fi
 
-# Maak een tijdelijk bestand en installeer het atomair.
-tmp=$(mktemp)
-trap 'rm -f "$tmp"' EXIT
+    log "zram-generator installeren via pacman..."
+    pacman -S --needed zram-generator
+fi
 
-cat > "$tmp" <<EOF
-# Automatisch aangemaakt door $SCRIPT_NAME
-# RAM: ${RAM_MIB} MiB
-# Voorgestelde zram-capaciteit: ${TARGET_MIB} MiB
+# Controleer opnieuw of de configuratie nog steeds ontbreekt.
+if [[ -e "$CONFIG" ]]; then
+    die "Configuratiebestand bestaat inmiddels. Er wordt niets overschreven."
+fi
 
+if [[ -d "$CONFIG_DIR" ]]; then
+    for file in "$CONFIG_DIR"/*.conf; do
+        if [[ -e "$file" ]]; then
+            die "Configuratiefragment gevonden: $file. Er wordt niets overschreven."
+        fi
+    done
+fi
+
+# Maak de configuratie aan.
+mkdir -p /etc/systemd
+
+cat > "$CONFIG" <<EOF
+# Beheerd door $SCRIPT_NAME
+# Aangemaakt: $(date '+%Y-%m-%d %H:%M:%S')
 [zram0]
 zram-size = ${TARGET_MIB}M
-compression-algorithm = zstd
 swap-priority = 100
 EOF
 
-"${SUDO[@]}" install -m 0644 "$tmp" "$CONFIG" ||
-    die "Configuratie kon niet worden geschreven."
+chmod 0644 "$CONFIG"
 
-log "Configuratie opgeslagen in $CONFIG"
+log "Configuratie aangemaakt: $CONFIG"
 
-# ------------------------------------------------------------
-# 11. systemd opnieuw laten inlezen
-# ------------------------------------------------------------
+systemctl daemon-reload
 
-if "${SUDO[@]}" systemctl daemon-reload; then
-    log "systemd-configuratie opnieuw ingelezen."
-else
-    warn "systemctl daemon-reload is mislukt."
-fi
-
-printf '\n%s\n' "=========================================="
-printf '%s\n' " CONFIGURATIE AANGEMAAKT"
-printf '%s\n' "=========================================="
-printf 'RAM: %s MiB\n' "$RAM_MIB"
-printf 'Zram-doelgrootte: %s MiB\n' "$TARGET_MIB"
-printf '%s\n' "Compressie: zstd"
-printf '%s\n' "Prioriteit: 100"
-
-printf '\n%s\n' \
-    "Start de computer opnieuw op om zram te activeren."
-printf '%s\n' \
-    "Herstart niet automatisch; sla eerst je werk op."
-
+printf '\n--- Volgende stap ---\n'
+printf 'Herstart de computer om zram te activeren:\n'
+printf '  sudo reboot\n'
 printf '\nControleer na de herstart met:\n'
-printf '%s\n' "  zramctl"
-printf '%s\n' "  swapon --show"
-printf '%s\n' "  free -h"
+printf '  swapon --show\n'
+printf '  zramctl\n'
 
-log "Klaar."
+printf '\nKlaar. Er is geen AUR gebruikt.\n'
