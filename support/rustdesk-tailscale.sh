@@ -9,13 +9,22 @@ set -Eeuo pipefail
 RUSTDESK_VERSION="1.5.0"
 BASE_URL="https://github.com/rustdesk/rustdesk/releases/download/${RUSTDESK_VERSION}"
 
+TMP_DIR=""
+
+cleanup() {
+    if [[ -n "$TMP_DIR" && -d "$TMP_DIR" ]]; then
+        rm -rf -- "$TMP_DIR"
+    fi
+}
+
 fail() {
     echo
     echo "[STOP] $*"
     exit 1
 }
 
-trap 'rc=$?; echo; echo "[FOUT] Opdracht mislukt (regel $LINENO, code $rc)."; exit "$rc"' ERR
+trap cleanup EXIT
+trap 'rc=$?; echo; echo "[FOUT] Opdracht mislukt (regel $LINENO, code $rc)." >&2; exit "$rc"' ERR
 
 echo "======================================"
 echo "       FreeBoot Support Installer"
@@ -92,6 +101,7 @@ RAM_MB="$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)"
 ROOT_MB="$(df -Pm / | awk 'NR==2 {print $4}')"
 TMP_MB="$(df -Pm /tmp | awk 'NR==2 {print $4}')"
 
+echo "=== Systeemcontrole ==="
 echo "RAM:                  ${RAM_MB} MB (minimum 2048)"
 echo "Vrij op systeemschijf: ${ROOT_MB} MB (minimum 2048)"
 echo "Vrij in /tmp:          ${TMP_MB} MB (minimum 512)"
@@ -112,8 +122,23 @@ command -v systemctl >/dev/null 2>&1 ||
 command -v sudo >/dev/null 2>&1 ||
     fail "sudo ontbreekt."
 
-# 5. Benodigdheden installeren
-# Dit gebeurt vóór de internetcontrole, zodat curl beschikbaar is.
+# 5. Toestemming vragen voordat wijzigingen beginnen
+echo "Het script gaat het volgende doen:"
+echo "  - curl en ca-certificates controleren/installeren"
+echo "  - Tailscale installeren en starten"
+echo "  - RustDesk downloaden en installeren"
+echo
+echo "Er is een internetverbinding nodig."
+echo "Systeembeheerdersrechten zijn nodig via sudo."
+echo
+
+read -r -p "Doorgaan? (j/N): " ANSWER
+[[ "$ANSWER" =~ ^[jJ]$ ]] || {
+    echo "Installatie geannuleerd."
+    exit 0
+}
+
+# 6. Benodigdheden installeren
 echo
 echo "=== Benodigdheden installeren ==="
 
@@ -142,7 +167,7 @@ esac
 command -v curl >/dev/null 2>&1 ||
     fail "curl kon niet worden geïnstalleerd."
 
-# 6. Internet controleren
+# 7. Internet controleren
 echo
 echo "=== Internet controleren ==="
 
@@ -154,17 +179,12 @@ curl -fsSI --max-time 15 \
     https://tailscale.com/install.sh >/dev/null ||
     fail "Tailscale-downloadserver is niet bereikbaar."
 
-echo "[OK] Internetverbinding werkt."
-echo
+echo "[OK] Beide downloadservers zijn bereikbaar."
 
-read -r -p "Doorgaan met installatie? (j/N): " ANSWER
-[[ "$ANSWER" =~ ^[jJ]$ ]] || exit 0
-
-# 7. Tijdelijke map
+# 8. Tijdelijke map maken
 TMP_DIR="$(mktemp -d)"
-trap 'rc=$?; rm -rf "$TMP_DIR"; if (( rc != 0 )); then echo "[FOUT] Installatie afgebroken (code $rc)."; fi; exit "$rc"' EXIT
 
-# 8. Tailscale installeren
+# 9. Tailscale installeren
 echo
 echo "=== Tailscale installeren ==="
 
@@ -179,7 +199,7 @@ fi
 
 sudo systemctl enable --now tailscaled
 
-# 9. RustDesk downloaden
+# 10. RustDesk downloaden
 echo
 echo "=== RustDesk downloaden ==="
 
@@ -190,7 +210,7 @@ curl -fL --retry 3 --connect-timeout 20 \
 [[ -s "$TMP_DIR/$RUSTDESK_FILE" ]] ||
     fail "RustDesk-download is leeg."
 
-# 10. RustDesk installeren
+# 11. RustDesk installeren
 echo
 echo "=== RustDesk installeren ==="
 
@@ -216,7 +236,7 @@ case "$PACKAGE_TYPE" in
         ;;
 esac
 
-# 11. Eindcontrole
+# 12. Eindcontrole
 echo
 echo "=== Eindcontrole ==="
 
@@ -229,6 +249,7 @@ command -v tailscale >/dev/null 2>&1 ||
 command -v rustdesk >/dev/null 2>&1 ||
     fail "RustDesk-commando ontbreekt."
 
+echo
 echo "[OK] Tailscale is geïnstalleerd en actief."
 echo "[OK] RustDesk is geïnstalleerd."
 echo
