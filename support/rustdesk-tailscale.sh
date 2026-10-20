@@ -22,11 +22,10 @@ echo "       FreeBoot Support Installer"
 echo "======================================"
 echo
 
-# 1. Niet als root starten
+# 1. Basiscontroles
 [[ "$EUID" -ne 0 ]] ||
     fail "Start als gewone gebruiker, zonder sudo."
 
-# 2. Linux-distributie herkennen
 [[ -r /etc/os-release ]] ||
     fail "Kan Linux-distributie niet herkennen."
 
@@ -41,7 +40,7 @@ echo "Architectuur: $ARCH"
 [[ "$ARCH" == "x86_64" ]] ||
     fail "Alleen x86_64 wordt ondersteund."
 
-# 3. Pakketbeheerder bepalen
+# 2. Pakketbeheerder bepalen
 case "$DISTRO" in
     linuxmint|zorin|ubuntu|debian|pop)
         PACKAGE_TYPE="deb"
@@ -66,7 +65,7 @@ case "$DISTRO" in
         ;;
 esac
 
-# 4. RustDesk-pakket kiezen
+# 3. RustDesk-pakket bepalen
 case "$PACKAGE_TYPE" in
     deb)
         RUSTDESK_FILE="rustdesk-${RUSTDESK_VERSION}-x86_64.deb"
@@ -85,15 +84,14 @@ esac
 RUSTDESK_URL="${BASE_URL}/${RUSTDESK_FILE}"
 
 echo "Pakketbeheer: $PACKAGE_TYPE"
-echo "RustDesk: $RUSTDESK_FILE"
+echo "RustDesk-pakket: $RUSTDESK_FILE"
 echo
 
-# 5. Systeem controleren
+# 4. Systeem controleren
 RAM_MB="$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)"
 ROOT_MB="$(df -Pm / | awk 'NR==2 {print $4}')"
 TMP_MB="$(df -Pm /tmp | awk 'NR==2 {print $4}')"
 
-echo "=== Systeemcontrole ==="
 echo "RAM:                  ${RAM_MB} MB (minimum 2048)"
 echo "Vrij op systeemschijf: ${ROOT_MB} MB (minimum 2048)"
 echo "Vrij in /tmp:          ${TMP_MB} MB (minimum 512)"
@@ -114,32 +112,8 @@ command -v systemctl >/dev/null 2>&1 ||
 command -v sudo >/dev/null 2>&1 ||
     fail "sudo ontbreekt."
 
-# Dit script heeft curl nodig voor de downloads.
-# Bij starten via curl | bash is curl al aanwezig.
-command -v curl >/dev/null 2>&1 ||
-    fail "curl ontbreekt. Installeer curl eerst."
-
-# 6. Internet controleren voordat iets wordt gewijzigd
-echo "=== Internet controleren ==="
-
-curl -fsSI --max-time 15 \
-    https://github.com/rustdesk/rustdesk/releases/ >/dev/null ||
-    fail "GitHub is niet bereikbaar."
-
-curl -fsSI --max-time 15 \
-    https://tailscale.com/install.sh >/dev/null ||
-    fail "Tailscale-downloadserver is niet bereikbaar."
-
-echo "[OK] Internetverbinding werkt."
-echo
-
-read -r -p "Doorgaan met installatie? (j/N): " ANSWER
-[[ "$ANSWER" =~ ^[jJ]$ ]] || exit 0
-
-TMP_DIR="$(mktemp -d)"
-trap 'rc=$?; rm -rf "$TMP_DIR"; if (( rc != 0 )); then echo "[FOUT] Installatie afgebroken (code $rc)."; fi; exit "$rc"' EXIT
-
-# 7. Benodigdheden installeren
+# 5. Benodigdheden installeren
+# Dit gebeurt vóór de internetcontrole, zodat curl beschikbaar is.
 echo
 echo "=== Benodigdheden installeren ==="
 
@@ -164,6 +138,31 @@ case "$PACKAGE_TYPE" in
         sudo pacman -Syu --needed --noconfirm curl ca-certificates
         ;;
 esac
+
+command -v curl >/dev/null 2>&1 ||
+    fail "curl kon niet worden geïnstalleerd."
+
+# 6. Internet controleren
+echo
+echo "=== Internet controleren ==="
+
+curl -fsSI --max-time 15 \
+    https://github.com/rustdesk/rustdesk/releases/ >/dev/null ||
+    fail "GitHub is niet bereikbaar."
+
+curl -fsSI --max-time 15 \
+    https://tailscale.com/install.sh >/dev/null ||
+    fail "Tailscale-downloadserver is niet bereikbaar."
+
+echo "[OK] Internetverbinding werkt."
+echo
+
+read -r -p "Doorgaan met installatie? (j/N): " ANSWER
+[[ "$ANSWER" =~ ^[jJ]$ ]] || exit 0
+
+# 7. Tijdelijke map
+TMP_DIR="$(mktemp -d)"
+trap 'rc=$?; rm -rf "$TMP_DIR"; if (( rc != 0 )); then echo "[FOUT] Installatie afgebroken (code $rc)."; fi; exit "$rc"' EXIT
 
 # 8. Tailscale installeren
 echo
@@ -209,8 +208,8 @@ case "$PACKAGE_TYPE" in
         fi
         ;;
     suse)
-        sudo zypper --non-interactive --no-gpg-checks \
-            install "$TMP_DIR/$RUSTDESK_FILE"
+        sudo zypper --non-interactive install \
+            "$TMP_DIR/$RUSTDESK_FILE"
         ;;
     arch)
         sudo pacman -U --noconfirm "$TMP_DIR/$RUSTDESK_FILE"
@@ -239,6 +238,5 @@ echo
 echo "    sudo tailscale up"
 echo
 echo "Start RustDesk vanuit het applicatiemenu."
-echo "Controleer samen met de gebruiker de verbinding."
 echo
 echo "FreeBoot Support-installatie voltooid."
