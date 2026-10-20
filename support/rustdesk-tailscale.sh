@@ -3,8 +3,8 @@
 set -Eeuo pipefail
 
 # FreeBoot Support Installer
-# Linux Mint, Zorin, Debian, Ubuntu, Fedora,
-# openSUSE Leap/Tumbleweed, Arch en Manjaro.
+# Linux Mint, Zorin, Debian, Ubuntu, Pop!_OS,
+# Fedora, openSUSE Leap/Tumbleweed, Arch en Manjaro.
 
 RUSTDESK_VERSION="1.5.0"
 BASE_URL="https://github.com/rustdesk/rustdesk/releases/download/${RUSTDESK_VERSION}"
@@ -22,11 +22,11 @@ echo "       FreeBoot Support Installer"
 echo "======================================"
 echo
 
-# 1. Gebruiker controleren
-[[ $EUID -ne 0 ]] ||
+# 1. Niet als root starten
+[[ "$EUID" -ne 0 ]] ||
     fail "Start als gewone gebruiker, zonder sudo."
 
-# 2. Linux herkennen
+# 2. Linux-distributie herkennen
 [[ -r /etc/os-release ]] ||
     fail "Kan Linux-distributie niet herkennen."
 
@@ -38,11 +38,10 @@ ARCH="$(uname -m)"
 echo "Systeem: ${PRETTY_NAME:-$DISTRO}"
 echo "Architectuur: $ARCH"
 
-# 3. Architectuur controleren
 [[ "$ARCH" == "x86_64" ]] ||
-    fail "Alleen x86_64 wordt door deze versie ondersteund."
+    fail "Alleen x86_64 wordt ondersteund."
 
-# 4. Pakketbeheerder kiezen
+# 3. Pakketbeheerder bepalen
 case "$DISTRO" in
     linuxmint|zorin|ubuntu|debian|pop)
         PACKAGE_TYPE="deb"
@@ -67,7 +66,7 @@ case "$DISTRO" in
         ;;
 esac
 
-# 5. RustDesk-pakket kiezen
+# 4. RustDesk-pakket kiezen
 case "$PACKAGE_TYPE" in
     deb)
         RUSTDESK_FILE="rustdesk-${RUSTDESK_VERSION}-x86_64.deb"
@@ -89,15 +88,15 @@ echo "Pakketbeheer: $PACKAGE_TYPE"
 echo "RustDesk: $RUSTDESK_FILE"
 echo
 
-# 6. Harde capaciteitseisen
+# 5. Systeem controleren
 RAM_MB="$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)"
 ROOT_MB="$(df -Pm / | awk 'NR==2 {print $4}')"
 TMP_MB="$(df -Pm /tmp | awk 'NR==2 {print $4}')"
 
 echo "=== Systeemcontrole ==="
-echo "RAM beschikbaar in systeem: ${RAM_MB} MB (minimum 2048)"
-echo "Vrij op systeemschijf:      ${ROOT_MB} MB (minimum 2048)"
-echo "Vrij in /tmp:               ${TMP_MB} MB (minimum 512)"
+echo "RAM:                  ${RAM_MB} MB (minimum 2048)"
+echo "Vrij op systeemschijf: ${ROOT_MB} MB (minimum 2048)"
+echo "Vrij in /tmp:          ${TMP_MB} MB (minimum 512)"
 echo
 
 (( RAM_MB >= 2048 )) ||
@@ -109,20 +108,19 @@ echo
 (( TMP_MB >= 512 )) ||
     fail "Minimaal 512 MB vrije ruimte in /tmp vereist."
 
-# 7. Benodigde systeemvoorzieningen
-command -v systemctl >/dev/null ||
+command -v systemctl >/dev/null 2>&1 ||
     fail "systemd/systemctl ontbreekt."
 
-command -v sudo >/dev/null ||
+command -v sudo >/dev/null 2>&1 ||
     fail "sudo ontbreekt."
 
-if ! command -v curl >/dev/null 2>&1; then
-    echo "[INFO] curl wordt na toestemming geïnstalleerd."
-fi
-
-# 8. Internet controleren voordat iets wordt gewijzigd
+# Dit script heeft curl nodig voor de downloads.
+# Bij starten via curl | bash is curl al aanwezig.
 command -v curl >/dev/null 2>&1 ||
-    fail "curl ontbreekt; internetcontrole kan niet worden uitgevoerd."
+    fail "curl ontbreekt. Installeer curl eerst."
+
+# 6. Internet controleren voordat iets wordt gewijzigd
+echo "=== Internet controleren ==="
 
 curl -fsSI --max-time 15 \
     https://github.com/rustdesk/rustdesk/releases/ >/dev/null ||
@@ -132,16 +130,16 @@ curl -fsSI --max-time 15 \
     https://tailscale.com/install.sh >/dev/null ||
     fail "Tailscale-downloadserver is niet bereikbaar."
 
-echo "[OK] Capaciteit en internetverbinding gecontroleerd."
+echo "[OK] Internetverbinding werkt."
 echo
 
 read -r -p "Doorgaan met installatie? (j/N): " ANSWER
 [[ "$ANSWER" =~ ^[jJ]$ ]] || exit 0
 
 TMP_DIR="$(mktemp -d)"
-trap 'rm -rf "$TMP_DIR"' EXIT
+trap 'rc=$?; rm -rf "$TMP_DIR"; if (( rc != 0 )); then echo "[FOUT] Installatie afgebroken (code $rc)."; fi; exit "$rc"' EXIT
 
-# 9. Systeemafhankelijkheden installeren
+# 7. Benodigdheden installeren
 echo
 echo "=== Benodigdheden installeren ==="
 
@@ -167,7 +165,7 @@ case "$PACKAGE_TYPE" in
         ;;
 esac
 
-# 10. Tailscale installeren
+# 8. Tailscale installeren
 echo
 echo "=== Tailscale installeren ==="
 
@@ -176,22 +174,24 @@ if [[ "$PACKAGE_TYPE" == "arch" ]]; then
 else
     curl -fsSL https://tailscale.com/install.sh \
         -o "$TMP_DIR/tailscale-install.sh"
+
     sudo sh "$TMP_DIR/tailscale-install.sh"
 fi
 
 sudo systemctl enable --now tailscaled
 
-# 11. RustDesk downloaden
+# 9. RustDesk downloaden
 echo
 echo "=== RustDesk downloaden ==="
 
 curl -fL --retry 3 --connect-timeout 20 \
-    "$RUSTDESK_URL" -o "$TMP_DIR/$RUSTDESK_FILE"
+    "$RUSTDESK_URL" \
+    -o "$TMP_DIR/$RUSTDESK_FILE"
 
 [[ -s "$TMP_DIR/$RUSTDESK_FILE" ]] ||
     fail "RustDesk-download is leeg."
 
-# 12. RustDesk installeren
+# 10. RustDesk installeren
 echo
 echo "=== RustDesk installeren ==="
 
@@ -200,7 +200,13 @@ case "$PACKAGE_TYPE" in
         sudo apt-get install -y "$TMP_DIR/$RUSTDESK_FILE"
         ;;
     rpm)
-        sudo dnf install -y "$TMP_DIR/$RUSTDESK_FILE"
+        if command -v dnf >/dev/null 2>&1; then
+            sudo dnf install -y "$TMP_DIR/$RUSTDESK_FILE"
+        elif command -v yum >/dev/null 2>&1; then
+            sudo yum install -y "$TMP_DIR/$RUSTDESK_FILE"
+        else
+            fail "Geen dnf of yum gevonden."
+        fi
         ;;
     suse)
         sudo zypper --non-interactive --no-gpg-checks \
@@ -211,24 +217,24 @@ case "$PACKAGE_TYPE" in
         ;;
 esac
 
-# 13. Resultaat controleren
+# 11. Eindcontrole
 echo
 echo "=== Eindcontrole ==="
 
 systemctl is-active --quiet tailscaled ||
     fail "Tailscale-service is niet actief."
 
-command -v tailscale >/dev/null ||
+command -v tailscale >/dev/null 2>&1 ||
     fail "Tailscale-commando ontbreekt."
 
-command -v rustdesk >/dev/null ||
+command -v rustdesk >/dev/null 2>&1 ||
     fail "RustDesk-commando ontbreekt."
 
 echo "[OK] Tailscale is geïnstalleerd en actief."
 echo "[OK] RustDesk is geïnstalleerd."
 echo
 echo "=== Volgende stap ==="
-echo "Meld de computer aan bij Tailscale:"
+echo "Meld de computer aan bij Tailscale met:"
 echo
 echo "    sudo tailscale up"
 echo
