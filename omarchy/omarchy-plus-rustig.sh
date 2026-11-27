@@ -2,8 +2,8 @@
 #
 # Omarchy Plus Rustig
 # CLI Toolkit + Docker Toolbox + thema "Rustig Signaal"
-# Omarchy / Arch Linux
-# Versie: 4.0.0
+# Omarchy 4.5 of hoger (Arch Linux)
+# Versie: 4.1.0
 #
 # Samengevoegd uit:
 #   - Omarchy Plus 3.2.1
@@ -36,7 +36,7 @@
 set -Eeuo pipefail
 umask 077
 
-readonly VERSION="4.0.0"
+readonly VERSION="4.1.0"
 
 # ============================================================
 # INSTELLINGEN
@@ -75,9 +75,10 @@ readonly EZA_THEME="${EZA_DIR}/theme.yml"
 readonly KITTY_CONFIG="${HOME}/.config/kitty/kitty.conf"
 readonly THEME_BACKUP_ROOT="${HOME}/.local/share/freeboot/backups"
 
-# Omarchy 4 bewaart de themanaam in .local/state, Omarchy 3 in .config.
-readonly THEME_NAME_FILE_V4="${HOME}/.local/state/omarchy/current/theme.name"
-readonly THEME_NAME_FILE_V3="${HOME}/.config/omarchy/current/theme.name"
+readonly THEME_NAME_FILE="${HOME}/.local/state/omarchy/current/theme.name"
+readonly THEME_BACKGROUND="${THEME_DIR}/backgrounds/rustig-effen.png"
+readonly OMARCHY_DIR="${OMARCHY_PATH:-/usr/share/omarchy}"
+readonly KITTY_INCLUDE="include ~/.local/state/omarchy/current/theme/kitty.conf"
 
 readonly MARKER_BEGIN="# >>> FREEBOOT RUSTIG SIGNAAL >>>"
 readonly MARKER_END="# <<< FREEBOOT RUSTIG SIGNAAL <<<"
@@ -98,17 +99,20 @@ MANAGED_PATHS=(
 # Vaste betekenis:
 #   rood   = fout          oranje = waarschuwing
 #   groen  = gelukt        blauw  = informatie
+#
+# Elke tekstkleur heeft een contrast van minstens 4,5:1 (WCAG AA),
+# op de achtergrond en ook op geselecteerde tekst.
 
 readonly BG="#24262b"
 readonly FG="#cfd2d6"
 
-readonly C_RED="#e8707c"
+readonly C_RED="#f28b95"
 readonly C_ORANGE="#e0a050"
 readonly C_GREEN="#76c9a0"
-readonly C_BLUE="#7aa2d4"
-readonly C_MUTED="#8a909a"
+readonly C_BLUE="#91b8e8"
+readonly C_MUTED="#a6adb8"
 
-readonly SELECTION="#3a3f4b"
+readonly SELECTION="#353a46"
 readonly BRIGHT_FG="#e6e8eb"
 
 readonly DARKER_BG="#1a1c20"
@@ -116,6 +120,9 @@ readonly DARK_BG="#1e2025"
 
 readonly C_PURPLE="#c9a0dc"
 readonly C_YELLOW="#e0c080"
+
+# fzf gebruikt dezelfde kleuren (Bash, Zsh en Fish).
+readonly FZF_COLORS="--color=bg:${BG},fg:${FG},hl:${C_ORANGE},fg+:${BRIGHT_FG},bg+:${SELECTION},hl+:${C_ORANGE},info:${C_MUTED},prompt:${C_BLUE},pointer:${C_GREEN},marker:${C_GREEN},header:${C_BLUE}"
 
 # ============================================================
 # PAKKETLIJSTEN
@@ -178,6 +185,7 @@ Documentatie|graphviz|dot
 Documentatie|lynx|lynx
 Documentatie|w3m|w3m
 Documentatie|translate-shell|trans
+Documentatie|tldr|tldr
 EOF
 )
 
@@ -200,7 +208,17 @@ THEME_PACKAGES=(
   ffmpeg imagemagick pandoc dos2unix unzip zip
   7zip zstd lz4 pigz sqlite
   inetutils iproute2 iputils openbsd-netcat socat
-  tealdeer
+  tldr
+)
+
+# Pakketten die hetzelfde doen en niet samen horen.
+# Is het alternatief al aanwezig, dan wordt er niets dubbel geïnstalleerd.
+# Is geen van beide aanwezig, dan kiest de CLI Toolkit tldr
+# (de standaard van Omarchy).
+declare -rA ALTERNATIVES=(
+    [tldr]="tealdeer"
+    [openbsd-netcat]="gnu-netcat"
+    [rustup]="rust"
 )
 
 # ============================================================
@@ -362,6 +380,36 @@ confirm() {
         j|ja|y|yes) return 0 ;;
         *)          return 1 ;;
     esac
+}
+
+# ============================================================
+# OMARCHY-VERSIE
+# ============================================================
+
+# $1 = "streng": stoppen bij een oudere versie.
+#      "soepel": alleen melden (de update volgt nog).
+# Uitkomst 1 betekent: versie is ouder dan 4.5.
+check_omarchy_version() {
+    local strictness="$1"
+    local version
+
+    version="$(omarchy version 2>/dev/null)" || version=""
+    version="${version#*:}"
+
+    if [[ ! "$version" =~ ^([0-9]+)\.([0-9]+) ]]; then
+        warning "Omarchy-versie niet te bepalen (${version:-onbekend}). Dit script is voor 4.5 of hoger."
+        return 0
+    fi
+
+    if (( 10#${BASH_REMATCH[1]} > 4 || ( 10#${BASH_REMATCH[1]} == 4 && 10#${BASH_REMATCH[2]} >= 5 ) )); then
+        success "Omarchy ${version} (4.5 of hoger)."
+        return 0
+    fi
+
+    [[ "$strictness" != "streng" ]] ||
+        die "Omarchy 4.5 of hoger is vereist. Gevonden: ${version}. Werk eerst bij met: omarchy update"
+    warning "Omarchy ${version} is ouder dan 4.5."
+    return 1
 }
 
 # ============================================================
@@ -618,6 +666,14 @@ is_installed() {
     pacman -Qq "$1" >/dev/null 2>&1
 }
 
+# Toont het geïnstalleerde alternatief van een pakket, als dat er is.
+installed_alternative() {
+    local alternative="${ALTERNATIVES[$1]:-}"
+    [[ -n "$alternative" ]] || return 1
+    is_installed "$alternative" || return 1
+    printf '%s' "$alternative"
+}
+
 has_conflict() {
     local package="$1"
     local metadata
@@ -629,7 +685,10 @@ has_conflict() {
 
     [[ -z "$conflicts" || "$conflicts" == "None" ]] && return 1
 
-    for conflict in $conflicts; do
+    local -a names=()
+    read -r -d '' -a names <<< "$conflicts" || true
+
+    for conflict in "${names[@]}"; do
         conflict="${conflict%%[<>=]*}"
         if pacman -Qq "$conflict" >/dev/null 2>&1; then
             warning "$package conflicteert met geïnstalleerd pakket $conflict"
@@ -646,12 +705,17 @@ inventory_cli() {
 
     info "CLI Toolkit: inventarisatie..."
 
-    local category package cmd
+    local category package cmd alternative
     while IFS='|' read -r category package cmd; do
         [[ -z "$package" ]] && continue
 
         if is_installed "$package"; then
             SKIP_LIST+=("$package (reeds aanwezig)")
+            continue
+        fi
+
+        if alternative="$(installed_alternative "$package")"; then
+            SKIP_LIST+=("$package (niet nodig: $alternative is al aanwezig)")
             continue
         fi
 
@@ -691,6 +755,10 @@ show_cli_overview() {
         for entry in "${SKIP_LIST[@]}"; do
             printf "  [-] %s\n" "$entry"
         done
+        echo
+        echo "Overgeslagen pakketten zijn geen probleem: geen onderdeel van dit"
+        echo "script heeft ze nodig. dtool hadolint en dtool trivy gebruiken"
+        echo "hun eigen Docker-image."
     fi
 
     echo
@@ -716,13 +784,14 @@ install_cli_packages() {
     # Eén aanroep voorkomt tientallen afzonderlijke pakkettransacties.
     # tee: je ziet de voortgang en alles staat ook in het logbestand.
     if ! omarchy pkg add "${packages[@]}" 2>&1 | tee -a "$LOG_FILE"; then
-        error "De gezamenlijke CLI-pakketinstallatie is mislukt. Zie het logbestand."
-        return 1
+        warning "De gezamenlijke installatie is mislukt."
+        info "Nu per pakket, zodat één probleempakket de rest niet tegenhoudt."
+        install_one_by_one "${packages[@]}"
     fi
 
     local -a failed=()
     for package in "${packages[@]}"; do
-        if pacman -Qq "$package" >/dev/null 2>&1; then
+        if is_installed "$package"; then
             success "$package gecontroleerd."
         else
             failed+=("$package")
@@ -730,12 +799,32 @@ install_cli_packages() {
     done
 
     if [[ ${#failed[@]} -gt 0 ]]; then
-        warning "Niet teruggevonden na installatie:"
+        warning "Niet geïnstalleerd:"
         printf '  - %s\n' "${failed[@]}"
+        error "Een deel van de CLI-pakketten ontbreekt. Zie het logbestand."
         return 1
     fi
 
     success "Alle CLI-pakketten zijn geïnstalleerd en gecontroleerd."
+}
+
+# Er wordt nooit een bestaand pakket verwijderd: bij een conflict
+# antwoordt pacman (--noconfirm) standaard met "nee".
+install_one_by_one() {
+    local package in_a_row=0
+
+    for package in "$@"; do
+        if omarchy pkg add "$package" 2>&1 | tee -a "$LOG_FILE"; then
+            in_a_row=0
+        else
+            in_a_row=$((in_a_row + 1))
+            warning "$package is niet geïnstalleerd."
+        fi
+        if (( in_a_row >= 5 )); then
+            error "Vijf pakketten na elkaar mislukt. Controleer netwerk en pakketdatabase."
+            return 0
+        fi
+    done
 }
 
 # ============================================================
@@ -1393,18 +1482,8 @@ uninstall_docker_toolbox() {
 # ONDERDEEL 3: THEMA - CONTROLES
 # ============================================================
 
-current_theme_file() {
-    if [[ -f "$THEME_NAME_FILE_V4" ]]; then
-        printf '%s' "$THEME_NAME_FILE_V4"
-    elif [[ -f "$THEME_NAME_FILE_V3" ]]; then
-        printf '%s' "$THEME_NAME_FILE_V3"
-    fi
-}
-
 current_theme() {
-    local file
-    file="$(current_theme_file)"
-    [[ -z "$file" ]] || cat -- "$file"
+    [[ ! -f "$THEME_NAME_FILE" ]] || cat -- "$THEME_NAME_FILE"
 }
 
 check_theme_requirements() {
@@ -1478,7 +1557,11 @@ check_theme_directory() {
     [[ -d "$THEME_DIR" ]] || return 0
 
     local extra
-    extra="$(find "$THEME_DIR" -mindepth 1 ! -name colors.toml -print -quit)"
+    extra="$(find "$THEME_DIR" -mindepth 1 \
+        ! -path "${THEME_DIR}/colors.toml" \
+        ! -path "${THEME_DIR}/backgrounds" \
+        ! -path "$THEME_BACKGROUND" \
+        -print -quit)"
 
     [[ -z "$extra" ]] || die "Bestaande themamap bevat extra bestanden: $extra
 Maak eerst handmatig een back-up en controleer deze bestanden."
@@ -1492,17 +1575,28 @@ check_theme_preconditions() {
 }
 
 check_theme_packages() {
-    local package
-    local -a missing=()
+    local package alternative
+    local -a missing=() replaced=()
 
     for package in "${THEME_PACKAGES[@]}"; do
-        pacman -Q "$package" >/dev/null 2>&1 || missing+=("$package")
+        is_installed "$package" && continue
+        if alternative="$(installed_alternative "$package")"; then
+            replaced+=("$package: $alternative is aanwezig en doet hetzelfde")
+        else
+            missing+=("$package")
+        fi
     done
 
     echo
     printf 'Pakketten in controlelijst : %s\n' "${#THEME_PACKAGES[@]}"
-    printf 'Geïnstalleerd             : %s\n' "$(( ${#THEME_PACKAGES[@]} - ${#missing[@]} ))"
+    printf 'Geïnstalleerd             : %s\n' "$(( ${#THEME_PACKAGES[@]} - ${#missing[@]} - ${#replaced[@]} ))"
+    printf 'Vervangen door alternatief : %s\n' "${#replaced[@]}"
     printf 'Ontbrekend                : %s\n' "${#missing[@]}"
+
+    if (( ${#replaced[@]} > 0 )); then
+        printf '\nVervangen:\n'
+        printf '  - %s\n' "${replaced[@]}"
+    fi
 
     if (( ${#missing[@]} > 0 )); then
         printf '\nOntbrekende pakketten:\n'
@@ -1521,6 +1615,12 @@ show_theme_overview() {
     printf 'Kitty-configuratie : %s\n' "$KITTY_CONFIG"
     printf 'Shellbestanden     : .bashrc, .zshrc en een Fish-bestand\n'
     printf 'Back-upmap         : %s\n' "$THEME_BACKUP_ROOT"
+
+    if ! command_exists kitty; then
+        echo
+        info "Kitty is niet geïnstalleerd (Omarchy gebruikt standaard Foot)."
+        info "Het thema werkt ook zonder Kitty. Kitty installeren: omarchy install terminal kitty"
+    fi
 }
 
 # ============================================================
@@ -1668,6 +1768,43 @@ PY
     success "colors.toml aangemaakt en gevalideerd."
 }
 
+# Een effen, rustige achtergrond. Zonder achtergrond meldt Omarchy 4.5
+# "geen achtergrond gevonden" en verwijst de achtergrondkoppeling nergens heen.
+write_background() {
+    local parent temp
+
+    parent="$(dirname "$THEME_BACKGROUND")"
+    mkdir -p "$parent" || return 1
+    temp="$(mktemp "${parent}/.freeboot.XXXXXX")" || return 1
+    TEMP_PATHS+=("$temp")
+
+    python3 -I - "$temp" "$BG" <<'PY' || return 1
+import struct
+import sys
+import zlib
+
+path, color = sys.argv[1:3]
+width, height = 1920, 1080
+row = b"\x00" + bytes.fromhex(color.lstrip("#")) * width
+
+
+def chunk(kind, data):
+    body = kind + data
+    return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body))
+
+
+with open(path, "wb") as handle:
+    handle.write(b"\x89PNG\r\n\x1a\n")
+    handle.write(chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)))
+    handle.write(chunk(b"IDAT", zlib.compress(row * height, 9)))
+    handle.write(chunk(b"IEND", b""))
+PY
+
+    chmod 644 "$temp" || return 1
+    mv -f -- "$temp" "$THEME_BACKGROUND" || return 1
+    success "Effen achtergrond aangemaakt."
+}
+
 write_eza_theme() {
     write_atomic "$EZA_THEME" 0644 <<EOF || return 1
 colourful: true
@@ -1761,6 +1898,34 @@ except BaseException:
 PY
 }
 
+# Zorgt dat kitty.conf de Omarchy-themakleuren laadt.
+prepare_kitty_config() {
+    local own_content=""
+
+    if [[ -f "$KITTY_CONFIG" ]]; then
+        own_content="$(awk -v b="$MARKER_BEGIN" -v e="$MARKER_END" '
+            $0 == b { inside = 1; next }
+            $0 == e { inside = 0; next }
+            !inside && NF { print; exit }
+        ' "$KITTY_CONFIG")" || return 1
+    fi
+
+    if [[ -z "$own_content" ]]; then
+        # Nog geen eigen instellingen: begin met de standaard van Omarchy.
+        local default="${OMARCHY_DIR}/config/kitty/kitty.conf"
+        if [[ -f "$default" ]]; then
+            write_atomic "$KITTY_CONFIG" 0644 < "$default" || return 1
+        else
+            printf '%s\n' "$KITTY_INCLUDE" | write_atomic "$KITTY_CONFIG" 0644 || return 1
+        fi
+        success "kitty.conf aangemaakt op basis van de Omarchy-standaard."
+    elif ! grep -Eq '^[[:space:]]*include[[:space:]].*omarchy/current/theme/kitty\.conf' "$KITTY_CONFIG"; then
+        warning "kitty.conf laadt de Omarchy-themakleuren niet."
+        info "Voeg deze regel bovenaan ${KITTY_CONFIG} toe:"
+        info "  ${KITTY_INCLUDE}"
+    fi
+}
+
 write_kitty_settings() {
     local snippet
     snippet="$(mktemp)" || return 1
@@ -1776,10 +1941,11 @@ visual_bell_duration 0.0
 # Rustige vensterweergave
 window_padding_width 8
 background_opacity 1.0
-dim_opacity 0.7
+dim_opacity 0.85
 inactive_text_alpha 1.0
 EOF
 
+    prepare_kitty_config || return 1
     update_managed_block "$KITTY_CONFIG" "$snippet" || return 1
     success "Kitty-instellingen toegevoegd."
 }
@@ -1798,12 +1964,14 @@ export EZA_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/eza"
 unset EZA_COLORS
 unset LS_COLORS
 
-# Minder visuele ruis in fzf.
-export FZF_DEFAULT_OPTS='--color=bg:#24262b,fg:#cfd2d6,hl:#e0a050,fg+:#e6e8eb,bg+:#3a3f4b,hl+:#e0a050,info:#8a909a,prompt:#7aa2d4,pointer:#76c9a0,marker:#76c9a0,header:#7aa2d4'
-
 # Kleurondersteuning voor less.
 export LESS="${LESS:--R}"
 EOF
+    {
+        echo
+        echo "# Minder visuele ruis in fzf."
+        printf "export FZF_DEFAULT_OPTS='%s'\n" "$FZF_COLORS"
+    } >> "$snippet" || return 1
 
     update_managed_block "$BASHRC" "$snippet" || return 1
     update_managed_block "${HOME}/.zshrc" "$snippet" || return 1
@@ -1811,7 +1979,9 @@ EOF
 }
 
 write_fish_settings() {
-    write_atomic "${HOME}/.config/fish/conf.d/freeboot-rustig-signaal.fish" 0644 <<'EOF' || return 1
+    local fish_file="${HOME}/.config/fish/conf.d/freeboot-rustig-signaal.fish"
+
+    write_atomic "$fish_file" 0644 <<'EOF' || return 1
 # FreeBoot Rustig Signaal
 
 set -gx EZA_CONFIG_DIR "$HOME/.config/eza"
@@ -1819,10 +1989,9 @@ set -gx EZA_CONFIG_DIR "$HOME/.config/eza"
 set -e EZA_COLORS
 set -e LS_COLORS
 
-set -gx FZF_DEFAULT_OPTS '--color=bg:#24262b,fg:#cfd2d6,hl:#e0a050,fg+:#e6e8eb,bg+:#3a3f4b,hl+:#e0a050,info:#8a909a,prompt:#7aa2d4,pointer:#76c9a0,marker:#76c9a0,header:#7aa2d4'
-
 set -gx LESS '-R'
 EOF
+    printf "\nset -gx FZF_DEFAULT_OPTS '%s'\n" "$FZF_COLORS" >> "$fish_file" || return 1
 
     success "Fish-configuratie aangemaakt."
 }
@@ -1859,6 +2028,7 @@ install_theme() {
     create_theme_backup || { error "Back-up mislukt. Er zijn geen themabestanden gewijzigd."; return 1; }
 
     write_colors || return 1
+    write_background || return 1
     write_eza_theme || return 1
     write_kitty_settings || return 1
     write_shell_settings || return 1
@@ -1870,21 +2040,77 @@ install_theme() {
 # THEMA - HERSTEL
 # ============================================================
 
-latest_theme_backup() {
+# Uitkomst: 0 = de back-up bevat het thema al, 1 = back-up van vóór het thema,
+#           2 = back-up onleesbaar.
+backup_theme_status() {
+    python3 -I - "$1" "$THEME_NAME" "$MARKER_BEGIN" <<'PY'
+import pathlib
+import sys
+import tarfile
+
+source = pathlib.Path(sys.argv[1])
+theme = sys.argv[2]
+marker = sys.argv[3].encode()
+theme_paths = (
+    f".config/omarchy/themes/{theme}",
+    f".config/fish/conf.d/{theme}.fish",
+)
+shell_files = (".bashrc", ".zshrc", ".config/kitty/kitty.conf")
+
+try:
+    previous = source / "previous-theme.txt"
+    if previous.is_file() and previous.read_text(errors="replace").strip() == theme:
+        sys.exit(0)
+    with tarfile.open(source / "files.tar") as archive:
+        for member in archive.getmembers():
+            if member.name.startswith(theme_paths):
+                sys.exit(0)
+            if member.name in shell_files and member.isfile():
+                if marker in archive.extractfile(member).read().split(b"\n"):
+                    sys.exit(0)
+except (OSError, tarfile.TarError):
+    sys.exit(2)
+
+sys.exit(1)
+PY
+}
+
+# Nieuwste back-up die is gemaakt toen het thema nog niet aanwezig was.
+latest_clean_backup() {
     [[ -d "$THEME_BACKUP_ROOT" ]] || return 0
-    find "$THEME_BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d -name '20*' |
-        sort |
-        tail -n 1
+
+    local dir status
+    local -a dirs=()
+    mapfile -t dirs < <(find "$THEME_BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d -name '20*' | sort -V)
+
+    local index
+    for (( index = ${#dirs[@]} - 1; index >= 0; index-- )); do
+        dir="${dirs[index]}"
+        status=0
+        backup_theme_status "$dir" || status=$?
+        if (( status == 1 )); then
+            printf '%s' "$dir"
+            return 0
+        fi
+    done
 }
 
 list_theme_backups() {
     [[ -d "$THEME_BACKUP_ROOT" ]] || return 0
-    local dir theme
+
+    local dir theme status label
     echo "Beschikbare back-ups (naam = datum en tijd; voor-herstel = veiligheidskopie):"
     while IFS= read -r dir; do
         theme="$(cat -- "${dir}/previous-theme.txt" 2>/dev/null || true)"
-        printf '  - %s   (thema toen: %s)\n' "$dir" "${theme:-onbekend}"
-    done < <(find "$THEME_BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d | sort)
+        status=0
+        backup_theme_status "$dir" || status=$?
+        case "$status" in
+            0) label="thema al aanwezig" ;;
+            1) label="van vóór het thema" ;;
+            *) label="onleesbaar" ;;
+        esac
+        printf '  - %s\n      %s; actief thema toen: %s\n' "$dir" "$label" "${theme:-onbekend}"
+    done < <(find "$THEME_BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d | sort -V)
 }
 
 # Controleert dat het archief uitsluitend beheerde, gewone bestanden bevat.
@@ -1914,9 +2140,15 @@ has_docker_block() {
 
 restore_theme() {
     local source="$RESTORE_DIR"
-    [[ -n "$source" ]] || source="$(latest_theme_backup)"
+    if [[ -z "$source" ]]; then
+        source="$(latest_clean_backup)"
+        if [[ -z "$source" ]]; then
+            list_theme_backups
+            die "Geen back-up van vóór het thema gevonden. Kies er zelf een met: --restore PAD"
+        fi
+    fi
 
-    [[ -n "$source" && -d "$source" ]] || die "Back-upmap niet gevonden."
+    [[ -d "$source" ]] || die "Back-upmap niet gevonden: $source"
 
     local required
     for required in files.tar managed-paths.txt existing-paths.txt; do
@@ -1933,6 +2165,10 @@ restore_theme() {
     echo
     list_theme_backups
     echo
+    local status=0
+    backup_theme_status "$source" || status=$?
+    (( status != 0 )) || warning "Deze back-up bevat het thema al. Het thema blijft dan aanwezig."
+
     info "Gekozen back-up : $source"
     info "Thema daarin    : ${previous_theme:-onbekend}"
     info "Deze bestanden worden teruggezet (of verwijderd als ze toen niet bestonden):"
@@ -1966,9 +2202,10 @@ restore_theme() {
         rm -rf -- "${HOME:?}/${rel}" ||
             die "Verwijderen mislukt: ~/${rel}. Veiligheidskopie: $safety"
         if [[ -e "${staging}/${rel}" ]]; then
-            mkdir -p "$(dirname "${HOME}/${rel}")" &&
-                mv -- "${staging}/${rel}" "${HOME}/${rel}" ||
+            if ! mkdir -p "$(dirname "${HOME}/${rel}")" ||
+                ! mv -- "${staging}/${rel}" "${HOME}/${rel}"; then
                 die "Terugzetten mislukt: ~/${rel}. Veiligheidskopie: $safety"
+            fi
         fi
     done
 
@@ -1998,12 +2235,36 @@ restore_theme() {
 }
 
 # ============================================================
+# SHELLCHECK
+# ============================================================
+
+# Controleert dit script en dtool, als ShellCheck aanwezig is.
+run_shellcheck() {
+    if ! command_exists shellcheck; then
+        info "ShellCheck is nog niet geïnstalleerd (zit in de CLI Toolkit). Controle overgeslagen."
+        return 0
+    fi
+
+    local file problems=0
+    for file in "${BASH_SOURCE[0]}" "$SCRIPT_PATH"; do
+        [[ -f "$file" ]] || continue
+        if shellcheck --shell=bash --severity=warning "$file"; then
+            success "ShellCheck: geen fouten of waarschuwingen in $file"
+        else
+            warning "ShellCheck meldt aandachtspunten in $file (zie hierboven)."
+            problems=1
+        fi
+    done
+    return "$problems"
+}
+
+# ============================================================
 # HELP
 # ============================================================
 
 show_help() {
     cat <<EOF
-Omarchy Plus Rustig ${VERSION}
+Omarchy Plus Rustig ${VERSION}  (voor Omarchy 4.5 of hoger)
 
 GEBRUIK
   bash $0 [opties]
@@ -2031,7 +2292,7 @@ OVERIG
 
 TERUGDRAAIEN
   --uninstall         Docker Toolbox verwijderen
-  --restore           Themabestanden uit de nieuwste back-up herstellen
+  --restore           Terug naar de nieuwste back-up van vóór het thema
   --restore PAD       Themabestanden uit een gekozen back-up herstellen
 
 VASTE VOLGORDE BIJ INSTALLEREN
@@ -2116,12 +2377,13 @@ parse_arguments() {
 
 run_check() {
     heading "Controle (er wordt niets gewijzigd)"
-    require pacman
+    require pacman omarchy
     local problems=0
+
+    check_omarchy_version soepel || problems=1
 
     if [[ "$DO_CLI" == true ]]; then
         heading "CLI Toolkit"
-        command_exists omarchy || { warning "Commando omarchy ontbreekt."; problems=1; }
         inventory_cli
         show_cli_overview
     fi
@@ -2148,6 +2410,9 @@ run_check() {
         check_theme_preconditions
         check_theme_packages
     fi
+
+    heading "ShellCheck"
+    run_shellcheck || problems=1
 
     echo
     if (( problems == 0 )); then
@@ -2219,9 +2484,15 @@ run_install() {
 
     # ---------- Voorcontroles ----------
     step "Voorcontroles (wijzigt niets)"
-    require pacman
+    require pacman omarchy
     if [[ "$needs_system" == true ]]; then
-        require omarchy sudo
+        require sudo
+    fi
+    # Komt er nog een update, dan wordt de versie daarna streng gecontroleerd.
+    if [[ "$needs_system" == true && "$SKIP_UPDATE" != true ]]; then
+        check_omarchy_version soepel || true
+    else
+        check_omarchy_version streng
     fi
     if [[ "$DO_DOCKER" == true ]]; then
         require systemctl grep awk cmp install readlink mktemp
@@ -2269,6 +2540,7 @@ run_install() {
     if [[ "$needs_system" == true ]]; then
         step "Omarchy bijwerken"
         run_omarchy_update || exit 1
+        check_omarchy_version streng
     fi
 
     if [[ "$DO_DOCKER" == true ]]; then
@@ -2328,6 +2600,8 @@ run_install() {
 
     # ---------- Eindrapport ----------
     step "Eindrapport"
+    run_shellcheck || true
+    echo
     report_line "CLI Toolkit" "$cli_result"
     report_line "Docker Toolbox" "$docker_result"
     report_line "Thema Rustig Signaal" "$theme_result"
@@ -2380,7 +2654,8 @@ main() {
             run_check
             ;;
         restore)
-            require pacman
+            require pacman omarchy
+            check_omarchy_version streng
             check_theme_requirements
             check_managed_paths
             restore_theme
